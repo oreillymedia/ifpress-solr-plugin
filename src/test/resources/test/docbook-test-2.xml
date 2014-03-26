@@ -1,0 +1,31 @@
+<ifp:doc xmlns:ifp="http://www.ifactory.com/press" uri="/test/docbook-test-2.xml">
+<ifp:meta xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <dc:title>Exercises in Taxonomy</dc:title>
+  <ifp:sortkey>exercises in taxonomy</ifp:sortkey>
+  <dc:type>book</dc:type>
+  <ifp:sortyear xsd="0999-01-01" xsdt="0999-01-01T00:00:00">999</ifp:sortyear>
+</ifp:meta>
+<ifp:body>
+<book id="test-2">
+  <title>Exercises in Taxonomy</title> 
+  <chapter id="1">
+    <title>Apples</title>
+    <section id="A">
+        A stands for Apple. Term
+    </section>
+    <section id="B">
+        B stands for Banana. Term
+    </section>
+  </chapter>
+  <chapter id="2">
+    <title>Disciplines</title>
+    <section id="A">
+        A stands <i>additionally</i> for Agronomy. Term
+    </section>
+    <section id="B">
+        B stands for Biology. Term
+    </section>
+  </chapter>
+</book>
+</ifp:body>
+</ifp:doc>
