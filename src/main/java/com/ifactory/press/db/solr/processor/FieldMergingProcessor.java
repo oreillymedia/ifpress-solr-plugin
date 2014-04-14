@@ -1,15 +1,19 @@
 package com.ifactory.press.db.solr.processor;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.document.Field;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.IndexableField;
 import org.apache.solr.common.SolrInputDocument;
+import org.apache.solr.schema.SchemaField;
 import org.apache.solr.update.AddUpdateCommand;
 import org.apache.solr.update.processor.UpdateRequestProcessor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * FieldMergingProcessor is a Solr UpdateRequestProcessor that merges 
@@ -51,9 +55,9 @@ public class FieldMergingProcessor extends UpdateRequestProcessor {
     // private static Logger log = LoggerFactory.getLogger(FieldMergingProcessorFactory.class);
     
     private final String destinationField;
-    private final HashMap<String,Analyzer> sourceFields;
+    private final HashMap<String,SchemaField> sourceFields;
     
-    public FieldMergingProcessor(String destinationField, HashMap<String, Analyzer> sourceFields, UpdateRequestProcessor next) {
+    public FieldMergingProcessor(String destinationField, HashMap<String, SchemaField> sourceFields, UpdateRequestProcessor next) {
         super(next);
         this.destinationField = destinationField;
         this.sourceFields = sourceFields;
@@ -62,12 +66,16 @@ public class FieldMergingProcessor extends UpdateRequestProcessor {
     public void processAdd(AddUpdateCommand cmd) throws IOException {
         if (sourceFields != null && destinationField != null) {
             SolrInputDocument doc = cmd.getSolrInputDocument();
-            for (Map.Entry<String, Analyzer> entry : sourceFields.entrySet()) {
+            for (Map.Entry<String, SchemaField> entry : sourceFields.entrySet()) {
                 String sourceFieldName = entry.getKey();
-                Analyzer analyzer = entry.getValue();
-                for (Object value : doc.getFieldValues(sourceFieldName)) {
-                    IndexableField fieldValue = new TextField (destinationField, analyzer.tokenStream(destinationField, value.toString()));
-                    doc.addField(destinationField, fieldValue);
+                SchemaField schemaField = entry.getValue();
+                Collection<Object> fieldValues = doc.getFieldValues(sourceFieldName);
+                if (fieldValues != null) {
+                    for (Object value : fieldValues) {
+                        // TODO: create an Analyzer that caches its TokenStream and then resets it when tokenStream is called???
+                        IndexableField fieldValue = new TextField (destinationField, analyzerWrapper.tokenStream(sourceFieldName, value.toString()));
+                        doc.addField(destinationField, fieldValue);
+                    }
                 }
             }
         }

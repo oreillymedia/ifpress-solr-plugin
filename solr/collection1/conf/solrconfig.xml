@@ -1302,8 +1302,8 @@
      <processor class="com.ifactory.press.db.solr.processor.FieldMergingProcessorFactory">
        <str name="destinationField">catchall</str>
        <lst name="sourceField">
-         <str name="title_t">keyword</str>
-         <str name="text_t" />
+         <str name="title_mt">keyword</str>
+         <str name="text_mt" />
        </lst>
      </processor>
      <processor class="solr.LogUpdateProcessorFactory" />

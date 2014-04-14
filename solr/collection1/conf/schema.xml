@@ -358,6 +358,8 @@
 		<copyField source="fulltext_t" dest="fulltext_t_case" />
 		<copyField source="fulltext_t" dest="fulltext_t_unstemmed" />
 
+        <field name="keyword" type="keyword" indexed="true" stored="false" multiValued="true" />
+
 		<!-- whether the content is active / enabled for display -->
 		<field name="active" type="boolean" indexed="true" stored="false"
 			multiValued="false" />

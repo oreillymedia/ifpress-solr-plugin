@@ -2,13 +2,13 @@ package com.ifactory.press.db.solr.processor;
 
 import java.util.HashMap;
 
-import org.apache.lucene.analysis.Analyzer;
 import org.apache.solr.common.util.NamedList;
 import org.apache.solr.core.SolrCore;
 import org.apache.solr.request.SolrQueryRequest;
 import org.apache.solr.response.SolrQueryResponse;
 import org.apache.solr.schema.FieldType;
 import org.apache.solr.schema.IndexSchema;
+import org.apache.solr.schema.SchemaField;
 import org.apache.solr.update.processor.UpdateRequestProcessor;
 import org.apache.solr.update.processor.UpdateRequestProcessorFactory;
 import org.apache.solr.util.plugin.SolrCoreAware;
@@ -19,7 +19,7 @@ public class FieldMergingProcessorFactory extends UpdateRequestProcessorFactory 
     
     private static Logger log = LoggerFactory.getLogger(FieldMergingProcessorFactory.class);
     private String destinationField;
-    private HashMap<String,Analyzer> sourceFieldAnalyzers;
+    private HashMap<String, SchemaField> sourceSchemaFields;
     private IndexSchema schema;
     private NamedList<?> initArgs;
 
@@ -41,34 +41,39 @@ public class FieldMergingProcessorFactory extends UpdateRequestProcessorFactory 
             return;
         }
         destinationField = (String) o;
+        FieldType destinationFieldType = schema.getFieldType(destinationField);
+        if (destinationFieldType == null) {
+            log.error("deistinationField is not defined in the schema: it has no schema type");
+            return;
+        }
         o = initArgs.get("sourceField");
         if (o == null || ! (o instanceof NamedList)) {
-            log.error("destinationField must be present as a list, got " + o);
+            log.error("sourceField must be present as a list, got " + o);
             return;
         }
         NamedList<?> sourceFields = (NamedList<?>) o;
         if (sourceFields.size() == 0) {
             log.error("destinationField must not be empty");
         }
-        sourceFieldAnalyzers = new HashMap<String, Analyzer>();
+        sourceSchemaFields= new HashMap<String, SchemaField>();
         for (int i = 0; i < sourceFields.size(); i++) {
             String sourceFieldName = sourceFields.getName(i);
             o = sourceFields.getVal(i);
-            FieldType fieldType;
+            SchemaField fieldType;
             if (o instanceof String && ! ((String) o).isEmpty()) {
-                String analyzerTypeName = (String) o;
-                fieldType = schema.getFieldTypeByName(analyzerTypeName);
+                String analysisFieldName = (String) o;
+                fieldType = schema.getField(analysisFieldName);
                 if (fieldType == null) {
-                    log.error ("No such fieldType: " + analyzerTypeName);
+                    log.error ("No such field: " + analysisFieldName);
                 }
             } else {
-                fieldType = schema.getFieldType(sourceFieldName);
+                fieldType = schema.getField(sourceFieldName);
                 if (fieldType == null) {
                     log.error ("No such field " + sourceFieldName);
                 }
             }
             if (fieldType != null) {
-                sourceFieldAnalyzers.put(sourceFieldName, fieldType.getAnalyzer());
+                sourceSchemaFields.put(sourceFieldName, fieldType);
             }
         }
 
@@ -76,7 +81,7 @@ public class FieldMergingProcessorFactory extends UpdateRequestProcessorFactory 
 
     @Override
     public FieldMergingProcessor getInstance(SolrQueryRequest req, SolrQueryResponse rsp, UpdateRequestProcessor next) {
-        return new FieldMergingProcessor(destinationField, sourceFieldAnalyzers, next);
+        return new FieldMergingProcessor(destinationField, sourceSchemaFields, next);
     }
 
 }
