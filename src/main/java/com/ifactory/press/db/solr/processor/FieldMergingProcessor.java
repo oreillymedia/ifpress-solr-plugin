@@ -77,7 +77,6 @@ public class FieldMergingProcessor extends UpdateRequestProcessor {
                 Collection<Object> fieldValues = doc.getFieldValues(sourceFieldName);
                 if (fieldValues != null) {
                     for (Object value : fieldValues) {
-                        // TODO: create an Analyzer that caches its TokenStream and then resets it when tokenStream is called???
                         IndexableField fieldValue = new TextField (destinationField, fieldAnalyzer.tokenStream(sourceFieldName, value.toString()));
                         doc.addField(destinationField, fieldValue);
                     }
