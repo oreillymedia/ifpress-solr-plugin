@@ -9,7 +9,6 @@ import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.IndexableField;
 import org.apache.solr.common.SolrInputDocument;
-import org.apache.solr.schema.SchemaField;
 import org.apache.solr.update.AddUpdateCommand;
 import org.apache.solr.update.processor.UpdateRequestProcessor;
 
@@ -57,12 +56,12 @@ public class FieldMergingProcessor extends UpdateRequestProcessor {
     private final String destinationField;
     private final HashMap<String,PoolingAnalyzerWrapper> sourceAnalyzers;
     
-    public FieldMergingProcessor(String destinationField, HashMap<String, SchemaField> sourceFields, UpdateRequestProcessor next) {
+    public FieldMergingProcessor(String destinationField, HashMap<String, Analyzer> sourceAnalyzers, UpdateRequestProcessor next) {
         super(next);
         this.destinationField = destinationField;
         this.sourceAnalyzers = new HashMap<String, PoolingAnalyzerWrapper>();
-        for (Map.Entry<String, SchemaField> entry : sourceFields.entrySet()) {
-            Analyzer fieldAnalyzer = entry.getValue().getType().getAnalyzer();
+        for (Map.Entry<String, Analyzer> entry : sourceAnalyzers.entrySet()) {
+            Analyzer fieldAnalyzer = entry.getValue();
             this.sourceAnalyzers.put(entry.getKey(), new PoolingAnalyzerWrapper(fieldAnalyzer));
         }
     }

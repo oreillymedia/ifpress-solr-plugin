@@ -2,13 +2,13 @@ package com.ifactory.press.db.solr.processor;
 
 import java.util.HashMap;
 
+import org.apache.lucene.analysis.Analyzer;
 import org.apache.solr.common.util.NamedList;
 import org.apache.solr.core.SolrCore;
 import org.apache.solr.request.SolrQueryRequest;
 import org.apache.solr.response.SolrQueryResponse;
 import org.apache.solr.schema.FieldType;
 import org.apache.solr.schema.IndexSchema;
-import org.apache.solr.schema.SchemaField;
 import org.apache.solr.update.processor.UpdateRequestProcessor;
 import org.apache.solr.update.processor.UpdateRequestProcessorFactory;
 import org.apache.solr.util.plugin.SolrCoreAware;
@@ -19,7 +19,7 @@ public class FieldMergingProcessorFactory extends UpdateRequestProcessorFactory 
     
     private static Logger log = LoggerFactory.getLogger(FieldMergingProcessorFactory.class);
     private String destinationField;
-    private HashMap<String, SchemaField> sourceSchemaFields;
+    private HashMap<String, Analyzer> sourceAnalyzers;
     private IndexSchema schema;
     private NamedList<?> initArgs;
 
@@ -55,25 +55,25 @@ public class FieldMergingProcessorFactory extends UpdateRequestProcessorFactory 
         if (sourceFields.size() == 0) {
             log.error("destinationField must not be empty");
         }
-        sourceSchemaFields= new HashMap<String, SchemaField>();
+        sourceAnalyzers= new HashMap<String, Analyzer>();
         for (int i = 0; i < sourceFields.size(); i++) {
             String sourceFieldName = sourceFields.getName(i);
             o = sourceFields.getVal(i);
-            SchemaField fieldType;
+            FieldType fieldType;
             if (o instanceof String && ! ((String) o).isEmpty()) {
                 String analysisFieldName = (String) o;
-                fieldType = schema.getField(analysisFieldName);
+                fieldType = schema.getFieldTypeByName(analysisFieldName);
                 if (fieldType == null) {
-                    log.error ("No such field: " + analysisFieldName);
+                    log.error ("No such field type: " + analysisFieldName);
                 }
             } else {
-                fieldType = schema.getField(sourceFieldName);
+                fieldType = schema.getFieldType(sourceFieldName);
                 if (fieldType == null) {
-                    log.error ("No such field " + sourceFieldName);
+                    log.error ("No field type for field: " + sourceFieldName);
                 }
             }
             if (fieldType != null) {
-                sourceSchemaFields.put(sourceFieldName, fieldType);
+                sourceAnalyzers.put(sourceFieldName, fieldType.getAnalyzer());
             }
         }
 
@@ -81,7 +81,7 @@ public class FieldMergingProcessorFactory extends UpdateRequestProcessorFactory 
 
     @Override
     public FieldMergingProcessor getInstance(SolrQueryRequest req, SolrQueryResponse rsp, UpdateRequestProcessor next) {
-        return new FieldMergingProcessor(destinationField, sourceSchemaFields, next);
+        return new FieldMergingProcessor(destinationField, sourceAnalyzers, next);
     }
 
 }
