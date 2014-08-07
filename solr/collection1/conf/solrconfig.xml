@@ -770,10 +770,10 @@
          <str>nameOfCustomComponent1</str>
          <str>nameOfCustomComponent2</str>
        </arr>
-      -->
     <arr name="last-components">
       <str>spellcheck</str>
     </arr>
+      -->
   </requestHandler>
 
 
@@ -1036,16 +1036,8 @@
      -->
 
   
-   <!-- Spell Check
-
-        The spell check component can return a list of alternative spelling
-        suggestions.  
-
-        http://wiki.apache.org/solr/SpellCheckComponent
-     -->
-  <searchComponent name="spellcheck" class="solr.SpellCheckComponent">
-
-    <str name="queryAnalyzerFieldType">textSpell</str>
+   <!-- Suggester -->
+  <searchComponent name="suggest-component" class="solr.SpellCheckComponent">
 
     <!-- Multiple "Spell Checkers" can be declared and used by this
          component
@@ -1053,76 +1045,45 @@
 
     <!-- a spellchecker built from a field of the main index -->
     <lst name="spellchecker">
-      <str name="name">default</str>
-      <str name="field">fulltext_t</str>
-      <str name="classname">solr.DirectSolrSpellChecker</str>
-      <!-- the spellcheck distance measure used, the default is the internal levenshtein -->
-      <str name="distanceMeasure">internal</str>
-      <!-- minimum accuracy needed to be considered a valid spellcheck suggestion -->
-      <float name="accuracy">0.5</float>
-      <!-- the maximum #edits we consider when enumerating terms: can be 1 or 2 -->
-      <int name="maxEdits">2</int>
-      <!-- the minimum shared prefix when enumerating terms -->
-      <int name="minPrefix">1</int>
-      <!-- maximum number of inspections per result. -->
-      <int name="maxInspections">5</int>
-      <!-- minimum length of a query term to be considered for correction -->
-      <int name="minQueryLength">4</int>
-      <!-- maximum threshold of documents a query term can appear to be considered for correction -->
-      <float name="maxQueryFrequency">0.01</float>
-      <!-- uncomment this to require suggestions to occur in 1% of the documents
-      	<float name="thresholdTokenFrequency">.01</float>
-      -->
-    </lst>
-    
-    <!-- a spellchecker that can break or combine words.  See "/spell" handler below for usage -->
-    <lst name="spellchecker">
-      <str name="name">wordbreak</str>
-      <str name="classname">solr.WordBreakSolrSpellChecker</str>      
-      <str name="field">name</str>
-      <str name="combineWords">true</str>
-      <str name="breakWords">true</str>
-      <int name="maxChanges">10</int>
+      <str name="name">suggest-infix-all</str>
+      <str name="classname">com.ifactory.press.db.solr.spelling.suggest.MultiSuggester</str>
+      <str name="lookupImpl">org.apache.solr.spelling.suggest.fst.AnalyzingInfixLookupFactory</str>
+      <str name="suggestAnalyzerFieldType">text</str>
+      <str name="indexPath">${solr.core.name}/suggestIndex</str>
+      <float name="threshold">0.0</float>
+      <!-- true == performance-killer.  For production, schedule a rebuild nightly instead -->
+      <str name="buildOnCommit">true</str>
+      <lst name="fields">
+        <lst name="field">
+          <str name="name">fulltext_t</str>
+          <float name="weight">1.0</float>
+          <float name="minfreq">0.005</float>
+          <float name="maxfreq">0.3</float>
+        </lst>
+        <lst name="field">
+          <str name="name">title_ms</str>
+          <float name="weight">10.0</float>
+        </lst>
+      </lst>
     </lst>
 
-    <!-- a spellchecker that uses a different distance measure -->
-    <!--
-       <lst name="spellchecker">
-         <str name="name">jarowinkler</str>
-         <str name="field">spell</str>
-         <str name="classname">solr.DirectSolrSpellChecker</str>
-         <str name="distanceMeasure">
-           org.apache.lucene.search.spell.JaroWinklerDistance
-         </str>
-       </lst>
-     -->
-
-    <!-- a spellchecker that use an alternate comparator 
-
-         comparatorClass be one of:
-          1. score (default)
-          2. freq (Frequency first, then score)
-          3. A fully qualified class name
-      -->
-    <!--
-       <lst name="spellchecker">
-         <str name="name">freq</str>
-         <str name="field">lowerfilt</str>
-         <str name="classname">solr.DirectSolrSpellChecker</str>
-         <str name="comparatorClass">freq</str>
-      -->
-
-    <!-- A spellchecker that reads the list of words from a file -->
-    <!--
-       <lst name="spellchecker">
-         <str name="classname">solr.FileBasedSpellChecker</str>
-         <str name="name">file</str>
-         <str name="sourceLocation">spellings.txt</str>
-         <str name="characterEncoding">UTF-8</str>
-         <str name="spellcheckIndexDir">spellcheckerFile</str>
-       </lst>
-      -->
   </searchComponent>
+
+  <!-- A request handler for the Suggester -->
+  <requestHandler name="/suggest/all" class="solr.SearchHandler" startup="lazy">
+    <lst name="defaults">
+      <str name="spellcheck">true</str>
+      <!-- order by frequency (otherwise alphabetically) -->
+      <str name="spellcheck.onlyMorePopular">true</str>
+      <str name="spellcheck.dictionary">suggest-infix-all</str>
+      <str name="spellcheck.count">10</str>
+      <!-- include a query incorporating the suggested term? -->
+      <!-- <str name="spellcheck.collate">true</str> -->
+    </lst>
+    <arr name="components">
+      <str>suggest-component</str>
+    </arr>
+  </requestHandler>
 
   <!-- Term Vector Component
 

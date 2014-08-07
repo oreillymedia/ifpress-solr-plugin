@@ -24,9 +24,7 @@ import java.util.HashSet;
 import java.util.List;
 
 import org.apache.solr.client.solrj.SolrQuery;
-import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
-import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.client.solrj.response.TermsResponse;
 import org.apache.solr.common.SolrDocument;
@@ -35,40 +33,19 @@ import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.params.CommonParams;
 import org.apache.solr.common.params.TermsParams;
 import org.apache.solr.core.CoreContainer;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.ifactory.press.db.solr.SolrTest;
 
-public class FieldMergingProcessorTest {
+
+public class FieldMergingProcessorTest extends SolrTest {
     
     private static final String TEXT_FIELD = "text_mt";
     private static final String TITLE_FIELD = "title_mt";
     private static final String TEST = "Now is the time for all good people to come to the aid of their intentional community";
     private static final String TITLE = "The Dawning of a New Era";
     static CoreContainer coreContainer;
-    SolrServer solr;
     
-    @BeforeClass
-    public static void startup() throws Exception {
-        // start an embedded solr instance
-        coreContainer = new CoreContainer("solr");
-        coreContainer.load();
-    }
-    
-    @AfterClass
-    public static void shutdown() throws Exception {
-        coreContainer.shutdown();
-    }
-    
-    @Before
-    public void init() throws Exception {
-        solr = new EmbeddedSolrServer(coreContainer, "collection1");
-        solr.deleteByQuery("*:*");
-        solr.commit(true, true);
-    }
-
     // insert text_t and title_t and expect to get titles as phrase tokens and text as word tokens
     // in catchall
     
@@ -79,7 +56,7 @@ public class FieldMergingProcessorTest {
         doc.addField(TITLE_FIELD, TITLE);
         doc.addField(TEXT_FIELD, TEST);
         solr.add(doc);
-        solr.commit(true, true);
+        solr.commit(false, true, true);
         
         // basic check that the document was inserted
         SolrQuery solrQuery = new SolrQuery ("uri:\"/doc/1\"");
