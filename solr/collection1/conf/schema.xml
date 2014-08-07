@@ -180,7 +180,7 @@
 
 		<fieldType name="xml_text_type" class="solr.TextField" storeOffsetsWithPositions="true">
 			<analyzer type="index">
-				<charFilter class="com.ifactory.press.db.solr.analysis.XmlCharFilterFactory" />
+				<charFilter class="solr.HTMLStripCharFilterFactory" />
 				<tokenizer class="solr.StandardTokenizerFactory" />
                 <filter class="solr.StandardFilterFactory" />
 				<filter class="solr.ASCIIFoldingFilterFactory" />
@@ -198,7 +198,7 @@
 		<fieldType name="xml_text_case_type" class="solr.TextField"
 			storeOffsetsWithPositions="true">
 			<analyzer type="index">
-				<charFilter class="com.ifactory.press.db.solr.analysis.XmlCharFilterFactory" />
+				<charFilter class="solr.HTMLStripCharFilterFactory" />
 				<tokenizer class="solr.StandardTokenizerFactory" />
                 <filter class="solr.StandardFilterFactory" />
 				<filter class="solr.KStemFilterFactory" />

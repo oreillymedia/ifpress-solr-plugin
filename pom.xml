@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>ifpress</groupId>
   <artifactId>ifpress-solr-plugin</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>1.1.1-SNAPSHOT</version>
   <name>ifpress solr plugin</name>
   <description>Contains plugins to be installed in the solr server</description>
   <dependencies>
@@ -15,6 +15,10 @@
           <artifactId>wstx-asl</artifactId>
           <groupId>org.codehaus.woodstox</groupId>
         </exclusion>
+        <exclusion>
+	  		<groupId>jdk.tools</groupId>
+	  		<artifactId>jdk.tools</artifactId>
+	  	</exclusion>
       </exclusions>
     </dependency>
     <dependency>

@@ -15,11 +15,11 @@ processed.
 ## HitCount
 
 HitCount is a function that counts the total number of times all query
-terms occur each search result.
+terms occur within each search result.
 
 ## FieldMergingProcessor
 
 FieldMergingProcessor is a Solr UpdateRequestProcessor that merges 
-several fields into one field.  It provides a similar function as the
-built-in copyFields directive but also allows for a different Analyzer
+several fields into one field.  It provides a similar function to the
+built-in copyFields directive but allows for a different Analyzer
 to be used with each source field.
