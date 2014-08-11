@@ -3,9 +3,17 @@ package com.ifactory.press.db.solr.spelling.suggest;
 import java.io.Closeable;
 import java.io.IOException;
 
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.index.Term;
 import org.apache.lucene.search.spell.HighFrequencyDictionary;
+import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
+import org.apache.lucene.util.BytesRef;
+import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.util.NamedList;
 import org.apache.solr.core.SolrCore;
+import org.apache.solr.schema.FieldType;
 import org.apache.solr.search.SolrIndexSearcher;
 import org.apache.solr.spelling.suggest.Suggester;
 
@@ -62,45 +70,102 @@ import org.apache.solr.spelling.suggest.Suggester;
 @SuppressWarnings("rawtypes")
 public class MultiSuggester extends Suggester {
     
-    private NamedList fields;
+    private WeightedField[] fields;
     
     @Override
     public String init(NamedList config, SolrCore coreParam) {
         String myname = super.init(config, coreParam);
-        fields = (NamedList) config.get("fields");
+        initWeights ((NamedList) config.get("fields"), coreParam);
         return myname;
     }
     
-    @Override
-    public void build(SolrCore coreParam, SolrIndexSearcher searcher) throws IOException {
-        reader = searcher.getIndexReader();
-        dictionary = new MultiDictionary();
-        for (int ifield = 0; ifield < fields.size(); ifield++) {
-            NamedList fieldConfig = (NamedList) fields.getVal(ifield);
+    private void initWeights (NamedList fieldConfigs, SolrCore coreParam) {
+        fields = new WeightedField[fieldConfigs.size()];
+        for (int ifield = 0; ifield < fieldConfigs.size(); ifield++) {
+            NamedList fieldConfig = (NamedList) fieldConfigs.getVal(ifield);
             String fieldName = (String) fieldConfig.get("name");
             Float weight = (Float) fieldConfig.get("weight");
             if (weight == null) {
                 weight = 1.0f;
             }
             Float minFreq = (Float) fieldConfig.get("minfreq");
-            Float maxFreq  = (Float) fieldConfig.get("maxfreq");
-            int minWeight, maxWeight;
             if (minFreq == null) {
                 minFreq = 0.0f;
-                minWeight = 0;
-            } else {
-                minWeight = (int) (minFreq * reader.numDocs());
             }
+            Float maxFreq  = (Float) fieldConfig.get("maxfreq");
             if (maxFreq == null) {
-                maxWeight = reader.numDocs();
-            } else {
-                maxWeight = (int) (maxFreq * reader.numDocs());
+                maxFreq = 1.0f;
             }
-            HighFrequencyDictionary hfd = new HighFrequencyDictionary(searcher.getIndexReader(), fieldName, minFreq);
-            ((MultiDictionary)dictionary).addDictionary(hfd, minWeight, maxWeight, weight);
+            FieldType fieldType = coreParam.getLatestSchema().getFieldType(fieldName);
+            Analyzer analyzer = fieldType.getAnalyzer();
+            fields[ifield] = new WeightedField(fieldName, weight, minFreq, maxFreq, analyzer);
+        }
+    }
+    
+    @Override
+    public void build(SolrCore coreParam, SolrIndexSearcher searcher) throws IOException {
+        reader = searcher.getIndexReader();
+        dictionary = new MultiDictionary();
+        for (WeightedField fld : fields) {
+            HighFrequencyDictionary hfd = new HighFrequencyDictionary(reader, fld.name, fld.minFreq);
+            int minFreq = (int) (fld.minFreq * reader.numDocs());
+            int maxFreq = (int) (fld.maxFreq * reader.numDocs());
+            ((MultiDictionary)dictionary).addDictionary(hfd, minFreq, maxFreq, fld.weight);
         }
         lookup.build(dictionary);
         // TODO store a persistent copy of the lookup if it supports it
+    }
+    
+    /**
+     * Adds the field values from the document to the suggester
+     * @param doc
+     * @param searcher 
+     * @throws IOException 
+     */
+    public void add(SolrInputDocument doc, SolrIndexSearcher searcher) throws IOException {
+        if (! (lookup instanceof AnalyzingInfixSuggester)) {
+            return;
+        }
+        reader = searcher.getIndexReader();
+        AnalyzingInfixSuggester ais = (AnalyzingInfixSuggester) lookup;
+        float numDocs = reader.numDocs();
+        for (WeightedField fld : fields) {
+            if (! doc.containsKey(fld.name)) {
+                continue;
+            }
+            for (Object value : doc.getFieldValues(fld.name)) {
+                TokenStream tokens = fld.analyzer.tokenStream(fld.name, value.toString());
+                tokens.reset();
+                CharTermAttribute termAtt = tokens.addAttribute(CharTermAttribute.class);
+                int floor = (int) Math.floor(fld.minFreq * numDocs);
+                int ceil = (int) Math.ceil(fld.maxFreq * numDocs);
+                while (tokens.incrementToken()) {
+                    fld.term.bytes().copyChars(termAtt);
+                    int freq = reader.docFreq(fld.term);
+                    if (freq >= floor && freq <= ceil) {
+                        long weight = (long) (fld.weight * (float) (freq  + 1) / (numDocs + 1));
+                        ais.add(fld.term.bytes(), null, weight, null);
+                    }
+                    else {
+                        ais.update(fld.term.bytes(), null, 0, null);
+                    }
+                }
+                tokens.close();
+            }
+        }   
+    }
+    
+    public void commit () throws IOException {
+        if (! (lookup instanceof AnalyzingInfixSuggester)) {
+            return;
+        }
+        // TODO: ais.getIndexWriter().commit() ??
+        AnalyzingInfixSuggester ais = (AnalyzingInfixSuggester) lookup;
+        try {
+            ais.refresh();
+        } catch (NullPointerException e) {
+            // just ignore?  Sometimes, intermittently during tests, the AIS.searcherMgr is null?
+        }
     }
     
     public void close() throws IOException {
@@ -108,5 +173,25 @@ public class MultiSuggester extends Suggester {
             ((Closeable)lookup).close();
         }
     }
-
+    
+    class WeightedField {
+        final static int MAX_TERM_LENGTH = 128;
+        final String name;
+        final float weight;
+        final float minFreq;
+        final float maxFreq;
+        final Term term;
+        final Analyzer analyzer;
+        
+        WeightedField (String name, float weight, float minFreq, float maxFreq, Analyzer analyzer) {
+            this.name = name;
+            this.weight = weight;
+            this.minFreq = minFreq;
+            this.maxFreq = maxFreq;
+            this.term = new Term (name, new BytesRef(MAX_TERM_LENGTH));
+            this.analyzer = analyzer;
+        }
+        
+    }
+    
 }
