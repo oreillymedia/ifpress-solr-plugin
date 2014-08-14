@@ -73,7 +73,7 @@ public class MultiSuggesterTest extends SolrTest {
     }
     
     /*
-     * fails due to LUCENE-5477/SOLR-6246
+     * Test workaround for LUCENE-5477/SOLR-6246
      */
     @Test
     public void testReloadCore () throws Exception {
