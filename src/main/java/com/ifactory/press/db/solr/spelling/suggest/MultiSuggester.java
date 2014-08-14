@@ -16,6 +16,8 @@ import org.apache.solr.core.SolrCore;
 import org.apache.solr.schema.FieldType;
 import org.apache.solr.search.SolrIndexSearcher;
 import org.apache.solr.spelling.suggest.Suggester;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * <h3>A suggester that draws suggestions from terms in multiple solr fields.</h3>
@@ -70,6 +72,8 @@ import org.apache.solr.spelling.suggest.Suggester;
 @SuppressWarnings("rawtypes")
 public class MultiSuggester extends Suggester {
     
+    private static final Logger LOG = LoggerFactory.getLogger(MultiSuggester.class);
+    
     private WeightedField[] fields;
     
     @Override
@@ -105,6 +109,16 @@ public class MultiSuggester extends Suggester {
     @Override
     public void build(SolrCore coreParam, SolrIndexSearcher searcher) throws IOException {
         reader = searcher.getIndexReader();
+        if (lookup instanceof AnalyzingInfixSuggester) {
+            // AnalyzingInfixSuggester maintains its own index and sees updates, so we don't need to 
+            // build it every time
+            AnalyzingInfixSuggester ais = (AnalyzingInfixSuggester) lookup;
+            if (ais.getCount() > 0) {
+                LOG.info("load existing suggestion index");
+                return;
+            }
+        }
+        LOG.info("build suggestion index");
         dictionary = new MultiDictionary();
         for (WeightedField fld : fields) {
             HighFrequencyDictionary hfd = new HighFrequencyDictionary(reader, fld.name, fld.minFreq);
@@ -113,7 +127,6 @@ public class MultiSuggester extends Suggester {
             ((MultiDictionary)dictionary).addDictionary(hfd, minFreq, maxFreq, fld.weight);
         }
         lookup.build(dictionary);
-        // TODO store a persistent copy of the lookup if it supports it
     }
     
     /**
@@ -145,8 +158,10 @@ public class MultiSuggester extends Suggester {
                     if (freq >= floor && freq <= ceil) {
                         long weight = (long) (fld.weight * (float) (freq  + 1) / (numDocs + 1));
                         ais.add(fld.term.bytes(), null, weight, null);
+                        //LOG.debug ("add " + termAtt);
                     }
                     else {
+                        //LOG.debug ("update " + termAtt + "; weight=0");
                         ais.update(fld.term.bytes(), null, 0, null);
                     }
                 }
@@ -159,12 +174,13 @@ public class MultiSuggester extends Suggester {
         if (! (lookup instanceof AnalyzingInfixSuggester)) {
             return;
         }
-        // TODO: ais.getIndexWriter().commit() ??
+        // It seems as if AIS has some form of auto commit going on??
         AnalyzingInfixSuggester ais = (AnalyzingInfixSuggester) lookup;
         try {
             ais.refresh();
         } catch (NullPointerException e) {
-            // just ignore?  Sometimes, intermittently during tests, the AIS.searcherMgr is null?
+            // just ignore, Sometimes, intermittently during tests, the
+            // AIS.searcherMgr was null
         }
     }
     

@@ -49,13 +49,11 @@ public class SafeInfixSuggester extends AnalyzingInfixSuggester {
 
                 @Override
                 public Set<BytesRef> contexts() {
-                    // TODO Auto-generated method stub
                     return null;
                 }
 
                 @Override
                 public boolean hasContexts() {
-                    // TODO Auto-generated method stub
                     return false;
                 }
                 

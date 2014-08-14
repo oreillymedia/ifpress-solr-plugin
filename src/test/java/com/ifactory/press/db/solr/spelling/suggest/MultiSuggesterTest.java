@@ -1,15 +1,21 @@
 package com.ifactory.press.db.solr.spelling.suggest;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
+import java.io.File;
+
+import org.apache.commons.io.FileUtils;
 import org.apache.solr.client.solrj.SolrQuery;
-import org.apache.solr.client.solrj.request.CollectionAdminRequest;
-import org.apache.solr.client.solrj.request.CoreAdminRequest;
+import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.client.solrj.response.SpellCheckResponse;
 import org.apache.solr.client.solrj.response.SpellCheckResponse.Suggestion;
 import org.apache.solr.common.SolrInputDocument;
-import org.apache.solr.common.params.CoreAdminParams.CoreAdminAction;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.ifactory.press.db.solr.SolrTest;
@@ -24,6 +30,9 @@ public class MultiSuggesterTest extends SolrTest {
     
     @Test
     public void testMultiSuggest() throws Exception {
+
+        rebuildSuggester();
+
         // insert ten documents; one of them has the title TITLE
         SolrInputDocument doc = new SolrInputDocument();
         doc.addField("uri", "/doc/1");
@@ -52,10 +61,21 @@ public class MultiSuggesterTest extends SolrTest {
         assertEquals (TITLE_SUGGEST, suggestion.getAlternatives().get(0));
         assertEquals ("<b>t</b>ime", suggestion.getAlternatives().get(1));
         assertEquals ("<b>t</b>heir", suggestion.getAlternatives().get(2));
-        // max threshold didn't apply exactly due to incremental loading of index, but weight of common terms
-        // gets set to zero
-        //assertEquals ("<b>t</b>he", suggestion.getAlternatives().get(1));
-        //assertEquals ("<b>t</b>o", suggestion.getAlternatives().get(3));
+        // max threshold would set weight of common terms to zero but commits weren't visible maybe??
+        
+        // try rebuilding the index
+        // TODO: force a rebuild -- we currently just load() even when build() is called
+        rebuildSuggester();
+        suggestion = solr.query(q).getSpellCheckResponse().getSuggestion("t");
+        assertEquals (3, suggestion.getNumFound());
+    }
+    
+    private QueryResponse rebuildSuggester () throws SolrServerException {
+        SolrQuery q = new SolrQuery("t");
+        q.setRequestHandler("/suggest/all");
+        q.set("spellcheck.index", "suggest-infix-all");
+        q.set("spellcheck.build", "true");
+        return solr.query(q);
     }
     
     /*

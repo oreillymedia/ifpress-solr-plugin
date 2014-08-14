@@ -1047,9 +1047,9 @@
     <lst name="spellchecker">
       <str name="name">suggest-infix-all</str>
       <str name="classname">com.ifactory.press.db.solr.spelling.suggest.MultiSuggester</str>
-      <str name="lookupImpl">org.apache.solr.spelling.suggest.fst.AnalyzingInfixLookupFactory</str>
+      <str name="lookupImpl">com.ifactory.press.db.solr.spelling.suggest.SafeInfixLookupFactory</str>
       <str name="suggestAnalyzerFieldType">text</str>
-      <str name="indexPath">${solr.core.name}/suggestIndex</str>
+      <str name="indexPath">solr/${solr.core.name}/suggestIndex</str>
       <float name="threshold">0.0</float>
       <!-- true => NPE now that we have NRT support??.  For production, schedule a rebuild nightly instead -->
       <str name="buildOnCommit">false</str>
