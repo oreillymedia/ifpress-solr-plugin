@@ -1,21 +1,15 @@
 package com.ifactory.press.db.solr.spelling.suggest;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 
-import java.io.File;
-
-import org.apache.commons.io.FileUtils;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.request.CoreAdminRequest;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.client.solrj.response.SpellCheckResponse;
 import org.apache.solr.client.solrj.response.SpellCheckResponse.Suggestion;
 import org.apache.solr.common.SolrInputDocument;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
+import org.apache.solr.common.params.CoreAdminParams.CoreAdminAction;
 import org.junit.Test;
 
 import com.ifactory.press.db.solr.SolrTest;
@@ -63,8 +57,8 @@ public class MultiSuggesterTest extends SolrTest {
         assertEquals ("<b>t</b>heir", suggestion.getAlternatives().get(2));
         // max threshold would set weight of common terms to zero but commits weren't visible maybe??
         
-        // try rebuilding the index
-        // TODO: force a rebuild -- we currently just load() even when build() is called
+        // Rebuilding the index causes the common terms to be excluded since their freq is visible
+        // while the index is being built
         rebuildSuggester();
         suggestion = solr.query(q).getSpellCheckResponse().getSuggestion("t");
         assertEquals (3, suggestion.getNumFound());
@@ -80,6 +74,7 @@ public class MultiSuggesterTest extends SolrTest {
     
     /*
      * fails due to LUCENE-5477/SOLR-6246
+     */
     @Test
     public void testReloadCore () throws Exception {
         SolrInputDocument doc = new SolrInputDocument();
@@ -94,6 +89,5 @@ public class MultiSuggesterTest extends SolrTest {
         reload.setCoreName("collection1");
         reload.process(solr);
     }
-    */
     
 }

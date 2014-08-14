@@ -61,11 +61,11 @@ public class MultiSuggesterProcessorFactory extends UpdateRequestProcessorFactor
         core.addCloseHook(new CloseHook() {
                 
             @Override
-            public void preClose(SolrCore core) {
+            public void preClose(SolrCore coreParam) {
             }
                 
             @Override
-            public void postClose(SolrCore core) {
+            public void postClose(SolrCore coreParam) {
                 for (MultiSuggester suggester : suggesters) {
                     try {
                         if (suggester != null) {

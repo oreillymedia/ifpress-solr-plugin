@@ -2,6 +2,7 @@ package com.ifactory.press.db.solr.spelling.suggest;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Hashtable;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
@@ -76,10 +77,24 @@ public class MultiSuggester extends Suggester {
     
     private WeightedField[] fields;
     
+    // use a synchronized Map
+    private static Hashtable<String, MultiSuggester> registry = new Hashtable<String, MultiSuggester>();
+    
     @Override
     public String init(NamedList config, SolrCore coreParam) {
-        String myname = super.init(config, coreParam);
+        String myname = (String) config.get(DICTIONARY_NAME);
+        // see if there is an existing suggester of the same name --- if so, close it
+        // This is a workaround for SOLR-6246.  If that gets fixed somehow, we can get rid of it.
+        if (registry.containsKey(myname)) {
+            try {
+                registry.remove(myname).close();
+            } catch (IOException e) {
+                LOG.error("An exception occurred while closing the spellchecker", e);
+            }
+        }
+        super.init(config, coreParam);
         initWeights ((NamedList) config.get("fields"), coreParam);
+        registry.put(myname, this);
         return myname;
     }
     
@@ -101,34 +116,39 @@ public class MultiSuggester extends Suggester {
                 maxFreq = 1.0f;
             }
             FieldType fieldType = coreParam.getLatestSchema().getFieldType(fieldName);
-            Analyzer analyzer = fieldType.getAnalyzer();
-            fields[ifield] = new WeightedField(fieldName, weight, minFreq, maxFreq, analyzer);
+            Analyzer fieldAnalyzer = fieldType.getAnalyzer();
+            fields[ifield] = new WeightedField(fieldName, weight, minFreq, maxFreq, fieldAnalyzer);
         }
     }
     
     @Override
     public void build(SolrCore coreParam, SolrIndexSearcher searcher) throws IOException {
         reader = searcher.getIndexReader();
-        if (lookup instanceof AnalyzingInfixSuggester) {
-            // AnalyzingInfixSuggester maintains its own index and sees updates, so we don't need to 
-            // build it every time
-            AnalyzingInfixSuggester ais = (AnalyzingInfixSuggester) lookup;
-            if (ais.getCount() > 0) {
-                LOG.info("load existing suggestion index");
-                return;
-            }
-        }
         LOG.info("build suggestion index");
         dictionary = new MultiDictionary();
         for (WeightedField fld : fields) {
-            HighFrequencyDictionary hfd = new HighFrequencyDictionary(reader, fld.name, fld.minFreq);
+            HighFrequencyDictionary hfd = new HighFrequencyDictionary(reader, fld.fieldName, fld.minFreq);
             int minFreq = (int) (fld.minFreq * reader.numDocs());
             int maxFreq = (int) (fld.maxFreq * reader.numDocs());
             ((MultiDictionary)dictionary).addDictionary(hfd, minFreq, maxFreq, fld.weight);
         }
         lookup.build(dictionary);
     }
-    
+
+    @Override
+    public void reload(SolrCore coreParam, SolrIndexSearcher searcher) throws IOException {
+        if (lookup instanceof AnalyzingInfixSuggester) {
+            // AnalyzingInfixSuggester maintains its own index and sees updates, so we don't need to 
+            // build it every time the core starts or is reloaded
+            AnalyzingInfixSuggester ais = (AnalyzingInfixSuggester) lookup;
+            if (ais.getCount() > 0) {
+                LOG.info("load existing suggestion index");
+                return;
+            }
+        }
+        build(core, searcher);
+    }
+
     /**
      * Adds the field values from the document to the suggester
      * @param doc
@@ -143,11 +163,11 @@ public class MultiSuggester extends Suggester {
         AnalyzingInfixSuggester ais = (AnalyzingInfixSuggester) lookup;
         float numDocs = reader.numDocs();
         for (WeightedField fld : fields) {
-            if (! doc.containsKey(fld.name)) {
+            if (! doc.containsKey(fld.fieldName)) {
                 continue;
             }
-            for (Object value : doc.getFieldValues(fld.name)) {
-                TokenStream tokens = fld.analyzer.tokenStream(fld.name, value.toString());
+            for (Object value : doc.getFieldValues(fld.fieldName)) {
+                TokenStream tokens = fld.fieldAnalyzer.tokenStream(fld.fieldName, value.toString());
                 tokens.reset();
                 CharTermAttribute termAtt = tokens.addAttribute(CharTermAttribute.class);
                 int floor = (int) Math.floor(fld.minFreq * numDocs);
@@ -192,20 +212,20 @@ public class MultiSuggester extends Suggester {
     
     class WeightedField {
         final static int MAX_TERM_LENGTH = 128;
-        final String name;
+        final String fieldName;
         final float weight;
         final float minFreq;
         final float maxFreq;
         final Term term;
-        final Analyzer analyzer;
+        final Analyzer fieldAnalyzer;
         
         WeightedField (String name, float weight, float minFreq, float maxFreq, Analyzer analyzer) {
-            this.name = name;
+            this.fieldName = name;
             this.weight = weight;
             this.minFreq = minFreq;
             this.maxFreq = maxFreq;
             this.term = new Term (name, new BytesRef(MAX_TERM_LENGTH));
-            this.analyzer = analyzer;
+            this.fieldAnalyzer = analyzer;
         }
         
     }

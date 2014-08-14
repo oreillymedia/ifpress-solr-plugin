@@ -34,7 +34,7 @@ public class MultiSuggesterProcessor extends UpdateRequestProcessor {
         }
     }
     
-    //@Override
+    @Override
     public void processCommit(CommitUpdateCommand cmd) throws IOException {
         for (MultiSuggester suggester : suggesters) {
             suggester.commit ();
