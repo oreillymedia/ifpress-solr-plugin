@@ -51,11 +51,11 @@ public class MultiSuggesterTest extends SolrTest {
         // should come first due to higher weighting of title
         Suggestion suggestion = scr.getSuggestion("t");
         assertNotNull ("No suggestion found for 't'", suggestion);
+        // max threshold sets weight of common terms to zero but doesn't exclude them
         assertEquals (5, suggestion.getNumFound());
         assertEquals (TITLE_SUGGEST, suggestion.getAlternatives().get(0));
         assertEquals ("<b>t</b>ime", suggestion.getAlternatives().get(1));
         assertEquals ("<b>t</b>heir", suggestion.getAlternatives().get(2));
-        // max threshold would set weight of common terms to zero but commits weren't visible maybe??
         
         // Rebuilding the index causes the common terms to be excluded since their freq is visible
         // while the index is being built
