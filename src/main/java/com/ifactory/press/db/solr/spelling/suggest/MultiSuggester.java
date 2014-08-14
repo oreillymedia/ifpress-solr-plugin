@@ -48,7 +48,7 @@ import org.slf4j.LoggerFactory;
       <str name="lookupImpl">org.apache.solr.spelling.suggest.fst.AnalyzingInfixLookupFactory</str>
       <str name="suggestAnalyzerFieldType">text</str>
       <float name="threshold">0.0</float>
-      <!-- true == performance-killer.  Schedule a rebuild nightly instead -->
+      <!-- true == performance-killer. MultiSuggester handles incremental updates automatically, so there's no need for this anyway. -->
       <str name="buildOnCommit">false</str>
       <lst name="fields">
         <lst name="field">
@@ -124,12 +124,13 @@ public class MultiSuggester extends Suggester {
     @Override
     public void build(SolrCore coreParam, SolrIndexSearcher searcher) throws IOException {
         reader = searcher.getIndexReader();
-        LOG.info("build suggestion index");
+        LOG.info("build suggestion index: " + name);
         dictionary = new MultiDictionary();
         for (WeightedField fld : fields) {
             HighFrequencyDictionary hfd = new HighFrequencyDictionary(reader, fld.fieldName, fld.minFreq);
             int minFreq = (int) (fld.minFreq * reader.numDocs());
             int maxFreq = (int) (fld.maxFreq * reader.numDocs());
+            LOG.debug(String.format("build suggestions for: %s ([%d, %d], %f)", fld.fieldName, minFreq, maxFreq, fld.weight));
             ((MultiDictionary)dictionary).addDictionary(hfd, minFreq, maxFreq, fld.weight);
         }
         lookup.build(dictionary);
@@ -176,12 +177,12 @@ public class MultiSuggester extends Suggester {
                     fld.term.bytes().copyChars(termAtt);
                     int freq = reader.docFreq(fld.term);
                     if (freq >= floor && freq <= ceil) {
-                        long weight = (long) (fld.weight * (float) (freq  + 1) / (numDocs + 1));
+                        long weight = (long) (fld.weight * (float) (freq + 1));
                         ais.add(fld.term.bytes(), null, weight, null);
-                        //LOG.debug ("add " + termAtt);
+                        //LOG.debug ("add " + fld.term + "; wt=" + weight);
                     }
                     else {
-                        //LOG.debug ("update " + termAtt + "; weight=0");
+                        //LOG.debug ("update " + fld.term + "; weight=0");
                         ais.update(fld.term.bytes(), null, 0, null);
                     }
                 }
