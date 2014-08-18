@@ -212,7 +212,7 @@ public class MultiSuggester extends Suggester {
                     // just add the unanalyzed field value
                     fld.term.bytes().copyChars(value.toString());
                     ais.add(fld.term.bytes(), null, (long) fld.weight, null);
-                    LOG.debug ("add raw " + value + "; wt=" + fld.weight);
+                    //LOG.debug ("add raw " + value + "; wt=" + fld.weight);
                 } else {
                     addAnalyzed (fld, value.toString(), ais, numDocs);
                 }
@@ -233,10 +233,10 @@ public class MultiSuggester extends Suggester {
             if (freq >= floor && freq <= ceil) {
                 long weight = (long) (fld.weight * (float) (freq + 1));
                 ais.add(fld.term.bytes(), null, weight, null);
-                LOG.debug ("add " + fld.term + "; wt=" + weight);
+                //LOG.debug ("add " + fld.term + "; wt=" + weight);
             }
             else {
-                LOG.debug ("update " + fld.term + "; weight=0");
+                //LOG.debug ("update " + fld.term + "; weight=0");
                 ais.update(fld.term.bytes(), null, 0, null);
             }
         }
