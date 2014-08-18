@@ -83,8 +83,8 @@ public class MultiSuggester extends Suggester {
     @Override
     public String init(NamedList config, SolrCore coreParam) {
         String myname = (String) config.get(DICTIONARY_NAME);
-        // see if there is an existing suggester of the same name --- if so, close it
-        // This is a workaround for SOLR-6246.  If that gets fixed somehow, we can get rid of it.
+        // Workaround for SOLR-6246 (lock exception on core reload): close
+        // any suggester registered with the same name.
         if (registry.containsKey(myname)) {
             try {
                 registry.remove(myname).close();
@@ -115,7 +115,13 @@ public class MultiSuggester extends Suggester {
             if (maxFreq == null) {
                 maxFreq = 1.0f;
             }
-            FieldType fieldType = coreParam.getLatestSchema().getFieldType(fieldName);
+            String fieldTypeName = (String) fieldConfig.get("analyzerFieldType");
+            FieldType fieldType;
+            if (fieldTypeName != null) {
+                fieldType = coreParam.getLatestSchema().getFieldTypeByName(fieldTypeName);
+            } else {
+                fieldType = coreParam.getLatestSchema().getFieldType(fieldName);
+            }
             Analyzer fieldAnalyzer = fieldType.getAnalyzer();
             fields[ifield] = new WeightedField(fieldName, weight, minFreq, maxFreq, fieldAnalyzer);
         }
@@ -168,6 +174,10 @@ public class MultiSuggester extends Suggester {
                 continue;
             }
             for (Object value : doc.getFieldValues(fld.fieldName)) {
+                // TODO: allow overridding the field's analyzer in suggester config
+                // note that fields created by copyField are not available to 
+                // update processors, so we need to use the 'raw' field, but
+                // we may want different analysis for suggestions...
                 TokenStream tokens = fld.fieldAnalyzer.tokenStream(fld.fieldName, value.toString());
                 tokens.reset();
                 CharTermAttribute termAtt = tokens.addAttribute(CharTermAttribute.class);
@@ -195,14 +205,8 @@ public class MultiSuggester extends Suggester {
         if (! (lookup instanceof AnalyzingInfixSuggester)) {
             return;
         }
-        // It seems as if AIS has some form of auto commit going on??
         AnalyzingInfixSuggester ais = (AnalyzingInfixSuggester) lookup;
-        try {
-            ais.refresh();
-        } catch (NullPointerException e) {
-            // just ignore, Sometimes, intermittently during tests, the
-            // AIS.searcherMgr was null
-        }
+        ais.refresh();
     }
     
     public void close() throws IOException {
