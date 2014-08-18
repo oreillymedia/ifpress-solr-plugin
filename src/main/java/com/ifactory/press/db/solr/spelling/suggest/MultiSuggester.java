@@ -2,7 +2,6 @@ package com.ifactory.press.db.solr.spelling.suggest;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.Hashtable;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
@@ -18,6 +17,10 @@ import org.apache.solr.search.SolrIndexSearcher;
 import org.apache.solr.spelling.suggest.Suggester;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Multimaps;
 
 /**
  * <h3>A suggester that draws suggestions from terms in multiple solr fields, with special support
@@ -92,19 +95,34 @@ public class MultiSuggester extends Suggester {
     
     private WeightedField[] fields;
     
-    // use a synchronized Map
-    private static Hashtable<String, MultiSuggester> registry = new Hashtable<String, MultiSuggester>();
+    // use a synchronized Multimap - there may be one  with the same name for each core
+    private static final ListMultimap<Object, Object> registry = 
+            Multimaps.synchronizedListMultimap(ArrayListMultimap.create());
     
     @Override
     public String init(NamedList config, SolrCore coreParam) {
         String myname = (String) config.get(DICTIONARY_NAME);
+        this.core = coreParam;
+        
         // Workaround for SOLR-6246 (lock exception on core reload): close
         // any suggester registered with the same name.
+        
         if (registry.containsKey(myname)) {
-            try {
-                registry.remove(myname).close();
-            } catch (IOException e) {
-                LOG.error("An exception occurred while closing the spellchecker", e);
+            MultiSuggester suggesterToClose = null;
+            for (Object o : registry.get(myname)) {
+                MultiSuggester suggester = (MultiSuggester) o;
+                if (suggester.core.getName().equals(coreParam.getName())) {
+                    suggesterToClose = suggester;
+                    break;
+                }
+            }
+            if (suggesterToClose != null) {
+                registry.remove(myname, suggesterToClose);
+                try {
+                    suggesterToClose.close();
+                } catch (IOException e) {
+                    LOG.error("An exception occurred while closing the spellchecker", e);
+                }
             }
         }
         super.init(config, coreParam);
