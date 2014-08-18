@@ -14,19 +14,27 @@ import org.apache.lucene.util.BytesRef;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.util.NamedList;
 import org.apache.solr.core.SolrCore;
-import org.apache.solr.schema.FieldType;
 import org.apache.solr.search.SolrIndexSearcher;
 import org.apache.solr.spelling.suggest.Suggester;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * <h3>A suggester that draws suggestions from terms in multiple solr fields.</h3>
+ * <h3>A suggester that draws suggestions from terms in multiple solr fields, with special support
+ * for unanalyzed stored fields.</h3>
  * 
  * <p>Contributions from each field are weighted by a per-field weight, and
  * filtered based on a global minimum threshold term frequency, a per-field minimum and a per-term maximum.
  * All thresholds are expressed as a fraction of total documents containing the term; maximum=0.5 means terms
  * occurring in at least half of all documents will be excluded.</p>
+ * 
+ * <p>The field analyzer is used to tokenize the field values; each token becomes a suggestion. The analyzer
+ * may be overridden in configuration the spellchecker configuration for the field.  Only the special value 
+ * 'string' is supported, which means the suggestions are drawn from the unanalyzed stored field values.
+ * There is also some code here that has initial support for an alternate analyzer (not the one associated
+ * with the field in the schema), but it hasn't been fully implemented (only the incremental updates work,
+ * not build()).
+ * </p>
  * 
  * <p>The following sample configuration illustrates a setup where suggestions are drawn from a title field
  * and a full text field, with different weights and thresholds.
@@ -61,6 +69,13 @@ import org.slf4j.LoggerFactory;
       <lst name="fields">
         <lst name="field">
           <str name="name">title_ms</str>
+          <float name="weight">10.0</float>
+        </lst>
+      </lst>
+      <lst name="fields">
+        <lst name="field">
+          <str name="name">title_t</str>
+          <analyzerFieldType>string</analyzerFieldType>
           <float name="weight">10.0</float>
         </lst>
       </lst>
@@ -116,14 +131,17 @@ public class MultiSuggester extends Suggester {
                 maxFreq = 1.0f;
             }
             String fieldTypeName = (String) fieldConfig.get("analyzerFieldType");
-            FieldType fieldType;
+            Analyzer fieldAnalyzer;
             if (fieldTypeName != null) {
-                fieldType = coreParam.getLatestSchema().getFieldTypeByName(fieldTypeName);
+                if ("string".equals(fieldTypeName)) {
+                    fieldAnalyzer = null;
+                } else {
+                    fieldAnalyzer = coreParam.getLatestSchema().getFieldTypeByName(fieldTypeName).getAnalyzer();
+                }
             } else {
-                fieldType = coreParam.getLatestSchema().getFieldType(fieldName);
+                fieldAnalyzer = coreParam.getLatestSchema().getFieldType(fieldName).getAnalyzer();
             }
-            Analyzer fieldAnalyzer = fieldType.getAnalyzer();
-            fields[ifield] = new WeightedField(fieldName, weight, minFreq, maxFreq, fieldAnalyzer);
+            fields[ifield] = new WeightedField(fieldName, weight, minFreq, maxFreq, fieldAnalyzer, fieldTypeName != null);
         }
     }
     
@@ -133,13 +151,29 @@ public class MultiSuggester extends Suggester {
         LOG.info("build suggestion index: " + name);
         dictionary = new MultiDictionary();
         for (WeightedField fld : fields) {
-            HighFrequencyDictionary hfd = new HighFrequencyDictionary(reader, fld.fieldName, fld.minFreq);
-            int minFreq = (int) (fld.minFreq * reader.numDocs());
-            int maxFreq = (int) (fld.maxFreq * reader.numDocs());
-            LOG.debug(String.format("build suggestions for: %s ([%d, %d], %f)", fld.fieldName, minFreq, maxFreq, fld.weight));
-            ((MultiDictionary)dictionary).addDictionary(hfd, minFreq, maxFreq, fld.weight);
+            if (fld.useStoredField) {
+                buildFromStoredField(fld);
+            } else {
+                buildFromTerms(fld);
+            }
         }
         lookup.build(dictionary);
+    }
+    
+    private void buildFromStoredField(WeightedField fld) {
+        if (fld.fieldAnalyzer != null) {
+            throw new IllegalStateException("not supported: analyzing stored fields");
+        }
+        StoredFieldDictionary sfd = new StoredFieldDictionary(reader, fld.fieldName);
+        ((MultiDictionary)dictionary).addDictionary(sfd, 0, 2, fld.weight);
+    }
+
+    private void buildFromTerms(WeightedField fld) {
+        HighFrequencyDictionary hfd = new HighFrequencyDictionary(reader, fld.fieldName, fld.minFreq);
+        int minFreq = (int) (fld.minFreq * reader.numDocs());
+        int maxFreq = (int) (fld.maxFreq * reader.numDocs());
+        LOG.debug(String.format("build suggestions for: %s ([%d, %d], %f)", fld.fieldName, minFreq, maxFreq, fld.weight));
+        ((MultiDictionary)dictionary).addDictionary(hfd, minFreq, maxFreq, fld.weight);
     }
 
     @Override
@@ -174,33 +208,41 @@ public class MultiSuggester extends Suggester {
                 continue;
             }
             for (Object value : doc.getFieldValues(fld.fieldName)) {
-                // TODO: allow overridding the field's analyzer in suggester config
-                // note that fields created by copyField are not available to 
-                // update processors, so we need to use the 'raw' field, but
-                // we may want different analysis for suggestions...
-                TokenStream tokens = fld.fieldAnalyzer.tokenStream(fld.fieldName, value.toString());
-                tokens.reset();
-                CharTermAttribute termAtt = tokens.addAttribute(CharTermAttribute.class);
-                int floor = (int) Math.floor(fld.minFreq * numDocs);
-                int ceil = (int) Math.ceil(fld.maxFreq * numDocs);
-                while (tokens.incrementToken()) {
-                    fld.term.bytes().copyChars(termAtt);
-                    int freq = reader.docFreq(fld.term);
-                    if (freq >= floor && freq <= ceil) {
-                        long weight = (long) (fld.weight * (float) (freq + 1));
-                        ais.add(fld.term.bytes(), null, weight, null);
-                        //LOG.debug ("add " + fld.term + "; wt=" + weight);
-                    }
-                    else {
-                        //LOG.debug ("update " + fld.term + "; weight=0");
-                        ais.update(fld.term.bytes(), null, 0, null);
-                    }
+                if (fld.fieldAnalyzer == null) {
+                    // just add the unanalyzed field value
+                    fld.term.bytes().copyChars(value.toString());
+                    ais.add(fld.term.bytes(), null, (long) fld.weight, null);
+                    LOG.debug ("add raw " + value + "; wt=" + fld.weight);
+                } else {
+                    addAnalyzed (fld, value.toString(), ais, numDocs);
                 }
-                tokens.close();
             }
         }   
     }
     
+    private void addAnalyzed(WeightedField fld, String value, AnalyzingInfixSuggester ais, float numDocs) throws IOException {
+        // 
+        TokenStream tokens = fld.fieldAnalyzer.tokenStream(fld.fieldName, value);
+        tokens.reset();
+        CharTermAttribute termAtt = tokens.addAttribute(CharTermAttribute.class);
+        int floor = (int) Math.floor(fld.minFreq * numDocs);
+        int ceil = (int) Math.ceil(fld.maxFreq * numDocs);
+        while (tokens.incrementToken()) {
+            fld.term.bytes().copyChars(termAtt);
+            int freq = reader.docFreq(fld.term);
+            if (freq >= floor && freq <= ceil) {
+                long weight = (long) (fld.weight * (float) (freq + 1));
+                ais.add(fld.term.bytes(), null, weight, null);
+                LOG.debug ("add " + fld.term + "; wt=" + weight);
+            }
+            else {
+                LOG.debug ("update " + fld.term + "; weight=0");
+                ais.update(fld.term.bytes(), null, 0, null);
+            }
+        }
+        tokens.close();
+    }
+
     public void commit () throws IOException {
         if (! (lookup instanceof AnalyzingInfixSuggester)) {
             return;
@@ -223,14 +265,16 @@ public class MultiSuggester extends Suggester {
         final float maxFreq;
         final Term term;
         final Analyzer fieldAnalyzer;
+        final boolean useStoredField;
         
-        WeightedField (String name, float weight, float minFreq, float maxFreq, Analyzer analyzer) {
+        WeightedField (String name, float weight, float minFreq, float maxFreq, Analyzer analyzer, boolean useStoredField) {
             this.fieldName = name;
             this.weight = weight;
             this.minFreq = minFreq;
             this.maxFreq = maxFreq;
             this.term = new Term (name, new BytesRef(MAX_TERM_LENGTH));
             this.fieldAnalyzer = analyzer;
+            this.useStoredField = useStoredField;
         }
         
     }

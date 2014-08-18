@@ -44,7 +44,10 @@ public class MultiSuggesterTest extends SolrTest {
     public void testOverrideAnalyzer() throws Exception {
         rebuildSuggester();
         insertTestDocuments(TITLE_TEXT_FIELD);
-        assertSuggestions();
+        SolrQuery q = assertSuggestions();
+        rebuildSuggester();
+        Suggestion suggestion = solr.query(q).getSpellCheckResponse().getSuggestion("t");
+        assertEquals (3, suggestion.getNumFound());
     }
     
     /*

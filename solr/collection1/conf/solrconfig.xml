@@ -1068,7 +1068,7 @@
         </lst>
         <lst name="field">
           <str name="name">title_ms</str>
-          <!-- user the field's analyzer -->
+          <!-- use the field's analyzer -->
           <float name="weight">10.0</float>
         </lst>
       </lst>
