@@ -1049,6 +1049,7 @@
       <str name="classname">com.ifactory.press.db.solr.spelling.suggest.MultiSuggester</str>
       <str name="lookupImpl">com.ifactory.press.db.solr.spelling.suggest.SafeInfixLookupFactory</str>
       <str name="suggestAnalyzerFieldType">text</str>
+      <int name="maxSuggestionLength">100</int>
       <str name="indexPath">solr/${solr.core.name}/suggestIndex</str>
       <float name="threshold">0.0</float>
       <!-- true => NPE now that we have NRT support??.  For production, schedule a rebuild nightly instead -->
