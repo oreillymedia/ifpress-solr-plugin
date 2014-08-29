@@ -112,4 +112,48 @@ public class MultiSuggesterTest extends SolrTest {
         return solr.query(q);
     }
     
+    /*
+     * HERO-2705
+     */
+    @Test
+    public void testSegmentLongSuggestion() throws Exception {
+        // erase any lingering data
+        rebuildSuggester();
+
+        SolrInputDocument doc = new SolrInputDocument();
+        doc.addField("uri", "/doc/1");
+        StringBuilder buf = new StringBuilder();
+        // fill buf with 26 x 100 chars (AAAA AAAA .... BBBB BBBB ... etc)
+        for (char c = 'A'; c <= 'Z'; c++) {
+            for (int i = 0; i < 20; i++) {
+                for (int j = 0; j < 4; j++) {
+                    buf.append(c);
+                }
+                buf.append(' ');
+            }
+        }
+        String title = buf.toString();
+        doc.addField(TITLE_TEXT_FIELD, title);
+        solr.add(doc);
+        solr.commit(false, false, true);
+
+        String AAAA = title.substring(0, 100);
+        assertEquals ("AAAA AAAA ", AAAA.substring(0, 10));
+        AAAA = AAAA.replaceAll("AAAA", "<b>AAAA</b>");
+        
+        // suggester is configured to segment at 100 char bounds
+        SolrQuery q = new SolrQuery("AAAA");
+        q.setRequestHandler("/suggest/all");
+        QueryResponse resp = solr.query(q);
+        SpellCheckResponse scr = resp.getSpellCheckResponse();
+        assertNotNull ("no spell check reponse found", scr);
+        // should come first due to higher weighting of title
+        Suggestion suggestion = scr.getSuggestion("AAAA");
+        assertNotNull ("No suggestion found for 'AAAA'", suggestion);
+        // max threshold sets weight of common terms to zero but doesn't exclude them
+        assertEquals (1, suggestion.getNumFound());
+        
+        assertEquals (AAAA, suggestion.getAlternatives().get(0));
+    }
+    
 }

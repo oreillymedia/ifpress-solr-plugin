@@ -2,6 +2,7 @@ package com.ifactory.press.db.solr.spelling.suggest;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.text.BreakIterator;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
@@ -58,6 +59,7 @@ import com.google.common.collect.Multimaps;
       <str name="classname">org.apache.solr.spelling.suggest.MultiSuggester</str>
       <str name="lookupImpl">org.apache.solr.spelling.suggest.fst.AnalyzingInfixLookupFactory</str>
       <str name="suggestAnalyzerFieldType">text</str>
+      <int name="maxSuggestionLength">80</int>
       <float name="threshold">0.0</float>
       <!-- true == performance-killer. MultiSuggester handles incremental updates automatically, so there's no need for this anyway. -->
       <str name="buildOnCommit">false</str>
@@ -91,9 +93,13 @@ import com.google.common.collect.Multimaps;
 @SuppressWarnings("rawtypes")
 public class MultiSuggester extends Suggester {
     
+    private static final int DEFAULT_MAX_SUGGESTION_LENGTH = 80;
+
     private static final Logger LOG = LoggerFactory.getLogger(MultiSuggester.class);
     
     private WeightedField[] fields;
+    
+    private int maxSuggestionLength;
     
     // use a synchronized Multimap - there may be one  with the same name for each core
     private static final ListMultimap<Object, Object> registry = 
@@ -127,6 +133,8 @@ public class MultiSuggester extends Suggester {
         }
         super.init(config, coreParam);
         initWeights ((NamedList) config.get("fields"), coreParam);
+        Integer maxLengthConfig = (Integer) config.get("maxSuggestionLength");
+        maxSuggestionLength = maxLengthConfig != null ? maxLengthConfig : DEFAULT_MAX_SUGGESTION_LENGTH;
         registry.put(myname, this);
         return myname;
     }
@@ -227,15 +235,37 @@ public class MultiSuggester extends Suggester {
             }
             for (Object value : doc.getFieldValues(fld.fieldName)) {
                 if (fld.fieldAnalyzer == null) {
-                    // just add the unanalyzed field value
-                    fld.term.bytes().copyChars(value.toString());
-                    ais.add(fld.term.bytes(), null, (long) fld.weight, null);
-                    //LOG.debug ("add raw " + value + "; wt=" + fld.weight);
+                    String str = value.toString();
+                    if (str.length() > maxSuggestionLength) {
+                        BreakIterator scanner = BreakIterator.getWordInstance();
+                        scanner.setText(str);
+                        int offset = 0;
+                        while (offset < str.length() - maxSuggestionLength) {
+                            int next = scanner.following(offset + maxSuggestionLength - 1);
+                            addRaw(ais, fld, str.substring(offset, next));
+                            offset = next;
+                        }
+                        // just drop any trailing goo??
+                        /*
+                        if (offset + 20 < str.length()) {
+                            addRaw(ais, fld, str.substring(offset));
+                        }
+                        */
+                    } else {
+                        addRaw(ais, fld, value);
+                    }
                 } else {
                     addAnalyzed (fld, value.toString(), ais, numDocs);
                 }
             }
         }   
+    }
+
+    private void addRaw(AnalyzingInfixSuggester ais, WeightedField fld, Object value) throws IOException {
+        // just add the unanalyzed field value
+        fld.term.bytes().copyChars(value.toString());
+        ais.add(fld.term.bytes(), null, (long) fld.weight, null);
+        LOG.debug ("add raw " + value + "; wt=" + fld.weight);
     }
     
     private void addAnalyzed(WeightedField fld, String value, AnalyzingInfixSuggester ais, float numDocs) throws IOException {
@@ -251,7 +281,7 @@ public class MultiSuggester extends Suggester {
             if (freq >= floor && freq <= ceil) {
                 long weight = (long) (fld.weight * (float) (freq + 1));
                 ais.add(fld.term.bytes(), null, weight, null);
-                //LOG.debug ("add " + fld.term + "; wt=" + weight);
+                LOG.debug ("add " + fld.term + "; wt=" + weight);
             }
             else {
                 //LOG.debug ("update " + fld.term + "; weight=0");

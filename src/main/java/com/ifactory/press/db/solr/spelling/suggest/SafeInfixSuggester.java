@@ -60,5 +60,13 @@ public class SafeInfixSuggester extends AnalyzingInfixSuggester {
             });
         }
     }
+    
+    /*
+     * TODO: control highlighting here
+    @Override
+    public List<LookupResult> lookup(CharSequence key, Set<BytesRef> contexts, boolean onlyMorePopular, int num) throws IOException {
+      return lookup(key, contexts, num, true, false);
+    }
+    */
 
 }
