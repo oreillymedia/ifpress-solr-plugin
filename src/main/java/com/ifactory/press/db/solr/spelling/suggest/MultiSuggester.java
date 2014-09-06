@@ -156,18 +156,18 @@ public class MultiSuggester extends Suggester {
             if (maxFreq == null) {
                 maxFreq = 1.0f;
             }
-            String fieldTypeName = (String) fieldConfig.get("analyzerFieldType");
+            String analyzerFieldTypeName = (String) fieldConfig.get("analyzerFieldType");
             Analyzer fieldAnalyzer;
-            if (fieldTypeName != null) {
-                if ("string".equals(fieldTypeName)) {
+            if (analyzerFieldTypeName != null) {
+                if ("string".equals(analyzerFieldTypeName)) {
                     fieldAnalyzer = null;
                 } else {
-                    fieldAnalyzer = coreParam.getLatestSchema().getFieldTypeByName(fieldTypeName).getAnalyzer();
+                    fieldAnalyzer = coreParam.getLatestSchema().getFieldTypeByName(analyzerFieldTypeName).getAnalyzer();
                 }
             } else {
                 fieldAnalyzer = coreParam.getLatestSchema().getFieldType(fieldName).getAnalyzer();
             }
-            fields[ifield] = new WeightedField(fieldName, weight, minFreq, maxFreq, fieldAnalyzer, fieldTypeName != null);
+            fields[ifield] = new WeightedField(fieldName, weight, minFreq, maxFreq, fieldAnalyzer, analyzerFieldTypeName != null);
         }
     }
     
