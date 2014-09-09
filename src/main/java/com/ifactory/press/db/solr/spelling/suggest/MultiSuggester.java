@@ -13,6 +13,7 @@ import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
 import org.apache.lucene.util.BytesRef;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.util.NamedList;
+import org.apache.solr.core.CloseHook;
 import org.apache.solr.core.SolrCore;
 import org.apache.solr.search.SolrIndexSearcher;
 import org.apache.solr.spelling.suggest.Suggester;
@@ -136,6 +137,7 @@ public class MultiSuggester extends Suggester {
         Integer maxLengthConfig = (Integer) config.get("maxSuggestionLength");
         maxSuggestionLength = maxLengthConfig != null ? maxLengthConfig : DEFAULT_MAX_SUGGESTION_LENGTH;
         registry.put(myname, this);
+        core.addCloseHook(new CloseHandler());
         return myname;
     }
     
@@ -184,6 +186,11 @@ public class MultiSuggester extends Suggester {
             }
         }
         lookup.build(dictionary);
+        LOG.info("built suggestion index: " + name);
+        if (lookup instanceof AnalyzingInfixSuggester) {
+            AnalyzingInfixSuggester ais = (AnalyzingInfixSuggester) lookup;
+            LOG.info(String.format("suggestion index has %d suggestions", ais.getCount()));
+        }
     }
     
     private void buildFromStoredField(WeightedField fld) {
@@ -323,6 +330,23 @@ public class MultiSuggester extends Suggester {
             this.term = new Term (name, new BytesRef(MAX_TERM_LENGTH));
             this.fieldAnalyzer = analyzer;
             this.useStoredField = useStoredField;
+        }
+        
+    }
+    
+    class CloseHandler extends CloseHook {
+
+        @Override
+        public void preClose(SolrCore core) {
+            try {
+                close();
+            } catch (IOException e) {
+                LOG.error("An error occurred while closing: " + e.getMessage(), e);
+            }
+        }
+
+        @Override
+        public void postClose(SolrCore core) {
         }
         
     }
