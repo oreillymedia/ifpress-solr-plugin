@@ -282,20 +282,24 @@ public class MultiSuggester extends Suggester {
         CharTermAttribute termAtt = tokens.addAttribute(CharTermAttribute.class);
         int floor = (int) Math.floor(fld.minFreq * numDocs);
         int ceil = (int) Math.ceil(fld.maxFreq * numDocs);
-        while (tokens.incrementToken()) {
-            fld.term.bytes().copyChars(termAtt);
-            int freq = reader.docFreq(fld.term);
-            if (freq >= floor && freq <= ceil) {
-                long weight = (long) (fld.weight * (float) (freq + 1));
-                ais.add(fld.term.bytes(), null, weight, null);
-                LOG.debug ("add " + fld.term + "; wt=" + weight);
+        try {
+            while (tokens.incrementToken()) {
+                fld.term.bytes().copyChars(termAtt);
+                int freq = reader.docFreq(fld.term);
+                if (freq >= floor && freq <= ceil) {
+                    long weight = (long) (fld.weight * (float) (freq + 1));
+                    ais.add(fld.term.bytes(), null, weight, null);
+                    LOG.debug ("add " + fld.term + "; wt=" + weight);
+                }
+                else {
+                    //LOG.debug ("update " + fld.term + "; weight=0");
+                    ais.update(fld.term.bytes(), null, 0, null);
+                }
             }
-            else {
-                //LOG.debug ("update " + fld.term + "; weight=0");
-                ais.update(fld.term.bytes(), null, 0, null);
-            }
+            tokens.end();
+        } finally {
+            tokens.close();
         }
-        tokens.close();
     }
 
     public void commit () throws IOException {
