@@ -269,8 +269,8 @@ public class MultiSuggester extends Suggester {
 
     private void addRaw(AnalyzingInfixSuggester ais, WeightedField fld, Object value) throws IOException {
         // just add the unanalyzed field value
-        fld.term.bytes().copyChars(value.toString());
-        ais.add(fld.term.bytes(), null, (long) fld.weight, null);
+        Term term = new Term (fld.fieldName, value.toString());
+        ais.add(term.bytes(), null, (long) fld.weight, null);
         LOG.debug ("add raw " + value + "; wt=" + fld.weight);
     }
     
@@ -281,21 +281,22 @@ public class MultiSuggester extends Suggester {
         CharTermAttribute termAtt = tokens.addAttribute(CharTermAttribute.class);
         int floor = (int) Math.floor(fld.minFreq * numDocs);
         int ceil = (int) Math.ceil(fld.maxFreq * numDocs);
+        Term term = new Term (fld.fieldName, new BytesRef(8));
         try {
             while (tokens.incrementToken()) {
                 if (termAtt.length() == 0) {
                     continue;
                 }
-                fld.term.bytes().copyChars(termAtt);
-                int freq = searcher.docFreq(fld.term);
+                term.bytes().copyChars(termAtt);
+                int freq = searcher.docFreq(term);
                 if (freq >= floor && freq <= ceil) {
                     long weight = (long) (fld.weight * (float) (freq + 1));
-                    ais.add(fld.term.bytes(), null, weight, null);
-                    LOG.debug ("add " + fld.term + "; wt=" + weight);
+                    ais.add(term.bytes(), null, weight, null);
+                    LOG.debug ("add " + term + "; wt=" + weight);
                 }
                 else {
                     //LOG.debug ("update " + fld.term + "; weight=0");
-                    ais.update(fld.term.bytes(), null, 0, null);
+                    ais.update(term.bytes(), null, 0, null);
                 }
             }
             tokens.end();
@@ -324,7 +325,6 @@ public class MultiSuggester extends Suggester {
         final float weight;
         final float minFreq;
         final float maxFreq;
-        final Term term;
         final Analyzer fieldAnalyzer;
         final boolean useStoredField;
         
@@ -333,7 +333,6 @@ public class MultiSuggester extends Suggester {
             this.weight = weight;
             this.minFreq = minFreq;
             this.maxFreq = maxFreq;
-            this.term = new Term (name, new BytesRef(MAX_TERM_LENGTH));
             this.fieldAnalyzer = analyzer;
             this.useStoredField = useStoredField;
         }
