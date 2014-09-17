@@ -284,6 +284,9 @@ public class MultiSuggester extends Suggester {
         int ceil = (int) Math.ceil(fld.maxFreq * numDocs);
         try {
             while (tokens.incrementToken()) {
+                if (termAtt.length() == 0) {
+                    continue;
+                }
                 fld.term.bytes().copyChars(termAtt);
                 int freq = reader.docFreq(fld.term);
                 if (freq >= floor && freq <= ceil) {
