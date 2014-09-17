@@ -7,6 +7,7 @@ import java.text.BreakIterator;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.spell.HighFrequencyDictionary;
 import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
@@ -175,14 +176,13 @@ public class MultiSuggester extends Suggester {
     
     @Override
     public void build(SolrCore coreParam, SolrIndexSearcher searcher) throws IOException {
-        reader = searcher.getIndexReader();
         LOG.info("build suggestion index: " + name);
         dictionary = new MultiDictionary();
         for (WeightedField fld : fields) {
             if (fld.useStoredField) {
-                buildFromStoredField(fld);
+                buildFromStoredField(fld, searcher.getIndexReader());
             } else {
-                buildFromTerms(fld);
+                buildFromTerms(fld, searcher.getIndexReader());
             }
         }
         lookup.build(dictionary);
@@ -193,7 +193,7 @@ public class MultiSuggester extends Suggester {
         }
     }
     
-    private void buildFromStoredField(WeightedField fld) {
+    private void buildFromStoredField(WeightedField fld, IndexReader reader) {
         if (fld.fieldAnalyzer != null) {
             throw new IllegalStateException("not supported: analyzing stored fields");
         }
@@ -201,7 +201,7 @@ public class MultiSuggester extends Suggester {
         ((MultiDictionary)dictionary).addDictionary(sfd, 0, 2, fld.weight);
     }
 
-    private void buildFromTerms(WeightedField fld) {
+    private void buildFromTerms(WeightedField fld, IndexReader reader) {
         HighFrequencyDictionary hfd = new HighFrequencyDictionary(reader, fld.fieldName, fld.minFreq);
         int minFreq = (int) (fld.minFreq * reader.numDocs());
         int maxFreq = (int) (fld.maxFreq * reader.numDocs());
@@ -233,9 +233,8 @@ public class MultiSuggester extends Suggester {
         if (! (lookup instanceof AnalyzingInfixSuggester)) {
             return;
         }
-        reader = searcher.getIndexReader();
         AnalyzingInfixSuggester ais = (AnalyzingInfixSuggester) lookup;
-        float numDocs = reader.numDocs();
+        float numDocs = searcher.getIndexReader().numDocs();
         for (WeightedField fld : fields) {
             if (! doc.containsKey(fld.fieldName)) {
                 continue;
@@ -262,7 +261,7 @@ public class MultiSuggester extends Suggester {
                         addRaw(ais, fld, value);
                     }
                 } else {
-                    addAnalyzed (fld, value.toString(), ais, numDocs);
+                    addAnalyzed (searcher, fld, value.toString(), ais, numDocs);
                 }
             }
         }   
@@ -275,7 +274,7 @@ public class MultiSuggester extends Suggester {
         LOG.debug ("add raw " + value + "; wt=" + fld.weight);
     }
     
-    private void addAnalyzed(WeightedField fld, String value, AnalyzingInfixSuggester ais, float numDocs) throws IOException {
+    private void addAnalyzed(SolrIndexSearcher searcher, WeightedField fld, String value, AnalyzingInfixSuggester ais, float numDocs) throws IOException {
         // 
         TokenStream tokens = fld.fieldAnalyzer.tokenStream(fld.fieldName, value);
         tokens.reset();
@@ -288,7 +287,7 @@ public class MultiSuggester extends Suggester {
                     continue;
                 }
                 fld.term.bytes().copyChars(termAtt);
-                int freq = reader.docFreq(fld.term);
+                int freq = searcher.docFreq(fld.term);
                 if (freq >= floor && freq <= ceil) {
                     long weight = (long) (fld.weight * (float) (freq + 1));
                     ais.add(fld.term.bytes(), null, weight, null);
