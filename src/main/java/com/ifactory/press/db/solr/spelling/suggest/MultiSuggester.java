@@ -241,25 +241,7 @@ public class MultiSuggester extends Suggester {
             }
             for (Object value : doc.getFieldValues(fld.fieldName)) {
                 if (fld.fieldAnalyzer == null) {
-                    String str = value.toString();
-                    if (str.length() > maxSuggestionLength) {
-                        BreakIterator scanner = BreakIterator.getWordInstance();
-                        scanner.setText(str);
-                        int offset = 0;
-                        while (offset < str.length() - maxSuggestionLength) {
-                            int next = scanner.following(offset + maxSuggestionLength - 1);
-                            addRaw(ais, fld, str.substring(offset, next));
-                            offset = next;
-                        }
-                        // just drop any trailing goo??
-                        /*
-                        if (offset + 20 < str.length()) {
-                            addRaw(ais, fld, str.substring(offset));
-                        }
-                        */
-                    } else {
-                        addRaw(ais, fld, value);
-                    }
+                    addRaw(ais, value.toString(), (long) fld.weight);
                 } else {
                     addAnalyzed (searcher, fld, value.toString(), ais, numDocs);
                 }
@@ -267,11 +249,33 @@ public class MultiSuggester extends Suggester {
         }   
     }
 
-    private void addRaw(AnalyzingInfixSuggester ais, WeightedField fld, Object value) throws IOException {
-        // just add the unanalyzed field value
-        Term term = new Term (fld.fieldName, value.toString());
-        ais.add(term.bytes(), null, (long) fld.weight, null);
-        LOG.debug ("add raw " + value + "; wt=" + fld.weight);
+    /**
+     * Add the value to the suggester, so it will be available as a suggestion. 
+     * @param ais the suggester
+     * @param weight the weight of the suggestion
+     * @param value the value to add
+     * @throws IOException
+     */
+    private void addRaw(AnalyzingInfixSuggester ais, String value, long weight) throws IOException {
+        BytesRef bytes = new BytesRef(maxSuggestionLength);
+        if (value.length() > maxSuggestionLength) {
+            // break the value into segments if it's too long
+            BreakIterator scanner = BreakIterator.getWordInstance();
+            scanner.setText(value);
+            int offset = 0;
+            while (offset < value.length() - maxSuggestionLength) {
+                int next = scanner.following(offset + maxSuggestionLength - 1);
+                bytes.copyChars(value.substring(offset, next));
+                ais.add(bytes, null, weight, null);
+                offset = next;
+            }
+            // just drop any trailing goo
+        } else {
+            // add the value unchanged
+            bytes.copyChars(value);
+            ais.add(bytes, null, (long) weight, null);
+        }
+        LOG.trace ("add raw " + value + "; wt=" + weight);
     }
     
     private void addAnalyzed(SolrIndexSearcher searcher, WeightedField fld, String value, AnalyzingInfixSuggester ais, float numDocs) throws IOException {
