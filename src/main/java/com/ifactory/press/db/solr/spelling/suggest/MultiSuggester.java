@@ -7,8 +7,16 @@ import java.text.BreakIterator;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexReaderContext;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.search.Collector;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.Scorer;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.TopScoreDocCollector;
 import org.apache.lucene.search.spell.HighFrequencyDictionary;
 import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
 import org.apache.lucene.util.BytesRef;
@@ -16,6 +24,7 @@ import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.util.NamedList;
 import org.apache.solr.core.CloseHook;
 import org.apache.solr.core.SolrCore;
+import org.apache.solr.search.EarlyTerminatingCollector;
 import org.apache.solr.search.SolrIndexSearcher;
 import org.apache.solr.spelling.suggest.Suggester;
 import org.slf4j.Logger;
@@ -72,14 +81,16 @@ import com.google.common.collect.Multimaps;
           <float name="minfreq">0.005</float>
           <float name="maxfreq">0.3</float>
         </lst>
-      </lst>
-      <lst name="fields">
         <lst name="field">
           <str name="name">title_ms</str>
           <float name="weight">10.0</float>
         </lst>
-      </lst>
-      <lst name="fields">
+        <lst name="field">
+          <!-- a field whose values are weighted by the value of another field in the same document -->
+          <str name="name">weighted_field_ms</str>
+          <str name="weight_field">weight_dv</str>
+          <float name="weight">10.0</float>
+        </lst>
         <lst name="field">
           <str name="name">title_t</str>
           <analyzerFieldType>string</analyzerFieldType>
@@ -161,16 +172,24 @@ public class MultiSuggester extends Suggester {
             }
             String analyzerFieldTypeName = (String) fieldConfig.get("analyzerFieldType");
             Analyzer fieldAnalyzer;
-            if (analyzerFieldTypeName != null) {
+            
+            String weightField = (String) fieldConfig.get("weightField");
+            boolean useStoredField = analyzerFieldTypeName != null;
+            if (useStoredField) {
+                // useStoredField - when re-building, we retrieve the stored field value
                 if ("string".equals(analyzerFieldTypeName)) {
                     fieldAnalyzer = null;
                 } else {
                     fieldAnalyzer = coreParam.getLatestSchema().getFieldTypeByName(analyzerFieldTypeName).getAnalyzer();
                 }
             } else {
+                if (weightField != null) {
+                    LOG.warn("weight field not supported for terms-based suggestions");
+                }
+                // Use the existing term values as analyzed by the field
                 fieldAnalyzer = coreParam.getLatestSchema().getFieldType(fieldName).getAnalyzer();
             }
-            fields[ifield] = new WeightedField(fieldName, weight, minFreq, maxFreq, fieldAnalyzer, analyzerFieldTypeName != null);
+            fields[ifield] = new WeightedField(fieldName, weight, minFreq, maxFreq, fieldAnalyzer, useStoredField, weightField);
         }
     }
     
@@ -197,6 +216,7 @@ public class MultiSuggester extends Suggester {
         if (fld.fieldAnalyzer != null) {
             throw new IllegalStateException("not supported: analyzing stored fields");
         }
+        // TODO: handle weightField in StoredFieldDictionary
         StoredFieldDictionary sfd = new StoredFieldDictionary(reader, fld.fieldName);
         ((MultiDictionary)dictionary).addDictionary(sfd, 0, 2, fld.weight);
     }
@@ -240,13 +260,40 @@ public class MultiSuggester extends Suggester {
                 continue;
             }
             for (Object value : doc.getFieldValues(fld.fieldName)) {
-                if (fld.fieldAnalyzer == null) {
-                    addRaw(ais, value.toString(), (long) fld.weight);
+                String strValue = value.toString();
+                if (fld.weightField != null) {
+                    // get the number of times this identical document has been inserted
+                    TopScoreDocCollector collector = TopScoreDocCollector.create(1, true);
+                    searcher.search(new TermQuery(new Term(fld.fieldName, strValue)), new EarlyTerminatingCollector(collector, 1));
+                    long count = 1;
+                    if (collector.topDocs().totalHits > 0) {
+                       int docID = collector.topDocs().scoreDocs[0].doc;
+                       IndexReaderContext context = searcher.getIndexReader().getContext();
+                       for (AtomicReaderContext leaf : context.leaves()) {
+                           int reldocid = docID - leaf.docBase;
+                           if (reldocid >= 0 && reldocid < leaf.reader().numDocs()) {
+                               NumericDocValues ndv = leaf.reader().getNumericDocValues(fld.weightField);
+                               if (ndv == null) {
+                                   break;
+                               }
+                               count = ndv.get(reldocid);
+                           }
+                       }
+                    }
+                    if (fld.fieldAnalyzer == null) {
+                        addRaw(ais, value.toString(), (long) fld.weight * count);
+                    } else {
+                        addAnalyzed (searcher, fld, strValue, ais, numDocs, count);
+                    }
                 } else {
-                    addAnalyzed (searcher, fld, value.toString(), ais, numDocs);
+                    if (fld.fieldAnalyzer == null) {
+                        addRaw(ais, value.toString(), (long) fld.weight);
+                    } else {
+                        addAnalyzed (searcher, fld, strValue, ais, numDocs, count);
+                    }
                 }
             }
-        }   
+        }
     }
 
     /**
@@ -286,11 +333,9 @@ public class MultiSuggester extends Suggester {
         int floor = (int) Math.floor(fld.minFreq * numDocs);
         int ceil = (int) Math.ceil(fld.maxFreq * numDocs);
         Term term = new Term (fld.fieldName, new BytesRef(8));
+        int freq;
         try {
             while (tokens.incrementToken()) {
-                if (termAtt.length() == 0) {
-                    continue;
-                }
                 term.bytes().copyChars(termAtt);
                 int freq = searcher.docFreq(term);
                 if (freq >= floor && freq <= ceil) {
@@ -331,14 +376,16 @@ public class MultiSuggester extends Suggester {
         final float maxFreq;
         final Analyzer fieldAnalyzer;
         final boolean useStoredField;
+        final String weightField;
         
-        WeightedField (String name, float weight, float minFreq, float maxFreq, Analyzer analyzer, boolean useStoredField) {
+        WeightedField (String name, float weight, float minFreq, float maxFreq, Analyzer analyzer, boolean useStoredField, String weightField) {
             this.fieldName = name;
             this.weight = weight;
             this.minFreq = minFreq;
             this.maxFreq = maxFreq;
             this.fieldAnalyzer = analyzer;
             this.useStoredField = useStoredField;
+            this.weightField = weightField;
         }
         
     }
