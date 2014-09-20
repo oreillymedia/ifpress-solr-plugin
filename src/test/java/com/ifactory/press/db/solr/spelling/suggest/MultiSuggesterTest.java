@@ -20,6 +20,7 @@ public class MultiSuggesterTest extends SolrTest {
     
     private static final String TEXT_FIELD = "fulltext_t";
     private static final String TITLE_FIELD = "title_ms";
+    private static final String WEIGHTED_TITLE_FIELD = "weighted_title_ms";
     private static final String TITLE_TEXT_FIELD = "title_t";
     private static final String TEXT = "Now is the time time for all good people to come to the aid of their intentional community";
     private static final String TITLE = "The Dawning of a New Era";
@@ -31,23 +32,51 @@ public class MultiSuggesterTest extends SolrTest {
 
         insertTestDocuments(TITLE_FIELD);
         
-        SolrQuery q = assertSuggestions();
+        assertSuggestions();
         
         // Rebuilding the index causes the common terms to be excluded since their freq is visible
         // while the index is being built
         rebuildSuggester();
-        Suggestion suggestion = solr.query(q).getSpellCheckResponse().getSuggestion("t");
-        assertEquals (3, suggestion.getNumFound());
+        assertSuggestionCount("t", 3);
     }
     
     @Test
     public void testOverrideAnalyzer() throws Exception {
         rebuildSuggester();
         insertTestDocuments(TITLE_TEXT_FIELD);
-        SolrQuery q = assertSuggestions();
+        assertSuggestions();
         rebuildSuggester();
-        Suggestion suggestion = solr.query(q).getSpellCheckResponse().getSuggestion("t");
-        assertEquals (3, suggestion.getNumFound());
+        assertSuggestionCount("t", 3);
+    }
+    
+    @Test
+    public void testDocValuesWeight() throws Exception {
+        rebuildSuggester();
+        long t0 = System.nanoTime();
+        insertTestDocuments(WEIGHTED_TITLE_FIELD, 100);
+        long t1 = System.nanoTime();
+        assertSuggestionCount("a2", 11);
+        System.out.println("testDocValuesWeight: " + (t1-t0) + " ns");
+    }
+    
+    @Test
+    public void testDocFreqWeight() throws Exception {
+        rebuildSuggester();
+        long t0 = System.nanoTime();
+        insertTestDocuments(TITLE_FIELD, 100);
+        long t1 = System.nanoTime();
+        assertSuggestionCount("a2", 11);
+        System.out.println("testDocFreqWeight: " + (t1-t0) + " ns");
+    }
+    
+    @Test
+    public void testConstantWeight() throws Exception {
+        rebuildSuggester();
+        long t0 = System.nanoTime();
+        insertTestDocuments(TITLE_TEXT_FIELD, 100);
+        long t1 = System.nanoTime();
+        assertSuggestionCount("a2", 11);
+        System.out.println("testDocFreqWeight: " + (t1-t0) + " ns");
     }
     
     /*
@@ -68,24 +97,36 @@ public class MultiSuggesterTest extends SolrTest {
         reload.process(solr);
     }
     
-    private SolrQuery assertSuggestions() throws SolrServerException {
-        SolrQuery q = new SolrQuery("t");
+    private Suggestion assertSuggestionCount(String prefix, int count) throws SolrServerException {
+        SolrQuery q = new SolrQuery(prefix);
         q.setRequestHandler("/suggest/all");
+        q.set("spellcheck.count", 100);
         QueryResponse resp = solr.query(q);
         SpellCheckResponse scr = resp.getSpellCheckResponse();
         assertNotNull ("no spell check reponse found", scr);
-        // should come first due to higher weighting of title
-        Suggestion suggestion = scr.getSuggestion("t");
-        assertNotNull ("No suggestion found for 't'", suggestion);
+        Suggestion suggestion = scr.getSuggestion(prefix);
+        if (count == 0) {
+            assertNull ("Unexpected suggestion found for " + prefix, suggestion);
+        } else {
+            assertNotNull ("No suggestion found for " + prefix, suggestion);
+        }
+        assertEquals (count, suggestion.getNumFound());
+        return suggestion;
+    }
+    
+    private void assertSuggestions() throws SolrServerException {
+        Suggestion suggestion = assertSuggestionCount ("t", 5);
         // max threshold sets weight of common terms to zero but doesn't exclude them
-        assertEquals (5, suggestion.getNumFound());
         assertEquals (TITLE_SUGGEST, suggestion.getAlternatives().get(0));
         assertEquals ("<b>t</b>ime", suggestion.getAlternatives().get(1));
         assertEquals ("<b>t</b>heir", suggestion.getAlternatives().get(2));
-        return q;
     }
 
     private void insertTestDocuments(String titleField) throws SolrServerException, IOException {
+        insertTestDocuments(titleField, 11);
+    }
+    
+    private void insertTestDocuments(String titleField, int numDocs) throws SolrServerException, IOException {
         // insert ten documents; one of them has the title TITLE
         SolrInputDocument doc = new SolrInputDocument();
         doc.addField("uri", "/doc/1");
@@ -93,10 +134,10 @@ public class MultiSuggesterTest extends SolrTest {
         doc.addField(TEXT_FIELD, TEXT);
         solr.add(doc);
         solr.commit(false, false, true);
-        for (int i = 2; i < 11; i++) {
+        for (int i = 2; i < numDocs; i++) {
             doc = new SolrInputDocument();
             doc.addField("uri", "/doc/" + i);
-            doc.addField(titleField, "document " + i);
+            doc.addField(titleField, String.format("a%d document " , i));
             // 'the' 'to' should get excluded from suggestions by maxWeight configured to 0.3
             doc.addField(TEXT_FIELD, "the to " + i);
             solr.add(doc);

@@ -1,9 +1,11 @@
 package com.ifactory.press.db.solr;
 
 import java.io.File;
+import java.io.IOException;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.solr.client.solrj.SolrServer;
+import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
 import org.apache.solr.core.CoreContainer;
 import org.apache.solr.core.SolrCore;
@@ -39,6 +41,10 @@ public class SolrTest {
     @Before
     public void init() throws Exception {
         solr = new EmbeddedSolrServer(coreContainer, "collection1");
+        clearIndex();
+    }
+    
+    protected void clearIndex () throws SolrServerException, IOException {
         solr.deleteByQuery("*:*");
         solr.commit(false, true, true);
     }
