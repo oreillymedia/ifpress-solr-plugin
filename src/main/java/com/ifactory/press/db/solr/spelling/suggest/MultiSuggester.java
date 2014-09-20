@@ -307,7 +307,8 @@ public class MultiSuggester extends Suggester {
                     if (fld.fieldAnalyzer == null) {
                         addRaw(ais, value.toString(), (long) fld.weight);
                     } else {
-                        addAnalyzed (searcher, fld, strValue, ais, numDocs);
+                      // addAnalyzed (searcher, fld, strValue, ais, numDocs);
+                      addWithWeight (fld, strValue, ais, numDocs, (int) fld.weight);
                     }
                 }
             }
