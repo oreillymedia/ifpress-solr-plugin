@@ -16,7 +16,7 @@ import com.ifactory.press.db.solr.SolrTest;
 
 public class MSPerfTest extends SolrTest {
     
-    private static final int NUMDOCS = 100000;
+  private static final int NUMDOCS = 100;//100000;
 
     @Test
     public void testDocValuesWeight() throws Exception {
