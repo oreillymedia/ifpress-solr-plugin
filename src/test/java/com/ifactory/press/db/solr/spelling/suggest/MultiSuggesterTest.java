@@ -20,7 +20,6 @@ public class MultiSuggesterTest extends SolrTest {
     
     private static final String TEXT_FIELD = "fulltext_t";
     private static final String TITLE_FIELD = "title_ms";
-    private static final String WEIGHTED_TITLE_FIELD = "weighted_title_ms";
     private static final String TITLE_TEXT_FIELD = "title_t";
     private static final String TEXT = "Now is the time time for all good people to come to the aid of their intentional community";
     private static final String TITLE = "The Dawning of a New Era";
@@ -47,16 +46,6 @@ public class MultiSuggesterTest extends SolrTest {
         assertSuggestions();
         rebuildSuggester();
         assertSuggestionCount("t", 3);
-    }
-    
-    @Test
-    public void testDocValuesWeight() throws Exception {
-        rebuildSuggester();
-        long t0 = System.nanoTime();
-        insertTestDocuments(WEIGHTED_TITLE_FIELD, 100);
-        long t1 = System.nanoTime();
-        assertSuggestionCount("a2", 11);
-        System.out.println("testDocValuesWeight: " + (t1-t0) + " ns");
     }
     
     @Test
@@ -95,6 +84,11 @@ public class MultiSuggesterTest extends SolrTest {
         reload.setAction(CoreAdminAction.RELOAD);
         reload.setCoreName("collection1");
         reload.process(solr);
+    }
+    
+    @Test
+    public void testUpdateCount () throws Exception {
+        
     }
     
     private Suggestion assertSuggestionCount(String prefix, int count) throws SolrServerException {
@@ -139,7 +133,7 @@ public class MultiSuggesterTest extends SolrTest {
             doc.addField("uri", "/doc/" + i);
             doc.addField(titleField, String.format("a%d document " , i));
             // 'the' 'to' should get excluded from suggestions by maxWeight configured to 0.3
-            doc.addField(TEXT_FIELD, "the to " + i);
+            doc.addField(TEXT_FIELD, "the the to " + i);
             solr.add(doc);
             solr.commit(false, false, true);
         }

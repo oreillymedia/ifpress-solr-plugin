@@ -102,7 +102,7 @@ public class MSPerfTest extends SolrTest {
             whackamole [r] = true;
             doc.addField(field, alphabet[r]);
             solr.add(doc);
-            if (i % 5000 == 4999) {
+            if (i % (NUMDOCS/100) == (NUMDOCS/100 - 1)) {
                 // hard commit
                 solr.commit(false, true, false);
             }

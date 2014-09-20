@@ -1075,7 +1075,7 @@
         <lst name="field">
           <!-- a field whose values are weighted by the value of another field in the same document -->
           <str name="name">weighted_title_ms</str>
-          <str name="weight_field">weight_dv</str>
+          <str name="weightField">weight_dv</str>
           <float name="weight">10.0</float>
         </lst>        
       </lst>

@@ -3,17 +3,12 @@ package com.ifactory.press.db.solr.spelling.suggest;
 import java.io.Closeable;
 import java.io.IOException;
 import java.text.BreakIterator;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
-import org.apache.lucene.index.AtomicReaderContext;
-import org.apache.lucene.index.IndexReaderContext;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.NumericDocValues;
-import org.apache.lucene.index.Term;
-import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.search.TopScoreDocCollector;
 import org.apache.lucene.search.spell.HighFrequencyDictionary;
 import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
 import org.apache.lucene.util.BytesRef;
@@ -21,10 +16,8 @@ import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.util.NamedList;
 import org.apache.solr.core.CloseHook;
 import org.apache.solr.core.SolrCore;
-import org.apache.solr.search.EarlyTerminatingCollector;
 import org.apache.solr.search.SolrIndexSearcher;
 import org.apache.solr.spelling.suggest.Suggester;
-import org.apache.solr.util.RefCounted;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -105,6 +98,12 @@ import com.google.common.collect.Multimaps;
 public class MultiSuggester extends Suggester {
     
     private static final int DEFAULT_MAX_SUGGESTION_LENGTH = 80;
+    
+    // weights are stored internally as longs, but externally as small floating
+    // point numbers.  The floating point weights are multiplied by this factor to convert
+    // them to longs with a sufficient range.  WEIGHT_SCALE should be greater than the
+    // number of possible suggestions
+    private static final int WEIGHT_SCALE = 10000000;
 
     private static final Logger LOG = LoggerFactory.getLogger(MultiSuggester.class);
     
@@ -171,7 +170,6 @@ public class MultiSuggester extends Suggester {
             String analyzerFieldTypeName = (String) fieldConfig.get("analyzerFieldType");
             Analyzer fieldAnalyzer;
             
-            String weightField = (String) fieldConfig.get("weightField");
             boolean useStoredField = analyzerFieldTypeName != null;
             if (useStoredField) {
                 // useStoredField - when re-building, we retrieve the stored field value
@@ -181,13 +179,10 @@ public class MultiSuggester extends Suggester {
                     fieldAnalyzer = coreParam.getLatestSchema().getFieldTypeByName(analyzerFieldTypeName).getAnalyzer();
                 }
             } else {
-                if (weightField != null) {
-                    LOG.warn("weight field not supported for terms-based suggestions");
-                }
                 // Use the existing term values as analyzed by the field
                 fieldAnalyzer = coreParam.getLatestSchema().getFieldType(fieldName).getAnalyzer();
             }
-            fields[ifield] = new WeightedField(fieldName, weight, minFreq, maxFreq, fieldAnalyzer, useStoredField, weightField);
+            fields[ifield] = new WeightedField(fieldName, weight, minFreq, maxFreq, fieldAnalyzer, useStoredField);
         }
     }
     
@@ -215,7 +210,6 @@ public class MultiSuggester extends Suggester {
         if (fld.fieldAnalyzer != null) {
             throw new IllegalStateException("not supported: analyzing stored fields");
         }
-        // TODO: handle weightField in StoredFieldDictionary
         StoredFieldDictionary sfd = new StoredFieldDictionary(reader, fld.fieldName);
         ((MultiDictionary)dictionary).addDictionary(sfd, 0, 2, fld.weight);
     }
@@ -259,61 +253,23 @@ public class MultiSuggester extends Suggester {
      * @throws IOException 
      */
     public void add(SolrInputDocument doc, SolrIndexSearcher searcher) throws IOException {
-        if (! (lookup instanceof AnalyzingInfixSuggester)) {
+        if (! (lookup instanceof SafeInfixSuggester)) {
             return;
         }
-        AnalyzingInfixSuggester ais = (AnalyzingInfixSuggester) lookup;
-        int numDocs = searcher.getIndexReader().numDocs();
-        RefCounted<IndexWriter> writer = null;
         for (WeightedField fld : fields) {
             if (! doc.containsKey(fld.fieldName)) {
                 continue;
             }
             for (Object value : doc.getFieldValues(fld.fieldName)) {
                 String strValue = value.toString();
-                if (fld.weightField != null) {
-                    // get the number of times this identical document has been inserted
-                    TopScoreDocCollector collector = TopScoreDocCollector.create(1, true);
-                    Term docTerm = new Term(fld.fieldName, strValue); // a term identifying a single document
-                    searcher.search(new TermQuery(docTerm), new EarlyTerminatingCollector(collector, 1));
-                    long count = 1;
-                    if (collector.topDocs().totalHits > 0) {
-                       int docID = collector.topDocs().scoreDocs[0].doc;
-                       IndexReaderContext context = searcher.getIndexReader().getContext();
-                       for (AtomicReaderContext leaf : context.leaves()) {
-                           int reldocid = docID - leaf.docBase;
-                           if (reldocid >= 0 && reldocid < leaf.reader().numDocs()) {
-                               NumericDocValues ndv = leaf.reader().getNumericDocValues(fld.weightField);
-                               if (ndv == null) {
-                                   break;
-                               }
-                               count = ndv.get(reldocid);
-                           }
-                       }
-                       count += 1;
-                       if (writer == null) {
-                           writer = core.getSolrCoreState().getIndexWriter(core);
-                       }
-                       writer.get().updateNumericDocValue(docTerm, fld.weightField, count);
-                       writer.decref();
-                    }
-                    if (fld.fieldAnalyzer == null) {
-                        addRaw(ais, value.toString(), (long) fld.weight * count);
-                    } else {
-                        addWithWeight (fld, strValue, ais, numDocs, (int) (fld.weight * count));
-                    }
-                    // update DV field!
+                if (fld.fieldAnalyzer == null) {
+                    // was constant weight
+                    addRaw(fld, strValue);
                 } else {
-                    if (fld.fieldAnalyzer == null) {
-                        addRaw(ais, value.toString(), (long) fld.weight);
-                    } else {
-                      // addAnalyzed (searcher, fld, strValue, ais, numDocs);
-                      addWithWeight (fld, strValue, ais, numDocs, (int) fld.weight);
-                    }
+                    //long wt = (long) (fld.weight * Math.log (count) + 1);
+                    // TODO: pull out scaling
+                    addTokenized (fld, strValue);
                 }
-            }
-            if (writer != null) {
-                writer.decref();
             }
         }
     }
@@ -325,8 +281,7 @@ public class MultiSuggester extends Suggester {
      * @param value the value to add
      * @throws IOException
      */
-    private void addRaw(AnalyzingInfixSuggester ais, String value, long weight) throws IOException {
-        BytesRef bytes = new BytesRef(maxSuggestionLength);
+    private void addRaw(WeightedField fld, String value) throws IOException {
         if (value.length() > maxSuggestionLength) {
             // break the value into segments if it's too long
             BreakIterator scanner = BreakIterator.getWordInstance();
@@ -334,78 +289,71 @@ public class MultiSuggester extends Suggester {
             int offset = 0;
             while (offset < value.length() - maxSuggestionLength) {
                 int next = scanner.following(offset + maxSuggestionLength - 1);
-                bytes.copyChars(value.substring(offset, next));
-                ais.update(bytes, null, weight, null);
+                incPending (fld, value.substring(offset, next));
                 offset = next;
             }
             // just drop any trailing goo
         } else {
             // add the value unchanged
-            bytes.copyChars(value);
-            ais.update(bytes, null, (long) weight, null);
+            incPending (fld, value);
         }
-        LOG.trace ("add raw " + value + "; wt=" + weight);
-    }
-    
-    private void addAnalyzed(SolrIndexSearcher searcher, WeightedField fld, String value, AnalyzingInfixSuggester ais, float numDocs) throws IOException {
-        // 
-        TokenStream tokens = fld.fieldAnalyzer.tokenStream(fld.fieldName, value);
-        tokens.reset();
-        CharTermAttribute termAtt = tokens.addAttribute(CharTermAttribute.class);
-        int floor = (int) Math.floor(fld.minFreq * numDocs);
-        int ceil = (int) Math.ceil(fld.maxFreq * numDocs);
-        Term term = new Term (fld.fieldName, new BytesRef(8));
-        try {
-            while (tokens.incrementToken()) {
-                term.bytes().copyChars(termAtt);
-                int freq = searcher.docFreq(term);
-                if (freq >= floor && freq <= ceil) {
-                    long weight = (long) (fld.weight * (float) (freq + 1));
-                    ais.update(term.bytes(), null, weight, null);
-                    LOG.trace("add " + term + "; wt=" + weight);
-                }
-                else {
-                    //LOG.debug ("update " + fld.term + "; weight=0");
-                    ais.update(term.bytes(), null, 0, null);
-                }
-            }
-            tokens.end();
-        } finally {
-            tokens.close();
-        }
-    }
-    
-    private void addWithWeight(WeightedField fld, String value, AnalyzingInfixSuggester ais, int numDocs, int weight) throws IOException {
-        // 
-        TokenStream tokens = fld.fieldAnalyzer.tokenStream(fld.fieldName, value);
-        tokens.reset();
-        CharTermAttribute termAtt = tokens.addAttribute(CharTermAttribute.class);
-        int floor = (int) Math.floor(fld.minFreq * numDocs * fld.weight);
-        int ceil = (int) Math.ceil(fld.maxFreq * numDocs * fld.weight);
-        Term term = new Term (fld.fieldName, new BytesRef(8));
-        try {
-            while (tokens.incrementToken()) {
-                term.bytes().copyChars(termAtt);
-                if (weight >= floor && weight <= ceil) {
-                    ais.add(term.bytes(), null, weight, null);
-                    LOG.trace ("add weighted " + term + "; wt=" + weight);
-                }
-                else {
-                    //LOG.debug ("update " + fld.term + "; weight=0");
-                    ais.update(term.bytes(), null, 0, null);
-                }
-            }
-            tokens.end();
-        } finally {
-            tokens.close();
-        }
+        //LOG.trace ("add raw " + value);
     }
 
+    // TODO: rename; reorder args to be like addRaw
+    private void addTokenized(WeightedField fld, String value) throws IOException {
+        // 
+        TokenStream tokens = fld.fieldAnalyzer.tokenStream(fld.fieldName, value);
+        tokens.reset();
+        CharTermAttribute termAtt = tokens.addAttribute(CharTermAttribute.class);
+        try {
+            while (tokens.incrementToken()) {
+                String token = termAtt.toString();
+                incPending(fld, token);
+                //LOG.trace ("add token " + token);
+            }
+            tokens.end();
+        } finally {
+            tokens.close();
+        }
+    }
+    
+    private void incPending (WeightedField fld, String suggestion) {
+        if (fld.pending.containsKey(suggestion)) {
+            fld.pending.put(suggestion, fld.pending.get(suggestion) + 1);
+        } else {
+            fld.pending.put(suggestion, 1);
+        }
+    }
+    
     public void commit () throws IOException {
         if (! (lookup instanceof AnalyzingInfixSuggester)) {
             return;
         }
-        AnalyzingInfixSuggester ais = (AnalyzingInfixSuggester) lookup;
+        SafeInfixSuggester ais = (SafeInfixSuggester) lookup;
+        long totalSuggestionCount = ais.getCount() + 1;
+        for (WeightedField fld : fields) {
+            // swap in a new pending map so we can accept new suggestions while we commit
+            ConcurrentHashMap<String, Integer> batch = fld.pending;
+            fld.pending = new ConcurrentHashMap<String, Integer>(batch.size());
+            BytesRef bytes = new BytesRef(maxSuggestionLength);
+            for (Map.Entry<String, Integer> e : batch.entrySet()) {
+                String term = e.getKey();
+                bytes.copyChars(term);
+                long termCount = ais.getCount(term);
+                long count;
+                if (termCount < 0) {
+                    count = e.getValue();
+                } else {
+                    count = e.getValue() + termCount;
+                }
+                // TODO: factor out WEIGHT_SCALE multiplier into WeightedField 
+                long weight = (long) (WEIGHT_SCALE * fld.weight * count / totalSuggestionCount);
+                //LOG.trace("commit " + fld.fieldName + ":" + term + " " + termCount + "+" + e.getValue() + "=" + count + ", weight=" + weight);
+                ais.update(bytes, null, weight, count);
+            }
+        }
+        // refresh after each field so the counts will accumulate across fields?
         ais.refresh();
     }
     
@@ -423,16 +371,16 @@ public class MultiSuggester extends Suggester {
         final float maxFreq;
         final Analyzer fieldAnalyzer;
         final boolean useStoredField;
-        final String weightField;
+        private ConcurrentHashMap<String, Integer> pending;
         
-        WeightedField (String name, float weight, float minFreq, float maxFreq, Analyzer analyzer, boolean useStoredField, String weightField) {
+        WeightedField (String name, float weight, float minFreq, float maxFreq, Analyzer analyzer, boolean useStoredField) {
             this.fieldName = name;
             this.weight = weight;
             this.minFreq = minFreq;
             this.maxFreq = maxFreq;
             this.fieldAnalyzer = analyzer;
             this.useStoredField = useStoredField;
-            this.weightField = weightField;
+            pending = new ConcurrentHashMap<String, Integer>();
         }
         
     }
