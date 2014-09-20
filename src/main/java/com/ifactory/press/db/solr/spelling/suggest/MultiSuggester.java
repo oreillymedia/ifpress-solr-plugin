@@ -297,17 +297,19 @@ public class MultiSuggester extends Suggester {
                        writer.get().updateNumericDocValue(docTerm, fld.weightField, count);
                        writer.decref();
                     }
+                    // assume freq. distribution is like 1/ord
+                    // TODO: normalize using the count of docs having some value for this field 
+                    long wt = (long) (fld.weight * Math.log (count) + 1);
                     if (fld.fieldAnalyzer == null) {
-                        addRaw(ais, value.toString(), (long) fld.weight * count);
+                        addRaw(ais, value.toString(), wt);
                     } else {
-                        addWithWeight (fld, strValue, ais, numDocs, (int) (fld.weight * count));
+                        addWithWeight (fld, strValue, ais, wt);
                     }
-                    // update DV field!
                 } else {
                     if (fld.fieldAnalyzer == null) {
                         addRaw(ais, value.toString(), (long) fld.weight);
                     } else {
-                        addAnalyzed (searcher, fld, strValue, ais, numDocs);
+                        addWithWeight (fld, strValue, ais, (long) fld.weight);
                     }
                 }
             }
@@ -374,25 +376,17 @@ public class MultiSuggester extends Suggester {
         }
     }
     
-    private void addWithWeight(WeightedField fld, String value, AnalyzingInfixSuggester ais, int numDocs, int weight) throws IOException {
+    private void addWithWeight(WeightedField fld, String value, AnalyzingInfixSuggester ais, long wt) throws IOException {
         // 
         TokenStream tokens = fld.fieldAnalyzer.tokenStream(fld.fieldName, value);
         tokens.reset();
         CharTermAttribute termAtt = tokens.addAttribute(CharTermAttribute.class);
-        int floor = (int) Math.floor(fld.minFreq * numDocs * fld.weight);
-        int ceil = (int) Math.ceil(fld.maxFreq * numDocs * fld.weight);
         Term term = new Term (fld.fieldName, new BytesRef(8));
         try {
             while (tokens.incrementToken()) {
                 term.bytes().copyChars(termAtt);
-                if (weight >= floor && weight <= ceil) {
-                    ais.add(term.bytes(), null, weight, null);
-                    LOG.trace ("add weighted " + term + "; wt=" + weight);
-                }
-                else {
-                    //LOG.debug ("update " + fld.term + "; weight=0");
-                    ais.update(term.bytes(), null, 0, null);
-                }
+                ais.update(term.bytes(), null, wt, null);
+                LOG.trace ("add weighted " + term + "; wt=" + wt);
             }
             tokens.end();
         } finally {
