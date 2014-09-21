@@ -191,4 +191,31 @@ public class MultiSuggesterTest extends SolrTest {
         assertEquals (AAAA, suggestion.getAlternatives().get(0));
     }
     
+    @Test
+    public void testExtendedResultFormat () throws Exception {
+        rebuildSuggester();
+        insertTestDocuments(TITLE_FIELD);
+        
+        SolrQuery q = new SolrQuery("t");
+        q.setRequestHandler("/suggest/all");
+        QueryResponse resp = solr.query(q);
+        SpellCheckResponse scr = resp.getSpellCheckResponse();
+        Suggestion suggestion = scr.getSuggestion("t");    
+        
+        // no extended results
+        assertNull (suggestion.getAlternativeFrequencies());
+        
+        // extended results
+        q.set("spellcheck.extendedResults", true);
+        resp = solr.query(q);
+        scr = resp.getSpellCheckResponse();
+        assertNotNull ("no spell check reponse found", scr);
+        suggestion = scr.getSuggestion("t");    
+        assertNotNull (suggestion.getAlternativeFrequencies());
+        assertEquals (110000000, suggestion.getAlternativeFrequencies().get(0).intValue());
+        int last = suggestion.getNumFound() - 1;
+        assertEquals ("<b>t</b>o", suggestion.getAlternatives().get(last));
+        assertEquals (0, suggestion.getAlternativeFrequencies().get(last).intValue());
+    }
+    
 }

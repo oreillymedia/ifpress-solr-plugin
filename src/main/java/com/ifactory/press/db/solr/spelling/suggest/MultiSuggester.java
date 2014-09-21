@@ -3,10 +3,12 @@ package com.ifactory.press.db.solr.spelling.suggest;
 import java.io.Closeable;
 import java.io.IOException;
 import java.text.BreakIterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.Token;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.index.Term;
@@ -18,6 +20,8 @@ import org.apache.solr.common.util.NamedList;
 import org.apache.solr.core.CloseHook;
 import org.apache.solr.core.SolrCore;
 import org.apache.solr.search.SolrIndexSearcher;
+import org.apache.solr.spelling.SpellingOptions;
+import org.apache.solr.spelling.SpellingResult;
 import org.apache.solr.spelling.suggest.Suggester;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -411,6 +415,25 @@ public class MultiSuggester extends Suggester {
         public void postClose(SolrCore c) {
         }
         
+    }
+    
+    @Override
+    public SpellingResult getSuggestions (SpellingOptions options) throws IOException {
+        SpellingResult result = super.getSuggestions(options);
+        if (options.extendedResults) {
+            for (Map.Entry<Token, LinkedHashMap<String, Integer>> suggestion : result.getSuggestions().entrySet()) {
+                Token token = suggestion.getKey();
+                int freq = 0;
+                for (Map.Entry<String, Integer> e : suggestion.getValue().entrySet()) {
+                    if (e.getKey().equals (token.toString())) {
+                        freq = e.getValue();
+                        break;
+                    }
+                }
+                result.addFrequency(token, freq);
+            }
+        }
+        return result;
     }
     
 }
