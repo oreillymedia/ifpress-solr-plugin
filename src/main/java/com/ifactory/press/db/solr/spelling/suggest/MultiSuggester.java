@@ -358,7 +358,7 @@ public class MultiSuggester extends Suggester {
                 } else {
                     weight = (fld.weight * count) / docCount;
                 }
-                LOG.trace("commit " + fld.fieldName + ":" + term + " " + termCount + "+" + e.getValue() + "=" + count + ", weight=" + weight);
+                //LOG.trace("commit " + fld.fieldName + ":" + term + " " + termCount + "+" + e.getValue() + "=" + count + ", weight=" + weight);
                 ais.update(bytes, null, weight, count);
             }
         }
