@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.index.Term;
 import org.apache.lucene.search.spell.HighFrequencyDictionary;
 import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
 import org.apache.lucene.util.BytesRef;
@@ -34,12 +35,12 @@ import com.google.common.collect.Multimaps;
  * fraction of documents containing the term, maximum=0.5 means terms
  * occurring at least as many times as half the number of documents will be given a weight of zero.</p>
  * 
- * <p>The field analyzer is used to tokenize the field values; each token becomes a suggestion. The analyzer
- * may be overridden in the spellchecker configuration for the field.  Only the special value 
- * 'string' is supported, which means the suggestions are drawn from the unanalyzed stored field values.
- * There is also some code here that has initial support for an alternate analyzer (not the one associated
- * with the field in the schema), but it hasn't been fully implemented (only the incremental updates work,
- * not build()).
+ * <p>The field analyzer is used to tokenize the field values; each token becomes a suggestion.
+ * </p>
+ * 
+ * <p> An alternate mode of operation provides for unanalyzed stored field values to be used as suggestions.
+ * This mode is selected by specifying analyzerFieldType=string in the suggester configuration.
+ * In this mode, every suggestion has the constant weight 1.
  * </p>
  * 
  * <p>The following sample configuration illustrates a setup where suggestions are drawn from a title field
@@ -340,12 +341,18 @@ public class MultiSuggester extends Suggester {
             ConcurrentHashMap<String, Integer> batch = fld.pending;
             fld.pending = new ConcurrentHashMap<String, Integer>(batch.size());
             BytesRef bytes = new BytesRef(maxSuggestionLength);
+            Term t = new Term (fld.fieldName, bytes);
             long minCount = (long) (fld.minFreq * docCount); 
-            long maxCount = (long) (docCount <= 1 ? Long.MAX_VALUE : (fld.maxFreq * docCount + 1)); 
+            long maxCount = (long) (docCount <= 1 ? Long.MAX_VALUE : (fld.maxFreq * docCount + 1));
             for (Map.Entry<String, Integer> e : batch.entrySet()) {
                 String term = e.getKey();
                 bytes.copyChars(term);
-                long termCount = ais.getCount(term);
+                // TODO: compare with searcher.getIndexReader().docFreq(new Term (fld.fieldName, term))
+                // in which case e.getValue() whould be num docs
+                //
+                // could make it faster if the update batch keys were sorted, and we used TermsEnum
+                long termCount = searcher.getIndexReader().docFreq(t);
+                // long termCount = ais.getCount(term);
                 long count;
                 if (termCount < 0) {
                     count = e.getValue();
@@ -359,7 +366,8 @@ public class MultiSuggester extends Suggester {
                     weight = (fld.weight * count) / docCount;
                 }
                 //LOG.trace("commit " + fld.fieldName + ":" + term + " " + termCount + "+" + e.getValue() + "=" + count + ", weight=" + weight);
-                ais.update(bytes, null, weight, count);
+                // ais.update(bytes, null, weight, count);
+                ais.update(bytes, null, weight, null);
             }
         }
         // refresh after each field so the counts will accumulate across fields?
