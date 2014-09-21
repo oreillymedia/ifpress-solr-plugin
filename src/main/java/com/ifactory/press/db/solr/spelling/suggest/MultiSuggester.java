@@ -221,16 +221,17 @@ public class MultiSuggester extends Suggester {
             throw new IllegalStateException("not supported: analyzing stored fields");
         }
         StoredFieldDictionary sfd = new StoredFieldDictionary(reader, fld.fieldName);
+        LOG.info(String.format("build suggestions from values for: %s (%d)", fld.fieldName, fld.weight));
         ((MultiDictionary)dictionary).addDictionary(sfd, 0, 2, fld.weight);
     }
 
-    private void buildFromTerms(WeightedField fld) {
+    private void buildFromTerms(WeightedField fld) throws IOException {
         HighFrequencyDictionary hfd = new HighFrequencyDictionary(reader, fld.fieldName, fld.minFreq);
-        int numDocs = reader.numDocs();
+        int numDocs = reader.getDocCount(fld.fieldName);
         int minFreq = (int) (fld.minFreq * numDocs);
         int maxFreq = (int) (fld.maxFreq * numDocs);
-        LOG.debug(String.format("build suggestions for: %s ([%d, %d], %d)", fld.fieldName, minFreq, maxFreq, fld.weight));
-        ((MultiDictionary)dictionary).addDictionary(hfd, minFreq, maxFreq, fld.weight / (1 + numDocs));
+        LOG.info(String.format("build suggestions from terms for: %s ([%d, %d], %d)", fld.fieldName, minFreq, maxFreq, fld.weight));
+        ((MultiDictionary)dictionary).addDictionary(hfd, minFreq, maxFreq, fld.weight / (2 + numDocs));
     }
 
     @Override
