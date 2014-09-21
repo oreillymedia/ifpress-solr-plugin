@@ -1065,19 +1065,13 @@
           <str name="name">title_t</str>
           <!-- override the analyzer -->
           <str name="analyzerFieldType">string</str>
-          <float name="weight">10.0</float>
+          <float name="weight">11.0</float>
         </lst>
         <lst name="field">
           <str name="name">title_ms</str>
           <!-- use the field's analyzer -->
-          <float name="weight">10.0</float>
+          <float name="weight">11.0</float>
         </lst>
-        <lst name="field">
-          <!-- a field whose values are weighted by the value of another field in the same document -->
-          <str name="name">weighted_title_ms</str>
-          <str name="weightField">weight_dv</str>
-          <float name="weight">10.0</float>
-        </lst>        
       </lst>
     </lst>
 

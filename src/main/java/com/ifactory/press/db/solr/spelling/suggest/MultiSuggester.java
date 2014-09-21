@@ -26,16 +26,16 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimaps;
 
 /**
- * <h3>A suggester that draws suggestions from terms in multiple solr fields, with special support
- * for unanalyzed stored fields.</h3>
+ * <h3>A suggester that draws suggestions from terms in multiple fields.</h3>
  * 
  * <p>Contributions from each field are weighted by a per-field weight, and
- * filtered based on a global minimum threshold term frequency, a per-field minimum and a per-term maximum.
- * All thresholds are expressed as a fraction of total documents containing the term; maximum=0.5 means terms
- * occurring in at least half of all documents will be excluded.</p>
+ * zero-weighted based on a global minimum threshold term frequency, a per-field minimum and a per-term maximum.
+ * All thresholds are compared against (term frequency / document count), an estimate of the 
+ * fraction of documents containing the term, maximum=0.5 means terms
+ * occurring at least as many times as half the number of documents will be given a weight of zero.</p>
  * 
  * <p>The field analyzer is used to tokenize the field values; each token becomes a suggestion. The analyzer
- * may be overridden in configuration the spellchecker configuration for the field.  Only the special value 
+ * may be overridden in the spellchecker configuration for the field.  Only the special value 
  * 'string' is supported, which means the suggestions are drawn from the unanalyzed stored field values.
  * There is also some code here that has initial support for an alternate analyzer (not the one associated
  * with the field in the schema), but it hasn't been fully implemented (only the incremental updates work,
@@ -93,6 +93,11 @@ import com.google.common.collect.Multimaps;
   </searchComponent>
  * }</pre>
  * 
+ * 
+ * NOTE: the incremental weighting scheme gives an artifical "advantage" to infrequent terms that happen to be indexed first because
+ * their weights are normalized when the number of documents is low.
+ * To avoid this, it's recommended to rebuild the index periodically.  If the index is large and growing relatively slowly, this effect
+ * will be very small, though.
  */
 @SuppressWarnings("rawtypes")
 public class MultiSuggester extends Suggester {
@@ -218,7 +223,7 @@ public class MultiSuggester extends Suggester {
         HighFrequencyDictionary hfd = new HighFrequencyDictionary(reader, fld.fieldName, fld.minFreq);
         int minFreq = (int) (fld.minFreq * reader.numDocs());
         int maxFreq = (int) (fld.maxFreq * reader.numDocs());
-        LOG.debug(String.format("build suggestions for: %s ([%d, %d], %f)", fld.fieldName, minFreq, maxFreq, fld.weight));
+        LOG.debug(String.format("build suggestions for: %s ([%d, %d], %d)", fld.fieldName, minFreq, maxFreq, fld.weight));
         ((MultiDictionary)dictionary).addDictionary(hfd, minFreq, maxFreq, fld.weight);
     }
 
@@ -263,11 +268,8 @@ public class MultiSuggester extends Suggester {
             for (Object value : doc.getFieldValues(fld.fieldName)) {
                 String strValue = value.toString();
                 if (fld.fieldAnalyzer == null) {
-                    // was constant weight
-                    addRaw(fld, strValue);
+                    addRaw (fld, strValue);
                 } else {
-                    //long wt = (long) (fld.weight * Math.log (count) + 1);
-                    // TODO: pull out scaling
                     addTokenized (fld, strValue);
                 }
             }
@@ -326,17 +328,20 @@ public class MultiSuggester extends Suggester {
         }
     }
     
-    public void commit () throws IOException {
+    public void commit (SolrIndexSearcher searcher) throws IOException {
         if (! (lookup instanceof AnalyzingInfixSuggester)) {
             return;
         }
         SafeInfixSuggester ais = (SafeInfixSuggester) lookup;
-        long totalSuggestionCount = ais.getCount() + 1;
         for (WeightedField fld : fields) {
+            // get the number of documents having this field
+            long docCount = searcher.getIndexReader().getDocCount(fld.fieldName) + 1;
             // swap in a new pending map so we can accept new suggestions while we commit
             ConcurrentHashMap<String, Integer> batch = fld.pending;
             fld.pending = new ConcurrentHashMap<String, Integer>(batch.size());
             BytesRef bytes = new BytesRef(maxSuggestionLength);
+            long minCount = (long) (fld.minFreq * docCount); 
+            long maxCount = (long) (docCount <= 1 ? Long.MAX_VALUE : (fld.maxFreq * docCount + 1)); 
             for (Map.Entry<String, Integer> e : batch.entrySet()) {
                 String term = e.getKey();
                 bytes.copyChars(term);
@@ -347,9 +352,13 @@ public class MultiSuggester extends Suggester {
                 } else {
                     count = e.getValue() + termCount;
                 }
-                // TODO: factor out WEIGHT_SCALE multiplier into WeightedField 
-                long weight = (long) (WEIGHT_SCALE * fld.weight * count / totalSuggestionCount);
-                //LOG.trace("commit " + fld.fieldName + ":" + term + " " + termCount + "+" + e.getValue() + "=" + count + ", weight=" + weight);
+                long weight;
+                if (count < minCount || count > maxCount) {
+                    weight = 0;
+                } else {
+                    weight = (fld.weight * count) / docCount;
+                }
+                LOG.trace("commit " + fld.fieldName + ":" + term + " " + termCount + "+" + e.getValue() + "=" + count + ", weight=" + weight);
                 ais.update(bytes, null, weight, count);
             }
         }
@@ -366,7 +375,7 @@ public class MultiSuggester extends Suggester {
     class WeightedField {
         final static int MAX_TERM_LENGTH = 128;
         final String fieldName;
-        final float weight;
+        final long weight;
         final float minFreq;
         final float maxFreq;
         final Analyzer fieldAnalyzer;
@@ -375,7 +384,7 @@ public class MultiSuggester extends Suggester {
         
         WeightedField (String name, float weight, float minFreq, float maxFreq, Analyzer analyzer, boolean useStoredField) {
             this.fieldName = name;
-            this.weight = weight;
+            this.weight = (long) (weight * WEIGHT_SCALE);
             this.minFreq = minFreq;
             this.maxFreq = maxFreq;
             this.fieldAnalyzer = analyzer;
