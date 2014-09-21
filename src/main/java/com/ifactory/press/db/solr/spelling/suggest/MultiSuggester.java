@@ -226,10 +226,11 @@ public class MultiSuggester extends Suggester {
 
     private void buildFromTerms(WeightedField fld) {
         HighFrequencyDictionary hfd = new HighFrequencyDictionary(reader, fld.fieldName, fld.minFreq);
-        int minFreq = (int) (fld.minFreq * reader.numDocs());
-        int maxFreq = (int) (fld.maxFreq * reader.numDocs());
+        int numDocs = reader.numDocs();
+        int minFreq = (int) (fld.minFreq * numDocs);
+        int maxFreq = (int) (fld.maxFreq * numDocs);
         LOG.debug(String.format("build suggestions for: %s ([%d, %d], %d)", fld.fieldName, minFreq, maxFreq, fld.weight));
-        ((MultiDictionary)dictionary).addDictionary(hfd, minFreq, maxFreq, fld.weight);
+        ((MultiDictionary)dictionary).addDictionary(hfd, minFreq, maxFreq, fld.weight / (1 + numDocs));
     }
 
     @Override
