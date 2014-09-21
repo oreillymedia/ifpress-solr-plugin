@@ -112,7 +112,7 @@ public class MultiSuggester extends Suggester {
     // weights are stored internally as longs, but externally as small floating
     // point numbers.  The floating point weights are multiplied by this factor to convert
     // them to longs with a sufficient range.  WEIGHT_SCALE should be greater than the
-    // number of possible suggestions
+    // number of documents
     private static final int WEIGHT_SCALE = 10000000;
 
     private static final Logger LOG = LoggerFactory.getLogger(MultiSuggester.class);
@@ -361,6 +361,8 @@ public class MultiSuggester extends Suggester {
                 long weight;
                 if (count < minCount || count > maxCount) {
                     weight = 0;
+                } else if (fld.fieldAnalyzer == null) {
+                    weight = fld.weight;
                 } else {
                     weight = (fld.weight * count) / docCount;
                 }
