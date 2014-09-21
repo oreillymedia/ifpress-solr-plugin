@@ -27,7 +27,7 @@ class FirstCollector extends Collector {
     @Override
     public void collect(int doc) throws EarlyTerminatingCollectorException {
         this.docID = arc.docBase + doc;
-        throw new EarlyTerminatingCollectorException(1, -1);
+        throw new EarlyTerminatingCollectorException(1, 1);
     }
 
     @Override
