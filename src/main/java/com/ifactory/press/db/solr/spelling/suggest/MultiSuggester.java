@@ -10,6 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.Token;
 import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.spell.HighFrequencyDictionary;
@@ -152,6 +153,9 @@ public class MultiSuggester extends Suggester {
             }
         }
         super.init(config, coreParam);
+        // effectively disable analysis *by the SpellChecker/Suggester component* because this leads
+        // to independent suggestions for each token; we want AIS to perform analysis and consider the tokens together
+        analyzer = new KeywordAnalyzer();
         initWeights ((NamedList) config.get("fields"), coreParam);
         Integer maxLengthConfig = (Integer) config.get("maxSuggestionLength");
         maxSuggestionLength = maxLengthConfig != null ? maxLengthConfig : DEFAULT_MAX_SUGGESTION_LENGTH;
