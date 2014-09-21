@@ -347,12 +347,7 @@ public class MultiSuggester extends Suggester {
             for (Map.Entry<String, Integer> e : batch.entrySet()) {
                 String term = e.getKey();
                 bytes.copyChars(term);
-                // TODO: compare with searcher.getIndexReader().docFreq(new Term (fld.fieldName, term))
-                // in which case e.getValue() whould be num docs
-                //
-                // could make it faster if the update batch keys were sorted, and we used TermsEnum
                 long termCount = searcher.getIndexReader().docFreq(t);
-                // long termCount = ais.getCount(term);
                 long count;
                 if (termCount < 0) {
                     count = e.getValue();
@@ -366,7 +361,6 @@ public class MultiSuggester extends Suggester {
                     weight = (fld.weight * count) / docCount;
                 }
                 //LOG.trace("commit " + fld.fieldName + ":" + term + " " + termCount + "+" + e.getValue() + "=" + count + ", weight=" + weight);
-                // ais.update(bytes, null, weight, count);
                 ais.update(bytes, null, weight, null);
             }
         }
