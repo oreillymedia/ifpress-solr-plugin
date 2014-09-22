@@ -399,7 +399,7 @@ public class MultiSuggester extends Suggester {
                 }
                 // TODO: don't update when count = 1 and weight = 0?  assuming that means the term is not
                 // in the index yet, although deletions could cause its weight to drop?
-                LOG.trace("commit " + fld.fieldName + ":" + term + ", weight=" + weight);
+                // LOG.trace("commit " + fld.fieldName + ":" + term + ", weight=" + weight);
                 ais.update(bytes, null, weight, null);
             }
         }
