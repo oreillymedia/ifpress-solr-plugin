@@ -379,12 +379,12 @@ public class MultiSuggester extends Suggester {
             for (Map.Entry<String, Integer> e : batch.entrySet()) {
                 String term = e.getKey();
                 bytes.copyChars(term);
-                long weight;
+                long count, weight;
                 if (fld.fieldAnalyzer == null) {
+                    count = 1;
                     weight = fld.weight;
                 } else {
                     long termCount = searcher.getIndexReader().docFreq(t);
-                    long count;
                     // TODO: don't calculate count if we don't use it below
                     if (termCount < 0) {
                         count = e.getValue();
@@ -397,10 +397,15 @@ public class MultiSuggester extends Suggester {
                         weight = (fld.weight * count) / docCount;
                     }
                 }
-                // TODO: don't update when count = 1 and weight = 0?  assuming that means the term is not
-                // in the index yet, although deletions could cause its weight to drop?
-                // LOG.trace("commit " + fld.fieldName + ":" + term + ", weight=" + weight);
-                ais.update(bytes, null, weight, null);
+                if (weight > 0 || count > 1) {
+                  // If weight == 0, we really want to remove this term altogether, but
+                  // the suggester doesn't support deletions, so we just update the weight usually.
+                  // But if count = 1, assume that means the term is not
+                  // in the index yet, so don't add it.  
+                  // However: deletions in the main index could invalidate that assumption :(
+                  // LOG.trace("commit " + fld.fieldName + ":" + term + ", weight=" + weight + ", count=" + count);
+                  ais.update(bytes, null, weight, null);
+                }
             }
         }
         // refresh after each field so the counts will accumulate across fields?
