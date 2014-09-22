@@ -3,6 +3,7 @@ package com.ifactory.press.db.solr.spelling.suggest;
 import java.io.Closeable;
 import java.io.IOException;
 import java.text.BreakIterator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -12,6 +13,7 @@ import org.apache.lucene.analysis.Token;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.document.Document;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.spell.HighFrequencyDictionary;
 import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
@@ -205,14 +207,19 @@ public class MultiSuggester extends Suggester {
         LOG.info("build suggestion index: " + name);
         dictionary = new MultiDictionary();
         reader = searcher.getIndexReader();
+        // index all the terms-based fields using dictionaries
         for (WeightedField fld : fields) {
-            if (fld.useStoredField) {
-                buildFromStoredField(fld);
-            } else {
+            if (! fld.useStoredField) {
                 buildFromTerms(fld);
             }
         }
         lookup.build(dictionary);
+        // index all the values-based fields using addRaw
+        for (WeightedField fld : fields) {
+            if (fld.useStoredField) {
+                buildFromStoredField(fld, searcher);
+            }
+        }
         LOG.info("built suggestion index: " + name);
         if (lookup instanceof AnalyzingInfixSuggester) {
             AnalyzingInfixSuggester ais = (AnalyzingInfixSuggester) lookup;
@@ -220,13 +227,26 @@ public class MultiSuggester extends Suggester {
         }
     }
     
-    private void buildFromStoredField(WeightedField fld) {
+    private void buildFromStoredField(WeightedField fld, SolrIndexSearcher searcher) throws IOException {
         if (fld.fieldAnalyzer != null) {
             throw new IllegalStateException("not supported: analyzing stored fields");
         }
-        StoredFieldDictionary sfd = new StoredFieldDictionary(reader, fld.fieldName);
         LOG.info(String.format("build suggestions from values for: %s (%d)", fld.fieldName, fld.weight));
-        ((MultiDictionary)dictionary).addDictionary(sfd, 0, 2, fld.weight);
+        HashSet<String> fieldsToLoad = new HashSet<String>();
+        fieldsToLoad.add(fld.fieldName);
+        int maxDoc = searcher.maxDoc();
+        for(int idoc=0; idoc < maxDoc; ++idoc) {
+            // TODO: exclude deleted documents
+            Document doc = reader.document(idoc ++, fieldsToLoad);
+            String value = doc.get(fld.fieldName);
+            if (value != null) {
+                addRaw (fld, value);
+            }
+            if (idoc % 10000 == 9999) {
+                commit (searcher);
+            }
+        }
+        commit (searcher);
     }
 
     private void buildFromTerms(WeightedField fld) throws IOException {
@@ -276,6 +296,7 @@ public class MultiSuggester extends Suggester {
             if (! doc.containsKey(fld.fieldName)) {
                 continue;
             }
+            fld.pendingDocCount ++;
             for (Object value : doc.getFieldValues(fld.fieldName)) {
                 String strValue = value.toString();
                 if (fld.fieldAnalyzer == null) {
@@ -346,7 +367,8 @@ public class MultiSuggester extends Suggester {
         SafeInfixSuggester ais = (SafeInfixSuggester) lookup;
         for (WeightedField fld : fields) {
             // get the number of documents having this field
-            long docCount = searcher.getIndexReader().getDocCount(fld.fieldName) + 1;
+            long docCount = searcher.getIndexReader().getDocCount(fld.fieldName) + fld.pendingDocCount;
+            fld.pendingDocCount = 0;
             // swap in a new pending map so we can accept new suggestions while we commit
             ConcurrentHashMap<String, Integer> batch = fld.pending;
             fld.pending = new ConcurrentHashMap<String, Integer>(batch.size());
@@ -357,22 +379,27 @@ public class MultiSuggester extends Suggester {
             for (Map.Entry<String, Integer> e : batch.entrySet()) {
                 String term = e.getKey();
                 bytes.copyChars(term);
-                long termCount = searcher.getIndexReader().docFreq(t);
-                long count;
-                if (termCount < 0) {
-                    count = e.getValue();
-                } else {
-                    count = e.getValue() + termCount;
-                }
                 long weight;
-                if (count < minCount || count > maxCount) {
-                    weight = 0;
-                } else if (fld.fieldAnalyzer == null) {
+                if (fld.fieldAnalyzer == null) {
                     weight = fld.weight;
                 } else {
-                    weight = (fld.weight * count) / docCount;
+                    long termCount = searcher.getIndexReader().docFreq(t);
+                    long count;
+                    // TODO: don't calculate count if we don't use it below
+                    if (termCount < 0) {
+                        count = e.getValue();
+                    } else {
+                        count = e.getValue() + termCount;
+                    }
+                    if (count < minCount || count > maxCount) {
+                        weight = 0;
+                    } else {
+                        weight = (fld.weight * count) / docCount;
+                    }
                 }
-                //LOG.trace("commit " + fld.fieldName + ":" + term + " " + termCount + "+" + e.getValue() + "=" + count + ", weight=" + weight);
+                // TODO: don't update when count = 1 and weight = 0?  assuming that means the term is not
+                // in the index yet, although deletions could cause its weight to drop?
+                LOG.trace("commit " + fld.fieldName + ":" + term + ", weight=" + weight);
                 ais.update(bytes, null, weight, null);
             }
         }
@@ -395,6 +422,7 @@ public class MultiSuggester extends Suggester {
         final Analyzer fieldAnalyzer;
         final boolean useStoredField;
         private ConcurrentHashMap<String, Integer> pending;
+        private int pendingDocCount;
         
         WeightedField (String name, float weight, float minFreq, float maxFreq, Analyzer analyzer, boolean useStoredField) {
             this.fieldName = name;
@@ -404,7 +432,13 @@ public class MultiSuggester extends Suggester {
             this.fieldAnalyzer = analyzer;
             this.useStoredField = useStoredField;
             pending = new ConcurrentHashMap<String, Integer>();
+            pendingDocCount = 0;
         }
+        
+        @Override
+        public String toString () {
+            return fieldName + '^' + weight;
+        } 
         
     }
     
