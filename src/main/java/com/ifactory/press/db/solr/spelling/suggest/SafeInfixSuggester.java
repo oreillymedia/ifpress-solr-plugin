@@ -2,6 +2,7 @@ package com.ifactory.press.db.solr.spelling.suggest;
 
 import java.io.IOException;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.lucene.analysis.Analyzer;
@@ -62,11 +63,11 @@ public class SafeInfixSuggester extends AnalyzingInfixSuggester {
     }
 
     /*
-     * TODO: control highlighting here
+     * disable highlighting
+     */
     @Override
     public List<LookupResult> lookup(CharSequence key, Set<BytesRef> contexts, boolean onlyMorePopular, int num) throws IOException {
       return lookup(key, contexts, num, true, false);
     }
-    */
 
 }
