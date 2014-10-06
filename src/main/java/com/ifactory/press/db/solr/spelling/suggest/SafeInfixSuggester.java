@@ -14,9 +14,12 @@ import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.Version;
 
 public class SafeInfixSuggester extends AnalyzingInfixSuggester {
+    
+    private final boolean highlight;
 
-    public SafeInfixSuggester(Version matchVersion, Directory dir, Analyzer indexAnalyzer, Analyzer queryAnalyzer, int minPrefixChars) throws IOException {
+    public SafeInfixSuggester(Version matchVersion, Directory dir, Analyzer indexAnalyzer, Analyzer queryAnalyzer, int minPrefixChars, boolean highlight) throws IOException {
         super(matchVersion, dir, indexAnalyzer, queryAnalyzer, minPrefixChars);
+        this.highlight = highlight;
         
         if (!DirectoryReader.indexExists(dir)) {
             // no index in place -- build an empty one so we are prepared for updates
@@ -67,7 +70,7 @@ public class SafeInfixSuggester extends AnalyzingInfixSuggester {
      */
     @Override
     public List<LookupResult> lookup(CharSequence key, Set<BytesRef> contexts, boolean onlyMorePopular, int num) throws IOException {
-      return lookup(key, contexts, num, true, false);
+      return lookup(key, contexts, num, true, highlight);
     }
 
 }
