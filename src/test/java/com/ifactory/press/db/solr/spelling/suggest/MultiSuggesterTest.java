@@ -4,6 +4,10 @@ import static org.junit.Assert.*;
 
 import java.io.IOException;
 
+import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.RAMDirectory;
+import org.apache.lucene.util.Version;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.request.CoreAdminRequest;
@@ -227,6 +231,21 @@ public class MultiSuggesterTest extends SolrTest {
         assertNotNull ("no suggestion found for 'the da'", suggestion);
         assertEquals (1, suggestion.getNumFound());
         assertEquals (TITLE, suggestion.getAlternatives().get(0));
+    }
+    
+    @Test
+    public void testEmptyDictionary() throws Exception {
+        MultiDictionary dict = new MultiDictionary();
+        Version version = Version.LUCENE_48;
+        WhitespaceAnalyzer analyzer = new WhitespaceAnalyzer(version);
+        Directory dir = new RAMDirectory();
+        SafeInfixSuggester s  = new SafeInfixSuggester(version, dir, analyzer, analyzer, 1, true);
+        try {
+            s.build(dict);
+            assertTrue (s.lookup("", false, 1).isEmpty());
+        } finally {
+            s.close();
+        }
     }
     
 }

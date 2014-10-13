@@ -74,11 +74,12 @@ public class MultiDictionary implements Dictionary {
         public BytesRef next() throws IOException {
             BytesRef nextTerm;
             for (;;) {
+                if (curInput == null) {
+                    return null;
+                }
                 nextTerm = curInput.next();
                 if (nextTerm == null) {
-                    if (nextDict() == null) {
-                        return null;
-                    }
+                    nextDict();
                     continue;
                 }
                 // check thresholds - note that the minWeight test may be redundant with HighFrequencyDictionary's
