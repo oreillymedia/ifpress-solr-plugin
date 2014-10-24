@@ -27,7 +27,6 @@ import org.apache.solr.common.SolrDocumentList;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.core.CoreContainer;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.ifactory.press.db.solr.SolrTest;
@@ -44,7 +43,8 @@ public class UpdateDocValuesTest extends SolrTest {
     @Test 
     public void testBenchDocValues() throws Exception {
       
-      final int numIters = 100000;
+      //final int numIters = 100000;
+      final int numIters = 1;
       
       long t = System.nanoTime();
       insertTestDocuments(numIters);
@@ -60,6 +60,7 @@ public class UpdateDocValuesTest extends SolrTest {
       insertTestDocuments(numIters, true);
       dt = (System.nanoTime() - t) / 1000000;
       System.out.println("updated " + numIters + " docs, preserving docvalues, in : " + dt);
+
     }
 
     @Test
