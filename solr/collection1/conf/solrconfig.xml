@@ -824,6 +824,12 @@
     </lst>
   </requestHandler>
 
+  <requestHandler name="/update/docvalues" class="solr.UpdateRequestHandler">
+    <lst name="defaults">
+      <str name="update.chain">docvalues-update-chain</str>
+    </lst>
+  </requestHandler>
+
   <!-- Solr Cell Update Request Handler
 
        http://wiki.apache.org/solr/ExtractingRequestHandler 
@@ -1281,6 +1287,10 @@
      </processor>
      <processor class="solr.LogUpdateProcessorFactory" />
      <processor class="solr.RunUpdateProcessorFactory" />
+   </updateRequestProcessorChain>
+
+   <updateRequestProcessorChain name="docvalues-update-chain" default="false">
+     <processor class="com.ifactory.press.db.solr.processor.UpdateDocValuesProcessorFactory" />
    </updateRequestProcessorChain>
 
   <!-- Response Writers
