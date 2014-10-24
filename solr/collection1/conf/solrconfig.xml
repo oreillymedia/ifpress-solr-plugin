@@ -1291,6 +1291,8 @@
 
    <updateRequestProcessorChain name="docvalues-update-chain" default="false">
      <processor class="com.ifactory.press.db.solr.processor.UpdateDocValuesProcessorFactory" />
+     <processor class="solr.LogUpdateProcessorFactory" />
+     <processor class="solr.RunUpdateProcessorFactory" />
    </updateRequestProcessorChain>
 
   <!-- Response Writers

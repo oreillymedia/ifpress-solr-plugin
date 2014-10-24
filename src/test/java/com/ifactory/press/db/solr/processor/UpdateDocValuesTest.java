@@ -35,32 +35,74 @@ import com.ifactory.press.db.solr.SolrTest;
 
 public class UpdateDocValuesTest extends SolrTest {
     
+    private static final String UPDATE_DOCVALUES = "/update/docvalues";
     private static final String URI = "uri";
     private static final String WEIGHT_DV = "weight_dv";
     private static final String TEXT_FIELD = "text_mt";
     static CoreContainer coreContainer;
     
     @Test 
-    @Ignore
     public void testBenchDocValues() throws Exception {
+      
+      final int numIters = 100000;
+      
       long t = System.nanoTime();
-      insertTestDocuments(10000);
+      insertTestDocuments(numIters);
       long dt = (System.nanoTime() - t) / 1000000;
-      System.out.println("inserted 10000 docs in : " + dt);
+      System.out.println("inserted " + numIters + " docs in : " + dt);
 
       t = System.nanoTime();
-      updateDocValues(10000);
+      updateDocValues(numIters);
       dt = (System.nanoTime() - t) / 1000000;
-      System.out.println("inserted 10000 docs in : " + dt);
+      System.out.println("updated " + numIters + " docvalues in : " + dt);
+
+      t = System.nanoTime();
+      insertTestDocuments(numIters, true);
+      dt = (System.nanoTime() - t) / 1000000;
+      System.out.println("updated " + numIters + " docs, preserving docvalues, in : " + dt);
     }
 
     @Test
+    /**
+     * The happy path - shows that we can update doc values independent of other fields
+     */
     public void testUpdateDocValues() throws Exception {
       insertTestDocuments (10);
       
+      assertNoDocValues();
+
+      updateDocValues (10);
+
+      assertDocValues(10);
+    }
+
+    @Test
+    /** We preserve docvalues when updating documents that don't provide a value for their docvalues field */
+    public void testUpdateDocument() throws Exception {
+        insertTestDocuments(10);
+        updateDocValues(10);
+        
+        insertTestDocuments(10, true); // overwrite the docs, preserving docvalues
+        assertDocValues(10);
+
+        insertTestDocuments(10); // overwrite the docs without preserving docvalues
+        assertNoDocValues();
+    }
+    
+    private void assertDocValues(int n) throws SolrServerException {
       SolrQuery query = new SolrQuery ("*:*");
-      String firstUri = getFirstUri(query);
       
+      query.setSort(WEIGHT_DV, ORDER.desc);
+      assertEquals ("/doc/1", getFirstUri(query));
+
+      query.setSort(WEIGHT_DV, ORDER.asc);
+      assertEquals ("/doc/" + n, getFirstUri(query));
+    }
+    
+    private void assertNoDocValues() throws SolrServerException {
+      SolrQuery query = new SolrQuery ("*:*");
+
+      String firstUri = getFirstUri(query);      
 
       // with no doc values, should get the same doc first:
       query.setSort(WEIGHT_DV, ORDER.desc);
@@ -69,16 +111,8 @@ public class UpdateDocValuesTest extends SolrTest {
       // no matter what the order is
       query.setSort(WEIGHT_DV, ORDER.asc);
       assertEquals (firstUri, getFirstUri(query));
-
-      updateDocValues (10);
-
-      query.setSort(WEIGHT_DV, ORDER.desc);
-      assertEquals ("/doc/1", getFirstUri(query));
-
-      query.setSort(WEIGHT_DV, ORDER.asc);
-      assertEquals ("/doc/10", getFirstUri(query));
     }
-    
+
     private String getFirstUri (SolrQuery query) throws SolrServerException {
       QueryResponse resp = solr.query(query);
       SolrDocumentList docs = resp.getResults();
@@ -86,21 +120,34 @@ public class UpdateDocValuesTest extends SolrTest {
     }
     
     @Test
-    public void testMissingArgument() throws Exception {
+    /** The update service throws an error when key field is provided with no value fields */
+    public void testMissingValue() throws Exception {
       insertTestDocuments(1);
       UpdateRequest req = new UpdateRequest();
       SolrInputDocument doc = new SolrInputDocument();
       req.add(doc);
-      req.setPath("/update/docvalues");
+      req.setPath(UPDATE_DOCVALUES);
+      req.setParam(UpdateDocValuesProcessor.UPDATEDV_KEY_FIELD, "id");
+      // doc with no value for key
       try {
         solr.request(req);
         assertFalse ("expected exception not thrown", true);
       } catch (SolrException e) {
-        assertTrue (e.getMessage().contains("missing required parameter"));
+        assertTrue (e.getMessage().contains("no value for updatedv.key.field"));
+      }
+
+      doc.addField("id", "id0");
+      // no UpdateDocValuesProcessor.UPDATEDV_VALUE_FIELD
+      try {
+        solr.request(req);
+        assertFalse ("expected exception not thrown", true);
+      } catch (SolrException e) {
+        assertTrue (e.getMessage().contains("missing parameter updatedv.value.field"));
       }
     }
     
     @Test
+    /** The service takes the first of multiple values */
     public void testMultipleValues() throws Exception {
       insertTestDocuments(1);
       UpdateRequest req = updateDocValues();
@@ -114,15 +161,28 @@ public class UpdateDocValuesTest extends SolrTest {
     }
     
     private void insertTestDocuments (int n) throws Exception {
+      insertTestDocuments (n, false);
+      
+    }
+    
+    private void insertTestDocuments (int n, boolean preserveDV) throws Exception {
+      UpdateRequest req = new UpdateRequest();
+      req.setPath(UPDATE_DOCVALUES);
+      if (preserveDV) {
+        req.setParam(UpdateDocValuesProcessor.UPDATEDV_VALUE_FIELD, WEIGHT_DV);
+      }
       for (int i = 1; i <= n; i++) {
         SolrInputDocument doc = new SolrInputDocument();
         doc.addField(URI, "/doc/" + i);
         doc.addField(TEXT_FIELD, "This is document " + i);
         // NOTE: must provide a value for at least one document in order to create the field:
         // it's not enough to just put it in the solr schema
-        doc.addField(WEIGHT_DV, 0);
-        solr.add(doc);
+        if (! preserveDV) {
+          doc.addField(WEIGHT_DV, 0);
+        }
+        req.add(doc);
       }
+      solr.request(req);
       solr.commit(false, true, true);
     }
     
@@ -140,9 +200,9 @@ public class UpdateDocValuesTest extends SolrTest {
     
     private UpdateRequest updateDocValues () {
       UpdateRequest req = new UpdateRequest();
-      req.setParam("key.field", URI);
-      req.setParam("value.field", WEIGHT_DV);
-      req.setPath("/update/docvalues");
+      req.setParam(UpdateDocValuesProcessor.UPDATEDV_KEY_FIELD, URI);
+      req.setParam(UpdateDocValuesProcessor.UPDATEDV_VALUE_FIELD, WEIGHT_DV);
+      req.setPath(UPDATE_DOCVALUES);
       return req;
     }
     
