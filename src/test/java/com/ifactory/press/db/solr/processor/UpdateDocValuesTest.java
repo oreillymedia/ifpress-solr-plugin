@@ -94,10 +94,14 @@ public class UpdateDocValuesTest extends SolrTest {
       SolrQuery query = new SolrQuery ("*:*");
       
       query.setSort(WEIGHT_DV, ORDER.desc);
-      assertEquals ("/doc/1", getFirstUri(query));
+      assertEquals (uri(1), getFirstUri(query));
 
       query.setSort(WEIGHT_DV, ORDER.asc);
-      assertEquals ("/doc/" + n, getFirstUri(query));
+      assertEquals (uri(n), getFirstUri(query));
+    }
+
+    private String uri(int n) {
+      return "/doc:" + n + ":x";
     }
     
     private void assertNoDocValues() throws SolrServerException {
@@ -153,7 +157,7 @@ public class UpdateDocValuesTest extends SolrTest {
       insertTestDocuments(1);
       UpdateRequest req = updateDocValues();
       SolrInputDocument doc = new SolrInputDocument();
-      doc.addField(URI, "/doc/1");
+      doc.addField(URI, uri(1));
       doc.addField(WEIGHT_DV, 0);
       doc.addField(WEIGHT_DV, 1);
       req.add(doc);
@@ -174,7 +178,7 @@ public class UpdateDocValuesTest extends SolrTest {
       }
       for (int i = 1; i <= n; i++) {
         SolrInputDocument doc = new SolrInputDocument();
-        doc.addField(URI, "/doc/" + i);
+        doc.addField(URI, uri(i));
         doc.addField(TEXT_FIELD, "This is document " + i);
         // NOTE: must provide a value for at least one document in order to create the field:
         // it's not enough to just put it in the solr schema
@@ -191,7 +195,7 @@ public class UpdateDocValuesTest extends SolrTest {
       UpdateRequest req = updateDocValues();
       for (int i = 1; i <= n; i++) {
         SolrInputDocument doc = new SolrInputDocument();
-        doc.addField(URI, "/doc/" + i);
+        doc.addField(URI, uri(i));
         doc.addField(WEIGHT_DV, n - i);
         req.add(doc);
       }
