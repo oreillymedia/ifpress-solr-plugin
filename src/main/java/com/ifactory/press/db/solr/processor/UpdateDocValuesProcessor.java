@@ -1,8 +1,6 @@
 package com.ifactory.press.db.solr.processor;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashSet;
 
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.NumericDocValues;
@@ -22,13 +20,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Handles docvalues updates. There are two basic modes of operation. If query parameter <code>updatedv.key.field</code>
- * is present, the processor updates docvalues, otherwise it updates documents' stored and indexed fields, preserving the
- * any existing docvalues for the document(s). In either case, the values of parameter <code>updatedv.key.field</code> specify 
- * the docvalues fields to update or preserve.  
+ * Handles docvalues updates. There are three modes of operation: update docvalues, preserve docvalues, and update all.
  * 
- * TODO: handle multiple docvalues fields
- * TODO: benchmark the preserve docvalues feature
+ * Query parameter <code>updatedv.value.field</code> specifies the docvalues fields to update or preserve.
+ *
+ * If parameter <code>updatedv.key.field</code> is present, the processor updates docvalues of documents whose key field 
+ * matches the value provided for that field in the update message.
+ * 
+ * Otherwise it updates documents' stored and indexed fields in the usual way, and also stores the docvalues fields.
+ * The values stored in the docvalues fields are retrieved from the existing docvalues field unless provided
+ * in the input document, in which the input value is stored.  If no value is found in the input and the document
+ * does not exist (or has no docvalues field value), a value of 0 is stored.
+ * 
+ * Note that the key field match is performed using a TermQuery, so the provided key must match an indexed term exactly.
+ * For this reason, it's recommended to use this feature with unanalyzed identifier-style fields.
  */
 public class UpdateDocValuesProcessor extends UpdateRequestProcessor {
 
@@ -78,9 +83,9 @@ public class UpdateDocValuesProcessor extends UpdateRequestProcessor {
         throw new SolrException(ErrorCode.BAD_REQUEST, "missing parameter updatedv.value.field");        
       }
       Term term = new Term(keyField, key);
+      LOG.debug(String.format("update docvalues %s", term));
       for (String valueField : valueFields) {
         long value = getLongValue(solrInputDocument, valueField);
-        // LOG.debug(String.format("update docvalues %s %s=%d", term, valueField, value));
         iw.updateNumericDocValue(term, valueField, value);
       }
     } finally {
@@ -95,6 +100,7 @@ public class UpdateDocValuesProcessor extends UpdateRequestProcessor {
     if (id == null) {
       return;
     }
+    // LOG.debug(String.format("retrieve docvalues %s", id));
     Term idTerm = new Term(idField, id);
     RefCounted<SolrIndexSearcher> searcherRef = core.getSearcher();
     try {
@@ -102,12 +108,8 @@ public class UpdateDocValuesProcessor extends UpdateRequestProcessor {
       TermQuery query = new TermQuery (idTerm);
       TopDocs docs = searcher.search(query, 1);
       if (docs.totalHits == 1) {
-          // get the value
-        HashSet<String> fieldSet = new HashSet<String>();
-        for (String valueField : valueFields) {
-          fieldSet.add(valueField);
-        }
-        fieldSet.addAll(Arrays.asList(valueFields));
+        // get the value
+        // LOG.debug(String.format("found %s", id));
         int docID = docs.scoreDocs[0].doc;
         for (String valueField : valueFields) {
           if (doc.get(valueField) == null) {
@@ -115,7 +117,13 @@ public class UpdateDocValuesProcessor extends UpdateRequestProcessor {
             if (ndv!= null) {
               long lvalue = ndv.get(docID);
               doc.addField(valueField, lvalue);
+              // LOG.debug("retrieved doc value %d", lvalue);
+            } else {
+              doc.addField(valueField, 0);
+              // LOG.debug("Initializing doc value to 0");
             }
+          } else {
+            // LOG.debug(String.format("%s found in input document: %s", valueField, doc.get(valueField)));
           }
         }
       }
