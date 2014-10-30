@@ -40,7 +40,7 @@ public class SafeInfixLookupFactory extends AnalyzingInfixLookupFactory {
         if (ft == null) {
             throw new IllegalArgumentException("Error in configuration: " + fieldTypeName.toString() + " is not defined in the schema");
         }
-        Analyzer indexAnalyzer = ft.getIndexAnalyzer();
+        Analyzer indexAnalyzer = ft.getAnalyzer();
         Analyzer queryAnalyzer = ft.getQueryAnalyzer();
   
         // optional parameters
