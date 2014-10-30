@@ -90,6 +90,20 @@ public class UpdateDocValuesTest extends SolrTest {
         assertNoDocValues();
     }
     
+    @Test
+    /**
+     * When we insert a document without having set up docvalues
+     */
+    public void testZeroDefault() throws Exception {
+      insertTestDocuments (10, true);
+      SolrQuery query = new SolrQuery ("*:*");
+      String dvFieldFunction = String.format("field(%s)", WEIGHT_DV);
+      query.set ("fl", dvFieldFunction);
+      QueryResponse resp = solr.query(query);
+      SolrDocumentList docs = resp.getResults();
+      assertEquals (0, docs.get(0).getFirstValue(dvFieldFunction));
+    }
+
     private void assertDocValues(int n) throws SolrServerException {
       SolrQuery query = new SolrQuery ("*:*");
       

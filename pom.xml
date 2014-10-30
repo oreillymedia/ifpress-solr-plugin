@@ -16,9 +16,9 @@
           <groupId>org.codehaus.woodstox</groupId>
         </exclusion>
         <exclusion>
-	  		<groupId>jdk.tools</groupId>
-	  		<artifactId>jdk.tools</artifactId>
-	  	</exclusion>
+          <groupId>jdk.tools</groupId>
+          <artifactId>jdk.tools</artifactId>
+        </exclusion>
       </exclusions>
     </dependency>
     <dependency>
