@@ -192,11 +192,11 @@ public class MultiSuggester extends Suggester {
                 if ("string".equals(analyzerFieldTypeName)) {
                     fieldAnalyzer = null;
                 } else {
-                    fieldAnalyzer = coreParam.getLatestSchema().getFieldTypeByName(analyzerFieldTypeName).getAnalyzer();
+                    fieldAnalyzer = coreParam.getLatestSchema().getFieldTypeByName(analyzerFieldTypeName).getIndexAnalyzer();
                 }
             } else {
                 // Use the existing term values as analyzed by the field
-                fieldAnalyzer = coreParam.getLatestSchema().getFieldType(fieldName).getAnalyzer();
+                fieldAnalyzer = coreParam.getLatestSchema().getFieldType(fieldName).getIndexAnalyzer();
             }
             fields[ifield] = new WeightedField(fieldName, weight, minFreq, maxFreq, fieldAnalyzer, useStoredField);
         }
