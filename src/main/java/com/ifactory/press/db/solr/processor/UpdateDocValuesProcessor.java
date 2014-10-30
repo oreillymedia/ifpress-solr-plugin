@@ -125,6 +125,11 @@ public class UpdateDocValuesProcessor extends UpdateRequestProcessor {
           } else {
             // LOG.debug(String.format("%s found in input document: %s", valueField, doc.get(valueField)));
           }
+        } 
+      } else {
+        for (String valueField : valueFields) {
+          // new document, inserted without dv values: default to zero
+          doc.addField(valueField, 0);
         }
       }
       // apply default values?
