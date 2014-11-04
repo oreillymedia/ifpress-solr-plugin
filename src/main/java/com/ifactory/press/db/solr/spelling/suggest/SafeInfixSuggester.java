@@ -1,6 +1,5 @@
 package com.ifactory.press.db.solr.spelling.suggest;
 
-import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.Comparator;
@@ -8,14 +7,11 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.IndexWriterConfig.OpenMode;
 import org.apache.lucene.search.suggest.InputIterator;
 import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.Version;
 
@@ -89,8 +85,10 @@ public class SafeInfixSuggester extends AnalyzingInfixSuggester {
         Field field = AnalyzingInfixSuggester.class.getDeclaredField("writer");
         field.setAccessible(true);
         IndexWriter writer = (IndexWriter) field.get(this);
-        writer.deleteAll();
-        writer.commit();
+        if (writer != null) {
+          writer.deleteAll();
+          writer.commit();
+        }
       } catch (IllegalAccessException e) {
       } catch (NoSuchFieldException e) {
       }
