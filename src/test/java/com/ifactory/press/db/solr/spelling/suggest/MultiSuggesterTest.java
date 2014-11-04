@@ -99,6 +99,7 @@ public class MultiSuggesterTest extends SolrTest {
         Suggestion suggestion = scr.getSuggestion(prefix);
         if (count == 0) {
             assertNull ("Unexpected suggestion found for " + prefix, suggestion);
+            return null;
         } else {
             assertNotNull ("No suggestion found for " + prefix, suggestion);
         }
@@ -236,16 +237,27 @@ public class MultiSuggesterTest extends SolrTest {
     @Test
     public void testEmptyDictionary() throws Exception {
         MultiDictionary dict = new MultiDictionary();
-        Version version = Version.LUCENE_48;
-        WhitespaceAnalyzer analyzer = new WhitespaceAnalyzer(version);
+        WhitespaceAnalyzer analyzer = new WhitespaceAnalyzer();
         Directory dir = new RAMDirectory();
-        SafeInfixSuggester s  = new SafeInfixSuggester(version, dir, analyzer, analyzer, 1, true);
+        SafeInfixSuggester s  = new SafeInfixSuggester(Version.LATEST, dir, analyzer, analyzer, 1, true);
         try {
             s.build(dict);
             assertTrue (s.lookup("", false, 1).isEmpty());
         } finally {
             s.close();
         }
+    }
+    
+    @Test
+    public void testBuildStartsFresh() throws Exception {
+      insertTestDocuments(TITLE_FIELD);
+      Suggestion suggestion = assertSuggestionCount ("a2", 1);
+      assertEquals ("a2 document ", suggestion.getAlternatives().get(0));
+      //solr.deleteById("/doc/2");
+      solr.deleteByQuery("*:*");
+      solr.commit();
+      rebuildSuggester();
+      assertSuggestionCount("a2", 0);
     }
     
 }
