@@ -269,7 +269,7 @@ public class MultiSuggester extends Suggester {
     int numDocs = reader.getDocCount(fld.fieldName);
     int minFreq = (int) (fld.minFreq * numDocs);
     int maxFreq = (int) (fld.maxFreq * numDocs);
-    LOG.info(String.format("build suggestions from terms for: %s ([%d, %d], %d)", fld.fieldName, minFreq, maxFreq, fld.weight));
+    LOG.info(String.format("build suggestions from terms for: %s (min=%d, max=%d, weight=%d)", fld.fieldName, minFreq, maxFreq, fld.weight));
     ((MultiDictionary) dictionary).addDictionary(hfd, minFreq, maxFreq, fld.weight / (2 + numDocs));
   }
 
@@ -350,19 +350,24 @@ public class MultiSuggester extends Suggester {
       // add the value unchanged
       incPending(fld, value);
     }
-    // LOG.trace ("add raw " + value);
+    // LOG.debug ("add raw " + value);
   }
 
   private void addTokenized(WeightedField fld, String value) throws IOException {
     TokenStream tokens = fld.fieldAnalyzer.tokenStream(fld.fieldName, value);
     tokens.reset();
     CharTermAttribute termAtt = tokens.addAttribute(CharTermAttribute.class);
+    HashSet<String> once = new HashSet<String>();
     try {
       while (tokens.incrementToken()) {
         String token = termAtt.toString();
         token = MultiDictionary.stripAfflatus(token);
-        incPending(fld, token);
-        // LOG.trace ("add token " + token);
+        if (once.add(token)) {
+          // only add each token once per field value to keep frequencies in line with
+          // HighFrequencyDictionary, which counts using TermsEnum.docFreq()
+          incPending(fld, token);
+          // LOG.debug("add token " + token);
+        }
       }
       tokens.end();
     } finally {
@@ -410,8 +415,8 @@ public class MultiSuggester extends Suggester {
           weight = fld.weight;
         } else {
           long termCount = searcher.getIndexReader().docFreq(t);
-          // TODO: don't calculate count if we don't use it below
           if (termCount < 0) {
+            // FIXME: is this even possible?
             count = e.getValue();
           } else {
             count = e.getValue() + termCount;
@@ -422,19 +427,7 @@ public class MultiSuggester extends Suggester {
             weight = (fld.weight * count) / docCount;
           }
         }
-        // TODO: add context='show|hide' if weight !=/== 0
-        if (weight > 0 || count > 1) {
-          // If weight == 0, we really want to remove this term altogether, but
-          // the suggester doesn't support deletions, so we just update the
-          // weight usually.
-          // But if count = 1, assume that means the term is not
-          // in the index yet, so don't add it.
-          // However: deletions in the main index could invalidate that
-          // assumption :(
-          // LOG.trace("commit " + fld.fieldName + ":" + term + ", weight=" +
-          // weight + ", count=" + count);
-          ais.update(bytes, null, weight, null);
-        }
+        ais.update(bytes, weight);
       }
     }
     // refresh after each field so the counts will accumulate across fields?

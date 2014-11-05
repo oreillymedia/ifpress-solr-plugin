@@ -31,16 +31,11 @@ public class MultiSuggesterTest extends SolrTest {
   @Test
   public void testMultiSuggest() throws Exception {
     rebuildSuggester();
-
     insertTestDocuments(TITLE_FIELD);
-
     assertSuggestions();
-
-    // Rebuilding the index causes the common terms to be excluded since their
-    // freq is visible
-    // while the index is being built
+    // Rebuilding the index leaves everything the same 
     rebuildSuggester();
-    assertSuggestionCount("t", 3);
+    assertSuggestions();
   }
 
   @Test
@@ -49,7 +44,7 @@ public class MultiSuggesterTest extends SolrTest {
     insertTestDocuments(TITLE_VALUE_FIELD);
     assertSuggestions();
     rebuildSuggester();
-    assertSuggestionCount("t", 3);
+    assertSuggestions();
   }
 
   @Test
@@ -109,12 +104,16 @@ public class MultiSuggesterTest extends SolrTest {
   }
 
   private void assertSuggestions() throws SolrServerException {
-    Suggestion suggestion = assertSuggestionCount("t", 5);
-    // max threshold sets weight of common terms to zero but doesn't exclude
-    // them
-    assertEquals(TITLE, suggestion.getAlternatives().get(0));
-    assertEquals("time", suggestion.getAlternatives().get(1));
-    assertEquals("their", suggestion.getAlternatives().get(2));
+    Suggestion suggestion = assertSuggestionCount("t", 8);
+    // TITLE occurs multiple times; t0, etc each occur twice, their/time occur once
+    // 'the' and 'to' occur too many times and get excluded
+    assertEquals (TITLE, suggestion.getAlternatives().get(0));
+    for (int i = 1; i <=5; i++) {
+      assertTrue (suggestion.getAlternatives().get(i).matches("t[0-4]"));
+    }
+    assertTrue (suggestion.getAlternatives().get(6).matches("their|time"));
+    assertTrue (suggestion.getAlternatives().get(7).matches("their|time"));
+    assertNotEquals(suggestion.getAlternatives().get(6), suggestion.getAlternatives().get(7));
   }
 
   private void insertTestDocuments(String titleField) throws SolrServerException, IOException {
@@ -134,7 +133,7 @@ public class MultiSuggesterTest extends SolrTest {
       doc.addField(titleField, String.format("a%d document ", i));
       // 'the' 'to' should get excluded from suggestions by maxWeight configured
       // to 0.3
-      doc.addField(TEXT_FIELD, "the the to " + i);
+      doc.addField(TEXT_FIELD, "the the to t" + i / 2);
       solr.add(doc);
     }
     solr.commit(false, true, true);
@@ -220,8 +219,8 @@ public class MultiSuggesterTest extends SolrTest {
     // = 1 / 10 * 11 * 10000000 = 11000000
     assertEquals(11000000, suggestion.getAlternativeFrequencies().get(0).intValue());
     int last = suggestion.getNumFound() - 1;
-    assertEquals("to", suggestion.getAlternatives().get(last));
-    assertEquals(0, suggestion.getAlternativeFrequencies().get(last).intValue());
+    assertTrue(suggestion.getAlternatives().get(last).matches("their|time"));
+    assertTrue(suggestion.getAlternativeFrequencies().get(last) > 0);
   }
 
   @Test

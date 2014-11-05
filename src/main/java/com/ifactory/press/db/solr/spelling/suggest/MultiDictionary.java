@@ -2,7 +2,9 @@ package com.ifactory.press.db.solr.spelling.suggest;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -10,6 +12,8 @@ import org.apache.lucene.search.spell.Dictionary;
 import org.apache.lucene.search.spell.HighFrequencyDictionary;
 import org.apache.lucene.search.suggest.InputIterator;
 import org.apache.lucene.util.BytesRef;
+
+import com.ifactory.press.db.solr.spelling.suggest.SafeInfixSuggester.Context;
 
 /**
  * MultiDictionary: terms are taken from a number of wrapped
@@ -84,6 +88,7 @@ public class MultiDictionary implements Dictionary {
     private WeightedDictionary curDict;
     private InputIterator curInput;
     private BytesRef scratch; // TODO: move to BytesRefBuilder as we upgrade
+    private Set<BytesRef> contexts;
 
     public MultiInputIterator() throws IOException {
       cur = -1;
@@ -95,6 +100,12 @@ public class MultiDictionary implements Dictionary {
       if (++cur < dicts.size()) {
         curDict = dicts.get(cur);
         curInput = curDict.dict.getEntryIterator();
+        if (curInput.hasContexts()) {
+          contexts = new HashSet<BytesRef> (curInput.contexts());
+          contexts.add(new BytesRef(new byte[] { (byte) Context.SHOW.ordinal() }));
+        } else {
+          contexts =  Collections.singleton(new BytesRef(new byte[] { (byte) Context.SHOW.ordinal() }));
+        }
       } else {
         curDict = null;
         curInput = null;
@@ -163,12 +174,12 @@ public class MultiDictionary implements Dictionary {
 
     @Override
     public Set<BytesRef> contexts() {
-      return curInput.contexts();
+      return contexts;
     }
 
     @Override
     public boolean hasContexts() {
-      return curInput.hasContexts();
+      return true;
     }
 
   }

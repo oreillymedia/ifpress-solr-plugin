@@ -1,6 +1,7 @@
 package com.ifactory.press.db.solr.spelling.suggest;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
@@ -16,12 +17,21 @@ import org.apache.lucene.util.Version;
 public class SafeInfixSuggester extends AnalyzingInfixSuggester {
 
   private final boolean highlight;
+  
+  public enum Context {
+    SHOW, HIDE
+  };
+  
+  private Set<BytesRef> showContext, hideContext;
 
   public SafeInfixSuggester(Version matchVersion, Directory dir, Analyzer indexAnalyzer, Analyzer queryAnalyzer,
       int minPrefixChars, boolean highlight) throws IOException {
     super(matchVersion, dir, indexAnalyzer, queryAnalyzer, minPrefixChars);
     this.highlight = highlight;
-
+    
+    showContext = Collections.singleton(new BytesRef(new byte[] { (byte) Context.SHOW.ordinal() }));
+    hideContext = Collections.singleton(new BytesRef(new byte[] { (byte) Context.HIDE.ordinal() }));
+    
     if (!DirectoryReader.indexExists(dir)) {
       // no index in place -- build an empty one so we are prepared for updates
 
@@ -65,13 +75,21 @@ public class SafeInfixSuggester extends AnalyzingInfixSuggester {
       });
     }
   }
+  
+  public void update(BytesRef bytes, long weight) throws IOException {
+    super.update(bytes, weight <= 0 ? hideContext : showContext, weight, null);
+  }
 
   /*
    * disable highlighting
    */
   @Override
   public List<LookupResult> lookup(CharSequence key, Set<BytesRef> contexts, boolean onlyMorePopular, int num) throws IOException {
-    // TODO: add context='show'
+    if (contexts != null) {
+      contexts.addAll(showContext);
+    } else {
+      contexts = showContext;
+    }
     return lookup(key, contexts, num, true, highlight);
   }
 
