@@ -70,6 +70,7 @@ public class SafeInfixSuggester extends AnalyzingInfixSuggester {
      */
     @Override
     public List<LookupResult> lookup(CharSequence key, Set<BytesRef> contexts, boolean onlyMorePopular, int num) throws IOException {
+      // TODO: add context='show'
       return lookup(key, contexts, num, true, highlight);
     }
 

@@ -49,7 +49,7 @@ public class SolrPostingsHighlighterTest {
   public void testHighlightChapter5() throws SolrServerException, IOException {
     // searching for "gas" didn't work on the Safari site
     
-    InputStream ch5stream = getClass().getResourceAsStream("/ch5.txt");
+    InputStream ch5stream = getClass().getResourceAsStream("ch5.txt");
     String ch5 = IOUtils.toString(ch5stream);
 
     SolrInputDocument doc = new SolrInputDocument();
@@ -61,14 +61,13 @@ public class SolrPostingsHighlighterTest {
     // retrieve highlights at query time 
     SolrQuery query = new SolrQuery("gas");
     query.setHighlight(true);
-    query.set("hl.maxAnalyzedCharacters", 250000);
-    // query.s
+    // query.set("hl.maxAnalyzedChars", 250000);
     QueryResponse resp = solr.query(query);
     SolrDocumentList results = resp.getResults();
     assertEquals (1, results.getNumFound());
     assertNotNull ("PH returns null highlight", resp.getHighlighting());
     String snippet = resp.getHighlighting().get("ch5").get("text").get(0);
-    assertTrue (snippet + " \n does not contain <b>gas</b>", snippet.contains("<b>gas</b>"));
+    assertTrue (snippet + " \n does not contain <b class=\"highlight\">gas</b>", snippet.contains("<b class=\"highlight\">gas</b>"));
   }
 
 }

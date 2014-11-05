@@ -192,11 +192,11 @@ public class MultiSuggester extends Suggester {
                 if ("string".equals(analyzerFieldTypeName)) {
                     fieldAnalyzer = null;
                 } else {
-                    fieldAnalyzer = coreParam.getLatestSchema().getFieldTypeByName(analyzerFieldTypeName).getIndexAnalyzer();
+                    fieldAnalyzer = coreParam.getLatestSchema().getFieldTypeByName(analyzerFieldTypeName).getAnalyzer();
                 }
             } else {
                 // Use the existing term values as analyzed by the field
-                fieldAnalyzer = coreParam.getLatestSchema().getFieldType(fieldName).getIndexAnalyzer();
+                fieldAnalyzer = coreParam.getLatestSchema().getFieldType(fieldName).getAnalyzer();
             }
             fields[ifield] = new WeightedField(fieldName, weight, minFreq, maxFreq, fieldAnalyzer, useStoredField);
         }
@@ -250,6 +250,7 @@ public class MultiSuggester extends Suggester {
     }
 
     private void buildFromTerms(WeightedField fld) throws IOException {
+      // TODO: strip punctuation and whitespace
         HighFrequencyDictionary hfd = new HighFrequencyDictionary(reader, fld.fieldName, fld.minFreq);
         int numDocs = reader.getDocCount(fld.fieldName);
         int minFreq = (int) (fld.minFreq * numDocs);
@@ -336,7 +337,7 @@ public class MultiSuggester extends Suggester {
 
     // TODO: rename; reorder args to be like addRaw
     private void addTokenized(WeightedField fld, String value) throws IOException {
-        // 
+      // TODO: strip punctuation and whitespace
         TokenStream tokens = fld.fieldAnalyzer.tokenStream(fld.fieldName, value);
         tokens.reset();
         CharTermAttribute termAtt = tokens.addAttribute(CharTermAttribute.class);
@@ -379,8 +380,12 @@ public class MultiSuggester extends Suggester {
             for (Map.Entry<String, Integer> e : batch.entrySet()) {
                 String term = e.getKey();
                 bytes.copyChars(term);
+                // TODO: incorporate external metric (eg popularity) into weight
                 long count, weight;
                 if (fld.fieldAnalyzer == null) {
+                  // TODO: also get docFreq here, checking other fields and don't store duplicates!
+                  // TODO: build fields in decreasing order of weight -- only need to check earlier fields
+                  // add to weight of existing field??
                     count = 1;
                     weight = fld.weight;
                 } else {
@@ -397,6 +402,7 @@ public class MultiSuggester extends Suggester {
                         weight = (fld.weight * count) / docCount;
                     }
                 }
+                // TODO: add context='show|hide' if weight !=/== 0
                 if (weight > 0 || count > 1) {
                   // If weight == 0, we really want to remove this term altogether, but
                   // the suggester doesn't support deletions, so we just update the weight usually.
