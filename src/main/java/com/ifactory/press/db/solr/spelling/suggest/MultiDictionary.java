@@ -34,6 +34,33 @@ public class MultiDictionary implements Dictionary {
         return new MultiInputIterator();
     }
     
+    public static String stripAfflatus(String s) {
+      // strip off non-letters and digits (incl. ideographics and all surrogates)
+      int i = 0;
+      int length = s.length();
+      if (length == 0) {
+        return s;
+      }
+      for (; i < length; i++) {
+        char c = s.charAt(i);
+        if (Character.isLetterOrDigit(c)) {
+          break;
+        }
+      }
+      int j = length - 1;
+      for (; j > i; j--) {
+        char c = s.charAt(j);
+        if (Character.isLetterOrDigit(c)) {
+          break;
+        }
+      }
+      if (j - i == length) {
+        return s;
+      }
+      return s.substring(i, j+1);
+    }
+
+
     final static class WeightedDictionary {
         final long minWeight;
         final long maxWeight;
@@ -53,6 +80,7 @@ public class MultiDictionary implements Dictionary {
         private int cur;
         private WeightedDictionary curDict;
         private InputIterator curInput;
+        private BytesRef scratch;       // TODO: move to BytesRefBuilder as we upgrade 
         
         public MultiInputIterator() throws IOException {
             cur = -1;
@@ -90,7 +118,18 @@ public class MultiDictionary implements Dictionary {
                 }
                 break;
             }
+            return stripAfflatus(nextTerm);
+        }
+
+        private BytesRef stripAfflatus(BytesRef nextTerm) {
+          // strip off non-letters and digits (incl. ideographics and all surrogates)
+          String s0 = nextTerm.utf8ToString();
+          String s = MultiDictionary.stripAfflatus(s0);
+          if (s == s0) {
             return nextTerm;
+          }
+          scratch.copyChars(s);
+          return scratch;
         }
 
         @Override

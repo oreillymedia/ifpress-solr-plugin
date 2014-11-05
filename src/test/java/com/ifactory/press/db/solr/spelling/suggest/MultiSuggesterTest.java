@@ -237,9 +237,9 @@ public class MultiSuggesterTest extends SolrTest {
     @Test
     public void testEmptyDictionary() throws Exception {
         MultiDictionary dict = new MultiDictionary();
-        WhitespaceAnalyzer analyzer = new WhitespaceAnalyzer(Version.LUCENE_48);
+        WhitespaceAnalyzer analyzer = new WhitespaceAnalyzer();
         Directory dir = new RAMDirectory();
-        SafeInfixSuggester s  = new SafeInfixSuggester(Version.LUCENE_48, dir, analyzer, analyzer, 1, true);
+        SafeInfixSuggester s  = new SafeInfixSuggester(Version.LATEST, dir, analyzer, analyzer, 1, true);
         try {
             s.build(dict);
             assertTrue (s.lookup("", false, 1).isEmpty());
@@ -259,5 +259,6 @@ public class MultiSuggesterTest extends SolrTest {
       rebuildSuggester();
       assertSuggestionCount("a2", 0);
     }
+
     
 }

@@ -192,11 +192,11 @@ public class MultiSuggester extends Suggester {
                 if ("string".equals(analyzerFieldTypeName)) {
                     fieldAnalyzer = null;
                 } else {
-                    fieldAnalyzer = coreParam.getLatestSchema().getFieldTypeByName(analyzerFieldTypeName).getAnalyzer();
+                    fieldAnalyzer = coreParam.getLatestSchema().getFieldTypeByName(analyzerFieldTypeName).getIndexAnalyzer();
                 }
             } else {
                 // Use the existing term values as analyzed by the field
-                fieldAnalyzer = coreParam.getLatestSchema().getFieldType(fieldName).getAnalyzer();
+                fieldAnalyzer = coreParam.getLatestSchema().getFieldType(fieldName).getIndexAnalyzer();
             }
             fields[ifield] = new WeightedField(fieldName, weight, minFreq, maxFreq, fieldAnalyzer, useStoredField);
         }
@@ -250,7 +250,6 @@ public class MultiSuggester extends Suggester {
     }
 
     private void buildFromTerms(WeightedField fld) throws IOException {
-      // TODO: strip punctuation and whitespace
         HighFrequencyDictionary hfd = new HighFrequencyDictionary(reader, fld.fieldName, fld.minFreq);
         int numDocs = reader.getDocCount(fld.fieldName);
         int minFreq = (int) (fld.minFreq * numDocs);
@@ -335,15 +334,14 @@ public class MultiSuggester extends Suggester {
         //LOG.trace ("add raw " + value);
     }
 
-    // TODO: rename; reorder args to be like addRaw
     private void addTokenized(WeightedField fld, String value) throws IOException {
-      // TODO: strip punctuation and whitespace
         TokenStream tokens = fld.fieldAnalyzer.tokenStream(fld.fieldName, value);
         tokens.reset();
         CharTermAttribute termAtt = tokens.addAttribute(CharTermAttribute.class);
         try {
             while (tokens.incrementToken()) {
                 String token = termAtt.toString();
+                token = MultiDictionary.stripAfflatus(token);
                 incPending(fld, token);
                 //LOG.trace ("add token " + token);
             }
