@@ -241,7 +241,7 @@ public class MultiSuggesterTest extends SolrTest {
 
   @Test
   public void testEmptyDictionary() throws Exception {
-    MultiDictionary dict = new MultiDictionary();
+    MultiDictionary dict = new MultiDictionary(10);
     WhitespaceAnalyzer analyzer = new WhitespaceAnalyzer();
     Directory dir = new RAMDirectory();
     SafeInfixSuggester s = new SafeInfixSuggester(Version.LATEST, dir, analyzer, analyzer, 1, true);
@@ -255,9 +255,10 @@ public class MultiSuggesterTest extends SolrTest {
 
   @Test
   public void testBuildStartsFresh() throws Exception {
+    rebuildSuggester();
     insertTestDocuments(TITLE_FIELD);
     Suggestion suggestion = assertSuggestionCount("a2", 1);
-    assertEquals("a2 document ", suggestion.getAlternatives().get(0));
+    assertEquals("a2 document", suggestion.getAlternatives().get(0));
     // solr.deleteById("/doc/2");
     solr.deleteByQuery("*:*");
     solr.commit();

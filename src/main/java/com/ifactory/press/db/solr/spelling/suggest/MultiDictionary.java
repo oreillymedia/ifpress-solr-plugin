@@ -21,9 +21,12 @@ import org.apache.lucene.util.BytesRef;
 public class MultiDictionary implements Dictionary {
 
   private final List<WeightedDictionary> dicts;
+  
+  private final int maxTermLength;
 
-  public MultiDictionary() {
+  public MultiDictionary(int maxTermLength) {
     dicts = new ArrayList<WeightedDictionary>();
+    this.maxTermLength = maxTermLength;
   }
 
   public void addDictionary(Dictionary dict, long minWeight, long maxWeight, float weight) {
@@ -84,6 +87,7 @@ public class MultiDictionary implements Dictionary {
 
     public MultiInputIterator() throws IOException {
       cur = -1;
+      scratch = new BytesRef(maxTermLength);
       nextDict();
     }
 

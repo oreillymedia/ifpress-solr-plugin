@@ -121,7 +121,7 @@ import com.google.common.collect.Multimaps;
 @SuppressWarnings("rawtypes")
 public class MultiSuggester extends Suggester {
 
-  private static final int DEFAULT_MAX_SUGGESTION_LENGTH = 80;
+  public static final int DEFAULT_MAX_SUGGESTION_LENGTH = 80;
 
   // weights are stored internally as longs, but externally as small floating
   // point numbers. The floating point weights are multiplied by this factor to
@@ -220,7 +220,7 @@ public class MultiSuggester extends Suggester {
   @Override
   public void build(SolrCore coreParam, SolrIndexSearcher searcher) throws IOException {
     LOG.info("build suggestion index: " + name);
-    dictionary = new MultiDictionary();
+    dictionary = new MultiDictionary(maxSuggestionLength);
     reader = searcher.getIndexReader();
     // index all the terms-based fields using dictionaries
     for (WeightedField fld : fields) {
