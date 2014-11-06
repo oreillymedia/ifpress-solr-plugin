@@ -241,9 +241,9 @@ public class MultiSuggesterTest extends SolrTest {
   @Test
   public void testEmptyDictionary() throws Exception {
     MultiDictionary dict = new MultiDictionary(10);
-    WhitespaceAnalyzer analyzer = new WhitespaceAnalyzer();
+    WhitespaceAnalyzer analyzer = new WhitespaceAnalyzer(Version.LUCENE_48);
     Directory dir = new RAMDirectory();
-    SafariInfixSuggester s = new SafariInfixSuggester(Version.LATEST, dir, analyzer, analyzer, 1, true);
+    SafariInfixSuggester s = new SafariInfixSuggester(Version.LUCENE_48, dir, analyzer, analyzer, 1, true);
     try {
       s.build(dict);
       assertTrue(s.lookup("", false, 1).isEmpty());
