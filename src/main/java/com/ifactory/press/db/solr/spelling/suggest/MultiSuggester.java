@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.text.BreakIterator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -18,6 +19,7 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.spell.HighFrequencyDictionary;
 import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
 import org.apache.lucene.util.BytesRef;
+import org.apache.solr.client.solrj.response.SpellCheckResponse.Suggestion;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.util.NamedList;
 import org.apache.solr.core.CloseHook;
@@ -400,26 +402,24 @@ public class MultiSuggester extends Suggester {
       Term t = new Term(fld.fieldName, bytes);
       long minCount = (long) (fld.minFreq * docCount);
       long maxCount = (long) (docCount <= 1 ? Long.MAX_VALUE : (fld.maxFreq * docCount + 1));
+      OUTER:
       for (Map.Entry<String, Integer> e : batch.entrySet()) {
         String term = e.getKey();
-        bytes.copyChars(term);
         // TODO: incorporate external metric (eg popularity) into weight
-        long count, weight;
+        long weight;
         if (fld.fieldAnalyzer == null) {
-          // TODO: also get docFreq here, checking other fields and don't store
-          // duplicates!
-          // TODO: build fields in decreasing order of weight -- only need to
-          // check earlier fields
-          // add to weight of existing field??
-          count = 1;
+          // check for duplicates
+          if (((SafeInfixSuggester)lookup).lookup(term, 1, true, false).size() > 0) {
+            break OUTER;
+          }
           weight = fld.weight;
         } else {
-          long termCount = searcher.getIndexReader().docFreq(t);
-          if (termCount < 0) {
+          long count = searcher.getIndexReader().docFreq(t);
+          if (count < 0) {
             // FIXME: is this even possible?
             count = e.getValue();
           } else {
-            count = e.getValue() + termCount;
+            count += e.getValue();
           }
           if (count < minCount || count > maxCount) {
             weight = 0;
@@ -427,6 +427,7 @@ public class MultiSuggester extends Suggester {
             weight = (fld.weight * count) / docCount;
           }
         }
+        bytes.copyChars(term);
         ais.update(bytes, weight);
       }
     }
