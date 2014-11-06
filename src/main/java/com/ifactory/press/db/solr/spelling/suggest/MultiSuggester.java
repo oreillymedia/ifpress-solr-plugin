@@ -3,9 +3,9 @@ package com.ifactory.press.db.solr.spelling.suggest;
 import java.io.Closeable;
 import java.io.IOException;
 import java.text.BreakIterator;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -19,7 +19,6 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.spell.HighFrequencyDictionary;
 import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
 import org.apache.lucene.util.BytesRef;
-import org.apache.solr.client.solrj.response.SpellCheckResponse.Suggestion;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.util.NamedList;
 import org.apache.solr.core.CloseHook;
@@ -217,31 +216,29 @@ public class MultiSuggester extends Suggester {
       }
       fields[ifield] = new WeightedField(fieldName, weight, minFreq, maxFreq, fieldAnalyzer, useStoredField);
     }
+    Arrays.sort(fields);
   }
 
   @Override
   public void build(SolrCore coreParam, SolrIndexSearcher searcher) throws IOException {
     LOG.info("build suggestion index: " + name);
-    dictionary = new MultiDictionary(maxSuggestionLength);
+    
     reader = searcher.getIndexReader();
     // index all the terms-based fields using dictionaries
     for (WeightedField fld : fields) {
-      if (!fld.useStoredField) {
-        buildFromTerms(fld);
-      }
-    }
-    lookup.build(dictionary);
-    // index all the values-based fields using addRaw
-    for (WeightedField fld : fields) {
       if (fld.useStoredField) {
         buildFromStoredField(fld, searcher);
+      } else {
+        // TODO: refactor b/c we're not really using the MultiDictionary's multiple dictionary capability any more
+        dictionary = new MultiDictionary(maxSuggestionLength);
+        buildFromTerms(fld);
+        lookup.build(dictionary);
       }
     }
     LOG.info("built suggestion index: " + name);
-    if (lookup instanceof AnalyzingInfixSuggester) {
-      AnalyzingInfixSuggester ais = (AnalyzingInfixSuggester) lookup;
-      LOG.info(String.format("suggestion index has %d suggestions", ais.getCount()));
-    }
+    AnalyzingInfixSuggester ais = (AnalyzingInfixSuggester) lookup;
+    ais.refresh();
+    LOG.info(String.format("suggestion index has %d suggestions", ais.getCount()));
   }
 
   private void buildFromStoredField(WeightedField fld, SolrIndexSearcher searcher) throws IOException {
@@ -306,7 +303,7 @@ public class MultiSuggester extends Suggester {
    * @throws IOException
    */
   public void add(SolrInputDocument doc, SolrIndexSearcher searcher) throws IOException {
-    if (!(lookup instanceof SafeInfixSuggester)) {
+    if (!(lookup instanceof SafariInfixSuggester)) {
       return;
     }
     for (WeightedField fld : fields) {
@@ -386,10 +383,10 @@ public class MultiSuggester extends Suggester {
   }
 
   public void commit(SolrIndexSearcher searcher) throws IOException {
-    if (!(lookup instanceof AnalyzingInfixSuggester)) {
+    if (!(lookup instanceof SafariInfixSuggester)) {
       return;
     }
-    SafeInfixSuggester ais = (SafeInfixSuggester) lookup;
+    SafariInfixSuggester ais = (SafariInfixSuggester) lookup;
     for (WeightedField fld : fields) {
       // get the number of documents having this field
       long docCount = searcher.getIndexReader().getDocCount(fld.fieldName) + fld.pendingDocCount;
@@ -409,7 +406,7 @@ public class MultiSuggester extends Suggester {
         long weight;
         if (fld.fieldAnalyzer == null) {
           // check for duplicates
-          if (((SafeInfixSuggester)lookup).lookup(term, 1, true, false).size() > 0) {
+          if (((SafariInfixSuggester)lookup).lookup(term, 1, true, false).size() > 0) {
             break OUTER;
           }
           weight = fld.weight;
@@ -440,8 +437,11 @@ public class MultiSuggester extends Suggester {
       ((Closeable) lookup).close();
     }
   }
-
-  class WeightedField {
+  
+  /**
+   * Note: this class has a natural ordering that is inconsistent with equals.
+   */
+  class WeightedField implements Comparable<WeightedField> {
     final static int MAX_TERM_LENGTH = 128;
     final String fieldName;
     final long weight;
@@ -466,6 +466,12 @@ public class MultiSuggester extends Suggester {
     @Override
     public String toString() {
       return fieldName + '^' + weight;
+    }
+
+    @Override
+    public int compareTo(WeightedField fld) {
+      // sort from highest to lowest
+      return (int) (fld.weight - weight);
     }
 
   }
