@@ -222,8 +222,11 @@ public class MultiSuggester extends Suggester {
   @Override
   public void build(SolrCore coreParam, SolrIndexSearcher searcher) throws IOException {
     LOG.info("build suggestion index: " + name);
-    
     reader = searcher.getIndexReader();
+
+    SafariInfixSuggester ais = (SafariInfixSuggester) lookup;
+    ais.clear();
+    
     // index all the terms-based fields using dictionaries
     for (WeightedField fld : fields) {
       if (fld.useStoredField) {
@@ -232,13 +235,11 @@ public class MultiSuggester extends Suggester {
         // TODO: refactor b/c we're not really using the MultiDictionary's multiple dictionary capability any more
         dictionary = new MultiDictionary(maxSuggestionLength);
         buildFromTerms(fld);
-        lookup.build(dictionary);
+        ais.add(dictionary);
+        ais.refresh();
       }
     }
-    LOG.info("built suggestion index: " + name);
-    AnalyzingInfixSuggester ais = (AnalyzingInfixSuggester) lookup;
-    ais.refresh();
-    LOG.info(String.format("suggestion index has %d suggestions", ais.getCount()));
+    LOG.info(String.format("%s suggestion index built: %d suggestions", name, ais.getCount()));
   }
 
   private void buildFromStoredField(WeightedField fld, SolrIndexSearcher searcher) throws IOException {
@@ -399,16 +400,15 @@ public class MultiSuggester extends Suggester {
       Term t = new Term(fld.fieldName, bytes);
       long minCount = (long) (fld.minFreq * docCount);
       long maxCount = (long) (docCount <= 1 ? Long.MAX_VALUE : (fld.maxFreq * docCount + 1));
-      OUTER:
       for (Map.Entry<String, Integer> e : batch.entrySet()) {
         String term = e.getKey();
+        // check for duplicates
+        if (ais.lookup(term, 1, true, false).size() > 0) {
+          break;
+        }
         // TODO: incorporate external metric (eg popularity) into weight
         long weight;
         if (fld.fieldAnalyzer == null) {
-          // check for duplicates
-          if (((SafariInfixSuggester)lookup).lookup(term, 1, true, false).size() > 0) {
-            break OUTER;
-          }
           weight = fld.weight;
         } else {
           long count = searcher.getIndexReader().docFreq(t);

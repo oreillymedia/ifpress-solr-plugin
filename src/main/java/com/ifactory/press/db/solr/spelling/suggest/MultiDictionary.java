@@ -13,7 +13,7 @@ import org.apache.lucene.search.spell.HighFrequencyDictionary;
 import org.apache.lucene.search.suggest.InputIterator;
 import org.apache.lucene.util.BytesRef;
 
-import com.ifactory.press.db.solr.spelling.suggest.SafeInfixSuggester.Context;
+import com.ifactory.press.db.solr.spelling.suggest.SafariInfixSuggester.Context;
 
 /**
  * MultiDictionary: terms are taken from a number of wrapped

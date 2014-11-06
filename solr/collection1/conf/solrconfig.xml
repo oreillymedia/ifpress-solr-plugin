@@ -1075,6 +1075,10 @@
           <float name="weight">11.0</float>
         </lst>
         <lst name="field">
+          <str name="name">keyword</str>
+          <float name="weight">3.0</float>
+        </lst>
+        <lst name="field">
           <str name="name">duplicate_title_t</str>
           <str name="analyzerFieldType">string</str>
           <float name="weight">3.0</float>

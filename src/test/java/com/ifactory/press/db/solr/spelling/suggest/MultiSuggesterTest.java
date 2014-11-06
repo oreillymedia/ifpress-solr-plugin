@@ -105,7 +105,7 @@ public class MultiSuggesterTest extends SolrTest {
 
   private void assertSuggestions() throws SolrServerException {
     Suggestion suggestion = assertSuggestionCount("t", 8);
-    // TITLE occurs multiple times; t0, etc each occur twice, their/time occur once
+    // TITLE occurs once in a high-weighted field; t0, etc each occur twice, their/time occur once
     // 'the' and 'to' occur too many times and get excluded
     assertEquals (TITLE, suggestion.getAlternatives().get(0));
     for (int i = 1; i <=5; i++) {
@@ -243,7 +243,7 @@ public class MultiSuggesterTest extends SolrTest {
     MultiDictionary dict = new MultiDictionary(10);
     WhitespaceAnalyzer analyzer = new WhitespaceAnalyzer();
     Directory dir = new RAMDirectory();
-    SafeInfixSuggester s = new SafeInfixSuggester(Version.LATEST, dir, analyzer, analyzer, 1, true);
+    SafariInfixSuggester s = new SafariInfixSuggester(Version.LATEST, dir, analyzer, analyzer, 1, true);
     try {
       s.build(dict);
       assertTrue(s.lookup("", false, 1).isEmpty());
@@ -272,7 +272,12 @@ public class MultiSuggesterTest extends SolrTest {
     insertTestDocuments(TITLE_FIELD);
     SolrInputDocument doc = new SolrInputDocument();
     doc.addField("uri", "/doc/1");
+    // add a duplicate value to a field whose stored value is used as a suggestion source
     doc.addField("duplicate_title_t", TITLE.toLowerCase());
+    // add a duplicate value to a field whose indexed terms are used as a suggestion source
+    // analyzed using a KeywordTokenizer, so the indexed value is the same, but exercises a 
+    // different code path 
+    doc.addField("keyword", TITLE.toLowerCase());
     solr.add(doc);
     solr.commit();
     Suggestion suggestion = assertSuggestionCount("dawn", 2);
