@@ -25,7 +25,7 @@ public class MultiSuggesterTest extends SolrTest {
   private static final String TEXT_FIELD = "fulltext_t";
   private static final String TITLE_FIELD = "title_ms";
   private static final String TITLE_VALUE_FIELD = "title_t";
-  private static final String TEXT = "Now is the time time for all good people to come to the aid of their intentional community";
+  private static final String TEXT = "Now is the time time for all good people to come to the aid of their dawning intentional community";
   private static final String TITLE = "The Dawning of a New Era";
 
   @Test
@@ -99,7 +99,7 @@ public class MultiSuggesterTest extends SolrTest {
     } else {
       assertNotNull("No suggestion found for " + prefix, suggestion);
     }
-    assertEquals(count, suggestion.getNumFound());
+    assertEquals(suggestion.getAlternatives().toString(), count, suggestion.getNumFound());
     return suggestion;
   }
 
@@ -263,6 +263,25 @@ public class MultiSuggesterTest extends SolrTest {
     solr.commit();
     rebuildSuggester();
     assertSuggestionCount("a2", 0);
+  }
+  
+  @Test
+  public void testEliminateDuplicates() throws Exception {
+    rebuildSuggester();
+    // test building incrementally:
+    insertTestDocuments(TITLE_FIELD);
+    SolrInputDocument doc = new SolrInputDocument();
+    doc.addField("uri", "/doc/1");
+    doc.addField("duplicate_title_t", TITLE.toLowerCase());
+    solr.add(doc);
+    solr.commit();
+    Suggestion suggestion = assertSuggestionCount("dawn", 2);
+    assertEquals ("The Dawning of a New Era", suggestion.getAlternatives().get(0));
+    assertEquals ("dawning", suggestion.getAlternatives().get(1));
+    // test rebuilding using a dictionary:
+    rebuildSuggester();
+    assertEquals ("The Dawning of a New Era", suggestion.getAlternatives().get(0));
+    assertEquals ("dawning", suggestion.getAlternatives().get(1));
   }
 
 }
