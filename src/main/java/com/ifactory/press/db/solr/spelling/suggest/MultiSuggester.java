@@ -404,7 +404,8 @@ public class MultiSuggester extends Suggester {
         String term = e.getKey();
         // check for duplicates
         if (ais.lookup(term, 1, true, false).size() > 0) {
-          break;
+          // LOG.debug("skipping duplicate " + term);
+          continue;
         }
         // TODO: incorporate external metric (eg popularity) into weight
         long weight;
@@ -425,6 +426,7 @@ public class MultiSuggester extends Suggester {
           }
         }
         bytes.copyChars(term);
+        // LOG.debug("add " + bytes.utf8ToString());
         ais.update(bytes, weight);
       }
     }
