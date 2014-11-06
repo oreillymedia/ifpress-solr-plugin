@@ -3,6 +3,7 @@ package com.ifactory.press.db.solr.spelling.suggest;
 import java.io.Closeable;
 import java.io.IOException;
 import java.text.BreakIterator;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -215,6 +216,7 @@ public class MultiSuggester extends Suggester {
       }
       fields[ifield] = new WeightedField(fieldName, weight, minFreq, maxFreq, fieldAnalyzer, useStoredField);
     }
+    Arrays.sort(fields);
   }
 
   @Override
@@ -400,17 +402,23 @@ public class MultiSuggester extends Suggester {
       Term t = new Term(fld.fieldName, bytes);
       long minCount = (long) (fld.minFreq * docCount);
       long maxCount = (long) (docCount <= 1 ? Long.MAX_VALUE : (fld.maxFreq * docCount + 1));
+      OUTER:
       for (Map.Entry<String, Integer> e : batch.entrySet()) {
         String term = e.getKey();
         bytes.copyChars(term);
         // TODO: incorporate external metric (eg popularity) into weight
         long count, weight;
         if (fld.fieldAnalyzer == null) {
-          // TODO: also get docFreq here, checking other fields and don't store
-          // duplicates!
-          // TODO: build fields in decreasing order of weight -- only need to
-          // check earlier fields
-          // add to weight of existing field??
+          for (WeightedField fld2 : fields) {
+            // check all preceding fields and don't store this if it is a duplicate
+            if (fld2 == fld) {
+              break;
+            }
+            long termCount = searcher.getIndexReader().docFreq(new Term(fld2.fieldName, term));
+            if (termCount > 0) {
+              continue OUTER;
+            }
+          }
           count = 1;
           weight = fld.weight;
         } else {
@@ -439,8 +447,11 @@ public class MultiSuggester extends Suggester {
       ((Closeable) lookup).close();
     }
   }
-
-  class WeightedField {
+  
+  /**
+   * Note: this class has a natural ordering that is inconsistent with equals.
+   */
+  class WeightedField implements Comparable<WeightedField> {
     final static int MAX_TERM_LENGTH = 128;
     final String fieldName;
     final long weight;
@@ -465,6 +476,12 @@ public class MultiSuggester extends Suggester {
     @Override
     public String toString() {
       return fieldName + '^' + weight;
+    }
+
+    @Override
+    public int compareTo(WeightedField fld) {
+      // sort from highest to lowest
+      return (int) (fld.weight - weight);
     }
 
   }
