@@ -40,7 +40,7 @@ public class SafeInfixLookupFactory extends AnalyzingInfixLookupFactory {
         if (ft == null) {
             throw new IllegalArgumentException("Error in configuration: " + fieldTypeName.toString() + " is not defined in the schema");
         }
-        Analyzer indexAnalyzer = ft.getAnalyzer();
+        Analyzer indexAnalyzer = ft.getIndexAnalyzer();
         Analyzer queryAnalyzer = ft.getQueryAnalyzer();
   
         // optional parameters
@@ -59,7 +59,7 @@ public class SafeInfixLookupFactory extends AnalyzingInfixLookupFactory {
         }
 
          try {
-             return new SafeInfixSuggester(core.getSolrConfig().luceneMatchVersion, 
+             return new SafariInfixSuggester(core.getSolrConfig().luceneMatchVersion, 
                                            FSDirectory.open(new File(indexPath)), indexAnalyzer,
                                            queryAnalyzer, minPrefixChars, highlight);
          } catch (IOException e) {
