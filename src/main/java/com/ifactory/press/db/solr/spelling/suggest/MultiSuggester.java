@@ -231,7 +231,7 @@ public class MultiSuggester extends Suggester {
         if (fld.fieldAnalyzer != null) {
             throw new IllegalStateException("not supported: analyzing stored fields");
         }
-        LOG.info(String.format("build suggestions from values for: %s (%d)", fld.fieldName, fld.weight));
+        LOG.info(String.format("build suggestions from values for: %s", fld.fieldName));
         HashSet<String> fieldsToLoad = new HashSet<String>();
         fieldsToLoad.add(fld.fieldName);
         int maxDoc = searcher.maxDoc();
@@ -254,7 +254,7 @@ public class MultiSuggester extends Suggester {
         int numDocs = reader.getDocCount(fld.fieldName);
         int minFreq = (int) (fld.minFreq * numDocs);
         int maxFreq = (int) (fld.maxFreq * numDocs);
-        LOG.info(String.format("build suggestions from terms for: %s ([%d, %d], %d)", fld.fieldName, minFreq, maxFreq, fld.weight));
+        LOG.info(String.format("build suggestions from terms for: %s [minfreq=%d, maxfreq=%d]", fld.fieldName, minFreq, maxFreq));
         ((MultiDictionary)dictionary).addDictionary(hfd, minFreq, maxFreq, fld.weight / (2 + numDocs));
     }
 
