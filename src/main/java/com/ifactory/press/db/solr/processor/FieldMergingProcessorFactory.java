@@ -89,7 +89,7 @@ public class FieldMergingProcessorFactory extends UpdateRequestProcessorFactory 
                 }
             }
             if (fieldType != null) {
-                sourceAnalyzers.put(sourceFieldName, fieldType.getAnalyzer());
+                sourceAnalyzers.put(sourceFieldName, fieldType.getIndexAnalyzer());
             }
         }
 

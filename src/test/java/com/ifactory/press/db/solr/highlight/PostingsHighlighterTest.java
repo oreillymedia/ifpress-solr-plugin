@@ -48,7 +48,7 @@ import org.junit.Test;
 
 public class PostingsHighlighterTest {
   
-  private static final Version VERSION = Version.LUCENE_48;
+  private static final Version VERSION = Version.LATEST;
 
   private IndexWriter iw;
   
@@ -100,8 +100,8 @@ public class PostingsHighlighterTest {
 
     @Override
     protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
-      Tokenizer tokenizer = new WhitespaceTokenizer(VERSION, reader);
-      TokenFilter filter = new LowerCaseFilter(VERSION, tokenizer);
+      Tokenizer tokenizer = new WhitespaceTokenizer(reader);
+      TokenFilter filter = new LowerCaseFilter(tokenizer);
       return new TokenStreamComponents(tokenizer, filter);
     }
   }
@@ -120,9 +120,9 @@ public class PostingsHighlighterTest {
       Pattern pat1 = Pattern.compile("([A-Za-z])\\+\\+");
       charFilter = new PatternReplaceCharFilter(pat1, "$1plusplus", charFilter);
       charFilter = new PatternReplaceCharFilter(Pattern.compile("([A-Za-z])\\#"), "$1sharp", charFilter);
-      Tokenizer tokenizer = new WhitespaceTokenizer(VERSION, charFilter);
+      Tokenizer tokenizer = new WhitespaceTokenizer(charFilter);
       // TODO protwords.txt
-      TokenFilter filter = new WordDelimiterFilter(VERSION, tokenizer, 
+      TokenFilter filter = new WordDelimiterFilter(tokenizer, 
           GENERATE_WORD_PARTS |
           GENERATE_NUMBER_PARTS |
           SPLIT_ON_CASE_CHANGE |
@@ -130,7 +130,7 @@ public class PostingsHighlighterTest {
           STEM_ENGLISH_POSSESSIVE|
           PRESERVE_ORIGINAL, 
           null);
-      filter = new LowerCaseFilter(VERSION, filter);
+      filter = new LowerCaseFilter(filter);
       if (isIndexAnalyzer) {
         filter = new SynonymFilter(filter, buildSynonymMap(), true);
       }
