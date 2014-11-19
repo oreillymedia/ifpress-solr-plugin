@@ -25,6 +25,8 @@ public class MultiSuggesterProcessorFactory extends UpdateRequestProcessorFactor
     private String suggesterComponentName;
     
     private final ArrayList<MultiSuggester> suggesters = new ArrayList<MultiSuggester>();
+    
+    private SolrCore core;
 
     private static final Logger LOG = LoggerFactory.getLogger(MultiSuggesterProcessor.class);
     
@@ -40,45 +42,48 @@ public class MultiSuggesterProcessorFactory extends UpdateRequestProcessorFactor
     
     @Override
     public UpdateRequestProcessor getInstance(SolrQueryRequest req, SolrQueryResponse rsp, UpdateRequestProcessor next) {
-        return new MultiSuggesterProcessor(suggesters, next);
+        MultiSuggesterProcessor multiSuggesterProcessor = new MultiSuggesterProcessor(suggesters, next);
+        core.getUpdateHandler().registerCommitCallback(new MultiSuggesterCommitListener(core, suggesters));
+        return multiSuggesterProcessor;
     }
     
     @Override
     public void inform(SolrCore core) {
         
-        SpellCheckComponent suggesterComponent = (SpellCheckComponent) core.getSearchComponent(suggesterComponentName);
-        if (suggesterComponent == null) {
-            LOG.warn("No suggester component found named: " + suggesterComponentName);
-            return;
-        }
+      this.core = core;
+      
+      SpellCheckComponent suggesterComponent = (SpellCheckComponent) core.getSearchComponent(suggesterComponentName);
+      if (suggesterComponent == null) {
+        LOG.warn("No suggester component found named: " + suggesterComponentName);
+        return;
+      }
         
-        for (SolrSpellChecker spellChecker : suggesterComponent.getSpellCheckers().values()) {
-            if (spellChecker instanceof MultiSuggester) {
-                suggesters.add ((MultiSuggester) spellChecker);
-            }
+      for (SolrSpellChecker spellChecker : suggesterComponent.getSpellCheckers().values()) {
+        if (spellChecker instanceof MultiSuggester) {
+          suggesters.add ((MultiSuggester) spellChecker);
         }
+      }
         
-        core.addCloseHook(new CloseHook() {
+      core.addCloseHook(new CloseHook() {
                 
-            @Override
-            public void preClose(SolrCore coreParam) {
-            }
+        @Override
+        public void preClose(SolrCore coreParam) {
+        }
                 
-            @Override
-            public void postClose(SolrCore coreParam) {
-                for (MultiSuggester suggester : suggesters) {
-                    try {
-                        if (suggester != null) {
-                            suggester.close();
-                        }
-                    } catch (IOException e) {
-                        LOG.error("An exception occurred while closing", e);
-                    }
-                }
+        @Override
+        public void postClose(SolrCore coreParam) {
+          for (MultiSuggester suggester : suggesters) {
+            try {
+              if (suggester != null) {
+                suggester.close();
+              }
+            } catch (IOException e) {
+              LOG.error("An exception occurred while closing", e);
             }
-        });
-   
+          }
+        }
+      });        
+
     }
-    
 
 }
