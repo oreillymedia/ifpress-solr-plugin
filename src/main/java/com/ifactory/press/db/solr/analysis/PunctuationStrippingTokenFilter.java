@@ -12,7 +12,7 @@ import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
  * Strips tokens that consist entirely of ASCII punctuation characters.  Discards position information
  * for those tokens, acting as if they had never existed.
  */
-public class PunctuationStrippingTokenFilter extends TokenFilter {
+public final class PunctuationStrippingTokenFilter extends TokenFilter {
   
   private final Pattern punctuationPattern;
   private final PositionIncrementAttribute posIncrAtt = addAttribute(PositionIncrementAttribute.class);
