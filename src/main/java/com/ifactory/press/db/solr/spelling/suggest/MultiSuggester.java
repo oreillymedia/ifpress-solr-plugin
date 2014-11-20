@@ -266,7 +266,7 @@ public class MultiSuggester extends Suggester {
     int maxDoc = searcher.maxDoc();
     for (int idoc = 0; idoc < maxDoc; ++idoc) {
       // TODO: exclude deleted documents
-      Document doc = reader.document(idoc++, fieldsToLoad);
+      Document doc = reader.document(idoc, fieldsToLoad);
       String value = doc.get(fld.fieldName);
       if (value != null) {
         addRaw(fld, value);
@@ -453,8 +453,9 @@ public class MultiSuggester extends Suggester {
   }
 
   public void close() throws IOException {
-    if (lookup instanceof Closeable) {
+    if (lookup != null && lookup instanceof Closeable) {
       ((Closeable) lookup).close();
+      lookup = null;
     }
   }
   
@@ -501,7 +502,7 @@ public class MultiSuggester extends Suggester {
   class CloseHandler extends CloseHook {
 
     @Override
-    public void preClose(SolrCore c) {
+    public void postClose(SolrCore c) {
       try {
         close();
       } catch (IOException e) {
@@ -510,7 +511,7 @@ public class MultiSuggester extends Suggester {
     }
 
     @Override
-    public void postClose(SolrCore c) {
+    public void preClose(SolrCore c) {
     }
 
   }
