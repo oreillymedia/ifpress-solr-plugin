@@ -401,6 +401,7 @@ public class MultiSuggester extends Suggester {
     if (!(lookup instanceof SafariInfixSuggester)) {
       return;
     }
+    boolean updated = false;
     SafariInfixSuggester ais = (SafariInfixSuggester) lookup;
     for (WeightedField fld : fields) {
       // get the number of documents having this field
@@ -414,6 +415,7 @@ public class MultiSuggester extends Suggester {
       Term t = new Term(fld.fieldName, bytes);
       long minCount = (long) (fld.minFreq * docCount);
       long maxCount = (long) (docCount <= 1 ? Long.MAX_VALUE : (fld.maxFreq * docCount + 1));
+      updated = updated || !batch.isEmpty();
       for (Map.Entry<String, Integer> e : batch.entrySet()) {
         String term = e.getKey();
         // check for duplicates
@@ -445,7 +447,9 @@ public class MultiSuggester extends Suggester {
       }
     }
     // refresh after each field so the counts will accumulate across fields?
-    ais.refresh();
+    if (updated) {
+      ais.refresh();
+    }
   }
 
   public void close() throws IOException {

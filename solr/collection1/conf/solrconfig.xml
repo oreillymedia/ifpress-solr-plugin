@@ -286,24 +286,22 @@
          If the updateLog is enabled, then it's highly recommended to
          have some sort of hard autoCommit to limit the log size.
       -->
-    <!--
+      <!--  very short interval for testing ONLY! -->
      <autoCommit> 
-       <maxTime>15000</maxTime> 
+       <maxTime>250</maxTime> 
        <openSearcher>false</openSearcher> 
      </autoCommit>
-     -->
 
     <!-- softAutoCommit is like autoCommit except it causes a
          'soft' commit which only ensures that changes are visible
          but does not ensure that data is synced to disk.  This is
          faster and more near-realtime friendly than a hard commit.
       -->
-     <!--
-       <autoSoftCommit> 
-         <maxTime>1000</maxTime> 
-       </autoSoftCommit>
+      <!-- 
+     <autoSoftCommit> 
+       <maxTime>250</maxTime> 
+     </autoSoftCommit>
       -->
-
     <!-- Update Related Event Listeners
          
          Various IndexWriter related events can trigger Listeners to
@@ -312,29 +310,11 @@
          postCommit - fired after every commit or optimize command
          postOptimize - fired after every optimize command
       -->
-    <!-- The RunExecutableListener executes an external command from a
-         hook such as postCommit or postOptimize.
-         
-         exe - the name of the executable to run
-         dir - dir to use as the current working directory. (default=".")
-         wait - the calling thread waits until the executable returns. 
-                (default="true")
-         args - the arguments to pass to the program.  (default is none)
-         env - environment variables to set.  (default is none)
-      -->
-    <!-- This example shows how RunExecutableListener could be used
-         with the script based replication...
-         http://wiki.apache.org/solr/CollectionDistribution
-      -->
-    <!--
-       <listener event="postCommit" class="solr.RunExecutableListener">
-         <str name="exe">solr/bin/snapshooter</str>
-         <str name="dir">.</str>
-         <bool name="wait">true</bool>
-         <arr name="args"> <str>arg1</str> <str>arg2</str> </arr>
-         <arr name="env"> <str>MYVAR=val1</str> </arr>
-       </listener>
-      -->
+     <!-- 
+     <listener event="postCommit" class="com.ifactory.press.db.solr.processor.MultiSuggesterCommitListener">
+        <str name="suggester-component">suggest-component</str>
+     </listener>
+    -->
   </updateHandler>
   
   <!-- IndexReaderFactory
@@ -1092,6 +1072,24 @@
         </lst>
       </lst>
     </lst>
+    
+    <lst name="spellchecker">
+      <str name="name">suggest-infix-title</str>
+      <lst name="fields">
+        <lst name="field">
+          <str name="name">title_t</str>
+          <str name="analyzerFieldType">string</str>
+          <float name="weight">2.0</float>
+        </lst>
+      </lst>
+      <str name="classname">com.ifactory.press.db.solr.spelling.suggest.MultiSuggester</str>
+      <str name="lookupImpl">com.ifactory.press.db.solr.spelling.suggest.SafeInfixLookupFactory</str>
+      <str name="indexPath">${solr.core.instanceDir}/${solr.core.dataDir}/suggest-title</str>
+      <str name="suggestAnalyzerFieldType">text</str>
+      <float name="threshold">0.0</float>
+      <str name="buildOnCommit">false</str>
+    </lst>
+
 
   </searchComponent>
 
@@ -1105,6 +1103,17 @@
       <str name="spellcheck.count">10</str>
       <!-- include a query incorporating the suggested term? -->
       <!-- <str name="spellcheck.collate">true</str> -->
+    </lst>
+    <arr name="components">
+      <str>suggest-component</str>
+    </arr>
+  </requestHandler>
+
+  <requestHandler name="/suggest/title" class="solr.SearchHandler" startup="lazy">
+    <lst name="defaults">
+      <str name="spellcheck">true</str>
+      <str name="spellcheck.dictionary">suggest-infix-title</str>
+      <str name="spellcheck.count">10</str>
     </lst>
     <arr name="components">
       <str>suggest-component</str>

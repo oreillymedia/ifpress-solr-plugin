@@ -9,7 +9,7 @@
     <dependency>
       <groupId>org.apache.solr</groupId>
       <artifactId>solr-core</artifactId>
-      <version>4.10.1</version>
+      <version>4.10.2</version>
       <exclusions>
         <exclusion>
           <artifactId>wstx-asl</artifactId>
@@ -77,6 +77,25 @@
           <source>1.6</source>
           <target>1.6</target>
           <encoding>UTF-8</encoding>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-clean-plugin</artifactId>
+        <version>2.6</version>
+        <configuration>
+          <filesets>
+            <fileset>
+              <directory>solr</directory>
+              <includes>
+                <include>*/data/index/*</include>
+                <include>*/data/tlog/*</include>
+                <include>*/conf/_rest_managed.json</include>
+                <include>collection1/suggestIndex/*</include>
+                <include>heron/data/suggest-*/*</include>
+              </includes>
+            </fileset>
+          </filesets>
         </configuration>
       </plugin>
       <plugin>
