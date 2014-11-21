@@ -50,12 +50,14 @@ import com.ifactory.press.db.solr.analysis.SafariAnalyzer;
 
 public class PostingsHighlighterTest {
   
+  private static final Version VERSION = Version.LATEST;
+
   private IndexWriter iw;
   
   @Before
   public void startup() throws IOException {
     RAMDirectory dir = new RAMDirectory();
-    IndexWriterConfig iwc = new IndexWriterConfig(Version.LUCENE_48, new SafariAnalyzer(true));
+    IndexWriterConfig iwc = new IndexWriterConfig(VERSION, new SafariAnalyzer(true));
     iw = new IndexWriter(dir, iwc);
   }
   
@@ -95,5 +97,5 @@ public class PostingsHighlighterTest {
     assertNotNull ("PH returns null highlight", highlights[0]);
     assertTrue (highlights[0] + " \n does not contain <b>gas</b>", highlights[0].contains("<b>gas</b>"));
   }
-  
+
 }

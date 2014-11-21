@@ -2,20 +2,20 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>ifpress</groupId>
   <artifactId>ifpress-solr-plugin</artifactId>
-  <version>1.3.2-SNAPSHOT</version>
+  <version>1.3.2</version>
   <name>ifpress solr plugin</name>
   <description>Contains plugins to be installed in the solr server</description>
   <dependencies>
     <dependency>
       <groupId>org.apache.lucene</groupId>
       <artifactId>lucene-test-framework</artifactId>
-      <version>4.10.1</version>
+      <version>4.10.2</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.solr</groupId>
       <artifactId>solr-core</artifactId>
-      <version>4.10.1</version>
+      <version>4.10.2</version>
       <exclusions>
         <exclusion>
           <artifactId>wstx-asl</artifactId>
@@ -82,6 +82,25 @@
           <source>1.6</source>
           <target>1.6</target>
           <encoding>UTF-8</encoding>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-clean-plugin</artifactId>
+        <version>2.6</version>
+        <configuration>
+          <filesets>
+            <fileset>
+              <directory>solr</directory>
+              <includes>
+                <include>*/data/index/*</include>
+                <include>*/data/tlog/*</include>
+                <include>*/conf/_rest_managed.json</include>
+                <include>collection1/suggestIndex/*</include>
+                <include>heron/data/suggest-*/*</include>
+              </includes>
+            </fileset>
+          </filesets>
         </configuration>
       </plugin>
       <plugin>
