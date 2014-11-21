@@ -46,16 +46,16 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.ifactory.press.db.solr.analysis.SafariAnalyzer;
+
 public class PostingsHighlighterTest {
   
-  private static final Version VERSION = Version.LUCENE_48;
-
   private IndexWriter iw;
   
   @Before
   public void startup() throws IOException {
     RAMDirectory dir = new RAMDirectory();
-    IndexWriterConfig iwc = new IndexWriterConfig(VERSION, new SafariAnalyzer(true));
+    IndexWriterConfig iwc = new IndexWriterConfig(Version.LUCENE_48, new SafariAnalyzer(true));
     iw = new IndexWriter(dir, iwc);
   }
   
@@ -96,62 +96,4 @@ public class PostingsHighlighterTest {
     assertTrue (highlights[0] + " \n does not contain <b>gas</b>", highlights[0].contains("<b>gas</b>"));
   }
   
-  class SynonymAnalyzer extends Analyzer {
-
-    @Override
-    protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
-      Tokenizer tokenizer = new WhitespaceTokenizer(VERSION, reader);
-      TokenFilter filter = new LowerCaseFilter(VERSION, tokenizer);
-      return new TokenStreamComponents(tokenizer, filter);
-    }
-  }
-  
-  class SafariAnalyzer extends Analyzer {
-    
-    private final boolean isIndexAnalyzer;
-    
-    public SafariAnalyzer(boolean isIndexAnalyzer) {
-      this.isIndexAnalyzer = isIndexAnalyzer;
-    }
-
-    @Override
-    protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
-      CharFilter charFilter = new HTMLStripCharFilter(reader);
-      Pattern pat1 = Pattern.compile("([A-Za-z])\\+\\+");
-      charFilter = new PatternReplaceCharFilter(pat1, "$1plusplus", charFilter);
-      charFilter = new PatternReplaceCharFilter(Pattern.compile("([A-Za-z])\\#"), "$1sharp", charFilter);
-      Tokenizer tokenizer = new WhitespaceTokenizer(VERSION, charFilter);
-      // TODO protwords.txt
-      TokenFilter filter = new WordDelimiterFilter(VERSION, tokenizer, 
-          GENERATE_WORD_PARTS |
-          GENERATE_NUMBER_PARTS |
-          SPLIT_ON_CASE_CHANGE |
-          SPLIT_ON_NUMERICS |
-          STEM_ENGLISH_POSSESSIVE|
-          PRESERVE_ORIGINAL, 
-          null);
-      filter = new LowerCaseFilter(VERSION, filter);
-      if (isIndexAnalyzer) {
-        filter = new SynonymFilter(filter, buildSynonymMap(), true);
-      }
-      // TODO: HunspellStemFilter
-      filter = new RemoveDuplicatesTokenFilter(filter);
-      return new TokenStreamComponents(tokenizer, filter);
-    }
-
-    
-    private SynonymMap buildSynonymMap() {
-      SolrSynonymParser parser = new SolrSynonymParser(true, true, new SynonymAnalyzer());
-      try {
-        parser.parse(new InputStreamReader (getClass().getResourceAsStream("synonyms.txt")));
-        return parser.build();
-      } catch (ParseException e) {
-        throw new RuntimeException ("failed to parse synonyms", e);
-      } catch (IOException e) {
-        throw new RuntimeException ("failed to read synonyms", e);
-      }
-    }
-    
-  }
-
 }
