@@ -1,29 +1,11 @@
 package com.ifactory.press.db.solr.highlight;
 
 import static org.junit.Assert.*;
-import static org.apache.lucene.analysis.miscellaneous.WordDelimiterFilter.*;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.text.ParseException;
-import java.util.regex.Pattern;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.CharFilter;
-import org.apache.lucene.analysis.TokenFilter;
-import org.apache.lucene.analysis.Tokenizer;
-import org.apache.lucene.analysis.charfilter.HTMLStripCharFilter;
-import org.apache.lucene.analysis.core.LowerCaseFilter;
-import org.apache.lucene.analysis.core.WhitespaceTokenizer;
-import org.apache.lucene.analysis.miscellaneous.RemoveDuplicatesTokenFilter;
-import org.apache.lucene.analysis.miscellaneous.WordDelimiterFilter;
-import org.apache.lucene.analysis.pattern.PatternReplaceCharFilter;
-import org.apache.lucene.analysis.synonym.SolrSynonymParser;
-import org.apache.lucene.analysis.synonym.SynonymFilter;
-import org.apache.lucene.analysis.synonym.SynonymMap;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.Field.Store;
