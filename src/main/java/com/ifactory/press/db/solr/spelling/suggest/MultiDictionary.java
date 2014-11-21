@@ -12,6 +12,7 @@ import org.apache.lucene.search.spell.Dictionary;
 import org.apache.lucene.search.spell.HighFrequencyDictionary;
 import org.apache.lucene.search.suggest.InputIterator;
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.BytesRefBuilder;
 
 import com.ifactory.press.db.solr.spelling.suggest.SafariInfixSuggester.Context;
 
@@ -26,11 +27,8 @@ public class MultiDictionary implements Dictionary {
 
   private final List<WeightedDictionary> dicts;
   
-  private final int maxTermLength;
-
-  public MultiDictionary(int maxTermLength) {
+  public MultiDictionary() {
     dicts = new ArrayList<WeightedDictionary>();
-    this.maxTermLength = maxTermLength;
   }
 
   public void addDictionary(Dictionary dict, long minWeight, long maxWeight, float weight) {
@@ -87,12 +85,12 @@ public class MultiDictionary implements Dictionary {
     private int cur;
     private WeightedDictionary curDict;
     private InputIterator curInput;
-    private BytesRef scratch; // TODO: move to BytesRefBuilder as we upgrade
+    private BytesRefBuilder scratch;
     private Set<BytesRef> contexts;
 
     public MultiInputIterator() throws IOException {
       cur = -1;
-      scratch = new BytesRef(maxTermLength);
+      scratch = new BytesRefBuilder();
       nextDict();
     }
 
@@ -147,7 +145,7 @@ public class MultiDictionary implements Dictionary {
         return nextTerm;
       }
       scratch.copyChars(s);
-      return scratch;
+      return scratch.get();
     }
 
     @Override
