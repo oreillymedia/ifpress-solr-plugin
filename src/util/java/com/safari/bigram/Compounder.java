@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 
-import org.apache.log4j.Logger;
+//import org.apache.log4j.Logger;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper;
 import org.apache.lucene.analysis.shingle.ShingleFilter;
@@ -50,7 +50,7 @@ public class Compounder {
   private static final BytesRefBuilder buffer = new BytesRefBuilder ();
   private TermsEnum termsEnum;
 
-  static Logger log = Logger.getLogger(Compounder.class);
+  // static Logger log = Logger.getLogger(Compounder.class);
   
   public static void main (String[] argv) throws IOException {
     //System.out.println ("working directory=" + System.getProperty("user.dir"));
@@ -108,7 +108,8 @@ public class Compounder {
     for (String hl : highlights) {
       if (hl != null) {
         // System.out.println ("  " + hl.replace('\n', ' '));
-        match = hl.substring(hl.indexOf("<b>") + 3, hl.indexOf("</b>"));
+        int ihl = hl.indexOf("<b>") + 3;
+        match = hl.substring(ihl, hl.indexOf("</b>", ihl));
       }
     }
     if (match == null) {
@@ -132,14 +133,29 @@ public class Compounder {
     IndexWriterConfig conf = new IndexWriterConfig(Version.LATEST, analyzer);
     conf.setOpenMode(OpenMode.CREATE);
     IndexWriter writer = new IndexWriter(dir, conf);
+    try {
+      int count = retrieveAndWriteDocs(writer);
+      System.out.println (String.format("%d documents indexed", count));
+    } finally {
+      analyzer.close();
+      writer.close();
+      dir.close();
+    }
+  }
+  
+  public int retrieveAndWriteDocs (IndexWriter writer) throws IOException {
+    int count = 0;
     FieldType offsetsTextType = new FieldType(TextField.TYPE_STORED);
     offsetsTextType.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS);
     offsetsTextType.freeze();
-    int count = 0;
-    //SafariDocRetriever docs = new SafariDocRetriever("http://hull:8983/solr/heron1", "django_ct:nest.epubarchive", "id", "text");
-    SafariDocRetriever docs = new SafariDocRetriever("http://hull:8983/solr/heron1", "django_ct:(nest.epubarchive nest.htmlfile)", "id", "text");
+    SafariDocRetriever docs = new SafariDocRetriever("http://hull:8983/solr/heron1", "django_ct:nest.epubarchive", "id", "text");
+    //SafariDocRetriever docs = new SafariDocRetriever("http://hull:8983/solr/heron1", "django_ct:(nest.epubarchive nest.htmlfile)", "id", "text");
+    //SafariDocRetriever docs = new SafariDocRetriever("http://solr-01.sfo.safariflow.com/solr/collection1", "django_ct:(nest.epubarchive nest.htmlfile)", "id", "text");
     for (String text : docs) {
-      // TODO: don't need to store the text field value
+      if (text == null) {
+        // should only occur at the end, as the threads are shutting down
+        continue;
+      }
       Document doc = new Document();
       doc.add(new TextField(TEXT_FIELD_NAME, text, Store.NO));
       Field compoundField = new Field(COMPOUND_FIELD_NAME, text, offsetsTextType);
@@ -148,10 +164,7 @@ public class Compounder {
       writer.addDocument(doc);
       ++count;
     }
-    System.out.println (String.format("%d documents indexed", count));
-    analyzer.close();
-    writer.close();
-    dir.close();
+    return count;
   }
   
   private Analyzer getAnalyzer () {
