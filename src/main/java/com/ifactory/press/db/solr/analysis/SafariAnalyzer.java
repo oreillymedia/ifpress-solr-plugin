@@ -14,13 +14,11 @@ import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.CharFilter;
 import org.apache.lucene.analysis.TokenFilter;
 import org.apache.lucene.analysis.Tokenizer;
-import org.apache.lucene.analysis.charfilter.HTMLStripCharFilter;
 import org.apache.lucene.analysis.core.LowerCaseFilter;
 import org.apache.lucene.analysis.core.WhitespaceTokenizer;
-import org.apache.lucene.analysis.miscellaneous.RemoveDuplicatesTokenFilter;
+import org.apache.lucene.analysis.miscellaneous.ASCIIFoldingFilter;
 import org.apache.lucene.analysis.miscellaneous.WordDelimiterFilter;
 import org.apache.lucene.analysis.pattern.PatternReplaceCharFilter;
-import org.apache.lucene.analysis.pattern.PatternReplaceFilter;
 import org.apache.lucene.analysis.synonym.SolrSynonymParser;
 import org.apache.lucene.analysis.synonym.SynonymFilter;
 import org.apache.lucene.analysis.synonym.SynonymMap;
@@ -38,27 +36,24 @@ public class SafariAnalyzer extends Analyzer {
 
   @Override
   protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
-    CharFilter charFilter = new HTMLStripCharFilter(reader);
-    Pattern pat1 = Pattern.compile("([A-Za-z])\\+\\+");
-    charFilter = new PatternReplaceCharFilter(pat1, "$1plusplus", charFilter);
+    CharFilter charFilter = new PatternReplaceCharFilter(Pattern.compile("([A-Za-z])\\+\\+"), "$1plusplus", reader);
     charFilter = new PatternReplaceCharFilter(Pattern.compile("([A-Za-z])\\#"), "$1sharp", charFilter);
     Tokenizer tokenizer = new WhitespaceTokenizer(charFilter);
     // TODO protwords.txt
-    int wdfOptions =GENERATE_WORD_PARTS |
+    int wdfOptions = GENERATE_WORD_PARTS |
         GENERATE_NUMBER_PARTS |
         SPLIT_ON_CASE_CHANGE |
         SPLIT_ON_NUMERICS |
-        STEM_ENGLISH_POSSESSIVE|
-        PRESERVE_ORIGINAL;
+        STEM_ENGLISH_POSSESSIVE;
     if (tokensOverlap) {
-      wdfOptions |= PRESERVE_ORIGINAL;
+      wdfOptions |= CATENATE_WORDS | CATENATE_NUMBERS;
     }
     TokenFilter filter = new WordDelimiterFilter(tokenizer, wdfOptions, null);
     filter = new LowerCaseFilter(filter);
-    filter = new PatternReplaceFilter(filter, Pattern.compile("\\P{Alnum}+"), "", true);
+    filter = new ASCIIFoldingFilter(filter);
+    //filter = new PatternReplaceFilter(filter, Pattern.compile("\\P{Alnum}+"), "", true);
     if (tokensOverlap) {
       filter = new SynonymFilter(filter, buildSynonymMap(), true);
-      filter = new RemoveDuplicatesTokenFilter(filter);
     }
     // TODO: HunspellStemFilter
     return new TokenStreamComponents(tokenizer, filter);

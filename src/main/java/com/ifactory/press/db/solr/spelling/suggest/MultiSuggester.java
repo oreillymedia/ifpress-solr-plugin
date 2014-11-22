@@ -131,7 +131,7 @@ import com.google.common.collect.Multimaps;
  * recommended to rebuild the index periodically. If the index is large and
  * growing relatively slowly, this effect will be very small, though.
  */
-@SuppressWarnings("rawtypes")
+@SuppressWarnings({ "rawtypes", "deprecation" })
 public class MultiSuggester extends Suggester {
 
   public static final int DEFAULT_MAX_SUGGESTION_LENGTH = 80;
