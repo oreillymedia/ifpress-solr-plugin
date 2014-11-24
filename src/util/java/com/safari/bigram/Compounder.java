@@ -70,16 +70,14 @@ public class Compounder {
     BytesRef bytes = matcher.next(); 
     ArrayList<Compound> compounds = new ArrayList<Compound>();
     while (bytes != null) {
-      Gram bigram = new Gram (bytes.utf8ToString(), matcher.docFreq2(), matcher.totalTermFreq2());
       Gram joined = new Gram (bytes.utf8ToString(), matcher.docFreq1(), matcher.totalTermFreq1());
+      Gram bigram = new Gram (bytes.utf8ToString(), matcher.docFreq2(), matcher.totalTermFreq2());
       Compound compound = decompound(searcher, bytes, bigram, joined);
       if (compound != null) {
         compounds.add(compound);
       }
       bytes = matcher.next(); 
     }
-    // for some reason the PriorityQueue doesn't actually maintain the ordering correctly???
-    // is there something wrong with Compound's implementation of Comparable?
     Compound[] c = compounds.toArray(new Compound[0]);
     Arrays.sort(c);
     for (Compound compound : c) {
@@ -148,8 +146,8 @@ public class Compounder {
     FieldType offsetsTextType = new FieldType(TextField.TYPE_STORED);
     offsetsTextType.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS);
     offsetsTextType.freeze();
-    SafariDocRetriever docs = new SafariDocRetriever("http://hull:8983/solr/heron1", "django_ct:nest.epubarchive", "id", "text");
-    //SafariDocRetriever docs = new SafariDocRetriever("http://hull:8983/solr/heron1", "django_ct:(nest.epubarchive nest.htmlfile)", "id", "text");
+    //SafariDocRetriever docs = new SafariDocRetriever("http://hull:8983/solr/heron1", "django_ct:nest.epubarchive", "id", "text");
+    SafariDocRetriever docs = new SafariDocRetriever("http://hull:8983/solr/heron1", "django_ct:(nest.epubarchive nest.htmlfile)", "id", "text");
     //SafariDocRetriever docs = new SafariDocRetriever("http://solr-01.sfo.safariflow.com/solr/collection1", "django_ct:(nest.epubarchive nest.htmlfile)", "id", "text");
     for (String text : docs) {
       if (text == null) {
@@ -259,6 +257,8 @@ public class Compounder {
       this.g2 = g2;
       this.bigram = bigram;
       this.compound = compound;
+      assert bigram.freq <= g1.freq;
+      assert bigram.freq <= g2.freq;
     }
     
     double score () {
