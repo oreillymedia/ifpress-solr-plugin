@@ -55,8 +55,12 @@ public class MultiSuggesterTest extends SolrTest {
   public void testAutocommit() throws Exception {
     rebuildSuggester();
     assertNoSuggestions();
-    insertTestDocuments(TITLE_VALUE_FIELD, 10, false);
-    Thread.sleep (1000); // wait for autocommit
+    int numDocs = 10;
+    insertTestDocuments(TITLE_VALUE_FIELD, numDocs, false);
+    Thread.sleep (500); // wait for autocommit
+    //solr.commit();
+    long numFound = solr.query(new SolrQuery("*:*")).getResults().getNumFound();
+    assertEquals (numDocs, numFound);
     assertSuggestions();
     assertSuggestionCount("a1", 1, "title");
   }
@@ -126,11 +130,12 @@ public class MultiSuggesterTest extends SolrTest {
   
   private void assertSuggestions() throws SolrServerException {
     Suggestion suggestion = assertSuggestionCount("t", 8, "all");   
-    // TITLE occurs once in a high-weighted field; t0, etc each occur twice, their/time occur once
+    // TITLE occurs once in a high-weighted field; t1-t4, etc each occur twice, t5 once, their/time occur once
     // 'the' and 'to' occur too many times and get excluded
     assertEquals (TITLE, suggestion.getAlternatives().get(0));
     for (int i = 1; i <=5; i++) {
-      assertTrue (suggestion.getAlternatives().get(i).matches("t[0-4]"));
+      String sugg = suggestion.getAlternatives().get(i);
+      assertTrue (sugg + " does not match t[1-5]", sugg.matches("t[1-5]"));
     }
     assertTrue (suggestion.getAlternatives().get(6).matches("their|time"));
     assertTrue (suggestion.getAlternatives().get(7).matches("their|time"));
@@ -152,7 +157,7 @@ public class MultiSuggesterTest extends SolrTest {
     doc.addField(titleField, TITLE);
     doc.addField(TEXT_FIELD, TEXT);
     solr.add(doc);
-    for (int i = 1; i < numDocs; i++) {
+    for (int i = 2; i <= numDocs; i++) {
       doc = new SolrInputDocument();
       doc.addField("uri", "/doc/" + i);
       doc.addField(titleField, String.format("a%d document ", i));

@@ -297,11 +297,10 @@
          but does not ensure that data is synced to disk.  This is
          faster and more near-realtime friendly than a hard commit.
       -->
-      <!-- 
      <autoSoftCommit> 
        <maxTime>250</maxTime> 
      </autoSoftCommit>
-      -->
+
     <!-- Update Related Event Listeners
          
          Various IndexWriter related events can trigger Listeners to
