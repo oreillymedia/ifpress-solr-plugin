@@ -46,7 +46,9 @@ public class MultiSuggesterProcessorFactory extends UpdateRequestProcessorFactor
     @Override
     public void inform(SolrCore core) {
         
-      core.getUpdateHandler().registerCommitCallback(new MultiSuggesterCommitListener(core, suggesters));
+      MultiSuggesterCommitListener listener = new MultiSuggesterCommitListener(core, suggesters);
+      core.getUpdateHandler().registerCommitCallback(listener);
+      core.getUpdateHandler().registerSoftCommitCallback(listener);
       
       SpellCheckComponent suggesterComponent = (SpellCheckComponent) core.getSearchComponent(suggesterComponentName);
       if (suggesterComponent == null) {
