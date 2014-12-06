@@ -392,10 +392,11 @@ public class MultiSuggester extends Suggester {
   }
 
   private void incPending(WeightedField fld, String suggestion) {
-    if (fld.pending.containsKey(suggestion)) {
-      fld.pending.put(suggestion, fld.pending.get(suggestion) + 1);
+    ConcurrentHashMap<String, Integer> pending = fld.pending;
+    if (pending.containsKey(suggestion)) {
+      pending.put(suggestion, pending.get(suggestion) + 1);
     } else {
-      fld.pending.put(suggestion, 1);
+      pending.put(suggestion, 1);
     }
   }
 
