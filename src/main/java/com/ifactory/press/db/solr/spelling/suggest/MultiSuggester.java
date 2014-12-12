@@ -249,7 +249,7 @@ public class MultiSuggester extends Suggester {
         buildFromStoredField(fld, searcher);
       } else {
         // TODO: refactor b/c we're not really using the MultiDictionary's multiple dictionary capability any more
-        dictionary = new MultiDictionary(maxSuggestionLength);
+        dictionary = new MultiDictionary();
         buildFromTerms(fld);
         ais.add(dictionary);
         ais.refresh();
@@ -523,8 +523,8 @@ public class MultiSuggester extends Suggester {
   public SpellingResult getSuggestions(SpellingOptions options) throws IOException {
     SpellingResult result = super.getSuggestions(options);
     if (options.extendedResults) {
-      for (Map.Entry<Token, LinkedHashMap<String, Integer>> suggestion : result.getSuggestions().entrySet()) {
-        Token token = suggestion.getKey();
+      for (Map.Entry<?, LinkedHashMap<String, Integer>> suggestion : result.getSuggestions().entrySet()) {
+        Object token = suggestion.getKey();
         int freq = 0;
         for (Map.Entry<String, Integer> e : suggestion.getValue().entrySet()) {
           if (e.getKey().equals(token.toString())) {
@@ -532,7 +532,7 @@ public class MultiSuggester extends Suggester {
             break;
           }
         }
-        result.addFrequency(token, freq);
+        result.addFrequency((Token) token, freq);
       }
     }
     return result;

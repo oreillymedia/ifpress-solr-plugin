@@ -273,7 +273,7 @@ public class MultiSuggesterTest extends SolrTest {
 
   @Test
   public void testEmptyDictionary() throws Exception {
-    MultiDictionary dict = new MultiDictionary(10);
+    MultiDictionary dict = new MultiDictionary();
     WhitespaceAnalyzer analyzer = new WhitespaceAnalyzer();
     Directory dir = new RAMDirectory();
     SafariInfixSuggester s = new SafariInfixSuggester(Version.LATEST, dir, analyzer, analyzer, 1, true);
