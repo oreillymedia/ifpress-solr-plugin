@@ -31,7 +31,7 @@ public class SolrTest {
 
     @AfterClass
     public static void shutdown() throws Exception {
-        SolrCore core = coreContainer.getCore("collection1");
+        SolrCore core = getDefaultCore();
         if (core != null) {
             core.close();
         }
@@ -47,6 +47,10 @@ public class SolrTest {
     protected void clearIndex () throws SolrServerException, IOException {
         solr.deleteByQuery("*:*");
         solr.commit(false, true, true);
+    }
+    
+    protected static SolrCore getDefaultCore() {
+      return coreContainer.getCore("collection1");
     }
 
     @After
