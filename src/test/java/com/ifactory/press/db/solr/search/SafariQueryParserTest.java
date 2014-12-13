@@ -85,12 +85,15 @@ public class SafariQueryParserTest extends SolrTest {
     params.add("qf", A_T);
     params.add(SafariQueryParser.PQF, phraseFields);
     SolrCore core = getDefaultCore();
-    SolrQueryRequest req = new LocalSolrQueryRequest(core, localParams);
+    try {
+      SolrQueryRequest req = new LocalSolrQueryRequest(core, localParams);
     
-    SafariQueryParser parser = new SafariQueryParser(query, localParams, params, req);
-    Query parsed = parser.parse();
-
-    assertEquals (expected, parsed);
+      SafariQueryParser parser = new SafariQueryParser(query, localParams, params, req);
+      Query parsed = parser.parse();
+      assertEquals (expected, parsed);
+    } finally {
+      core.close();
+    }
   }
   
 }

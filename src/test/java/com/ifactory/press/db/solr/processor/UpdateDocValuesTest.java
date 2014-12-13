@@ -16,7 +16,9 @@
 
 package com.ifactory.press.db.solr.processor;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrQuery.ORDER;
@@ -26,7 +28,6 @@ import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocumentList;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.SolrInputDocument;
-import org.apache.solr.core.CoreContainer;
 import org.junit.Test;
 
 import com.ifactory.press.db.solr.SolrTest;
@@ -38,7 +39,6 @@ public class UpdateDocValuesTest extends SolrTest {
     private static final String URI = "uri";
     private static final String WEIGHT_DV = "weight_dv";
     private static final String TEXT_FIELD = "text_mt";
-    static CoreContainer coreContainer;
     
     @Test 
     public void testBenchDocValues() throws Exception {

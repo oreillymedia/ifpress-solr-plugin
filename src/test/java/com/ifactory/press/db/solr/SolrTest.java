@@ -16,17 +16,17 @@ import org.junit.BeforeClass;
 
 public class SolrTest {
 
-    static CoreContainer coreContainer;
-    protected SolrServer solr;
+  static CoreContainer coreContainer;
+  protected SolrServer solr;
 
     @BeforeClass
     public static void startup() throws Exception {
-        try {
-            FileUtils.cleanDirectory(new File("solr/collection1/data/"));
-        } catch (Exception e) { }
-        // start an embedded solr instance
-        coreContainer = new CoreContainer("solr");
-        coreContainer.load();
+      FileUtils.cleanDirectory(new File("solr/collection1/data/"));
+      FileUtils.cleanDirectory(new File("solr/collection1/suggestIndex/"));
+      FileUtils.cleanDirectory(new File("solr/heron/data/"));
+      // start an embedded solr instance
+      coreContainer = new CoreContainer("solr");
+      coreContainer.load();
     }
 
     @AfterClass
@@ -36,6 +36,10 @@ public class SolrTest {
             core.close();
         }
         coreContainer.shutdown();
+        FileUtils.cleanDirectory(new File("solr/collection1/data/"));
+        FileUtils.cleanDirectory(new File("solr/collection1/suggestIndex/"));
+        FileUtils.cleanDirectory(new File("solr/heron/data/"));
+        coreContainer = null;
     }
 
     @Before
@@ -46,7 +50,7 @@ public class SolrTest {
     
     protected void clearIndex () throws SolrServerException, IOException {
         solr.deleteByQuery("*:*");
-        solr.commit(false, true, true);
+        solr.commit(true, true, false);
     }
     
     protected static SolrCore getDefaultCore() {
