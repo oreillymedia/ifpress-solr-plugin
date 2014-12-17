@@ -287,21 +287,21 @@
          have some sort of hard autoCommit to limit the log size.
       -->
       <!--  very short interval for testing ONLY! -->
+      <!-- 
      <autoCommit> 
-       <maxTime>250</maxTime> 
+       <maxTime>300</maxTime> 
        <openSearcher>false</openSearcher> 
      </autoCommit>
-
+      -->
     <!-- softAutoCommit is like autoCommit except it causes a
          'soft' commit which only ensures that changes are visible
          but does not ensure that data is synced to disk.  This is
          faster and more near-realtime friendly than a hard commit.
       -->
-      <!-- 
      <autoSoftCommit> 
        <maxTime>250</maxTime> 
      </autoSoftCommit>
-      -->
+
     <!-- Update Related Event Listeners
          
          Various IndexWriter related events can trigger Listeners to

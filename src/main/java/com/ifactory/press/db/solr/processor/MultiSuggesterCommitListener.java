@@ -12,6 +12,13 @@ import org.slf4j.LoggerFactory;
 
 import com.ifactory.press.db.solr.spelling.suggest.MultiSuggester;
 
+/**
+ * trigger commit to suggestion index when commit happens on main index.
+ * This is required, in addition to the commit handler in the UpdateRequestProcessor, 
+ * in order to handle autoCommit and autoSoftCommit.  Note: in testing we sometimes saw
+ * exceptions when autoCommit and autoSoftCommit happened on or about the same time;
+ * so we added the sync, but more testing is needed to ensure that really took care of the issue.
+ */
 public class MultiSuggesterCommitListener extends AbstractSolrEventListener {
 
   private final ArrayList<MultiSuggester> suggesters;
@@ -33,7 +40,11 @@ public class MultiSuggesterCommitListener extends AbstractSolrEventListener {
     doCommit();
   }
 
-  private void doCommit() {
+  // synchronized hoping to avoid issues from multiple asynchronous events
+  private synchronized void doCommit() {
+    if (getCore().isClosed()) {
+      return;
+    }
     RefCounted<SolrIndexSearcher> searcher = getCore().getSearcher();
     try {
       for (MultiSuggester suggester : suggesters) {

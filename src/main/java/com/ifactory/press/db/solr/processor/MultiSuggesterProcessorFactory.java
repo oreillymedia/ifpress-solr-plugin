@@ -26,8 +26,6 @@ public class MultiSuggesterProcessorFactory extends UpdateRequestProcessorFactor
     
     private final ArrayList<MultiSuggester> suggesters = new ArrayList<MultiSuggester>();
     
-    private SolrCore core;
-
     private static final Logger LOG = LoggerFactory.getLogger(MultiSuggesterProcessor.class);
     
     
@@ -42,15 +40,15 @@ public class MultiSuggesterProcessorFactory extends UpdateRequestProcessorFactor
     
     @Override
     public UpdateRequestProcessor getInstance(SolrQueryRequest req, SolrQueryResponse rsp, UpdateRequestProcessor next) {
-        MultiSuggesterProcessor multiSuggesterProcessor = new MultiSuggesterProcessor(suggesters, next);
-        core.getUpdateHandler().registerCommitCallback(new MultiSuggesterCommitListener(core, suggesters));
-        return multiSuggesterProcessor;
+      return new MultiSuggesterProcessor(suggesters, next);
     }
     
     @Override
     public void inform(SolrCore core) {
         
-      this.core = core;
+      MultiSuggesterCommitListener listener = new MultiSuggesterCommitListener(core, suggesters);
+      core.getUpdateHandler().registerCommitCallback(listener);
+      core.getUpdateHandler().registerSoftCommitCallback(listener);
       
       SpellCheckComponent suggesterComponent = (SpellCheckComponent) core.getSearchComponent(suggesterComponentName);
       if (suggesterComponent == null) {
