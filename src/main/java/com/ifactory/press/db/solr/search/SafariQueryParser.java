@@ -2,13 +2,13 @@ package com.ifactory.press.db.solr.search;
 
 import java.util.Map;
 
+import org.apache.lucene.search.Query;
 import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.request.SolrQueryRequest;
 import org.apache.solr.search.ExtendedDismaxQParser;
 import org.apache.solr.search.QParser;
 import org.apache.solr.search.SyntaxError;
 import org.apache.solr.util.SolrPluginUtils;
-import org.apache.lucene.search.Query;;
 
 /**
  * Adds to the edismax parser the ability to specify a distinct set of fields to be queries 
@@ -34,6 +34,7 @@ public class SafariQueryParser extends ExtendedDismaxQParser {
    * Creates a SafariSolrQueryParser, attaching any configured phrase fields as aliases for the 
    * fake default field over which all phrases range
    */
+  @Override
   protected SafariSolrQueryParser createEdismaxQueryParser(QParser qParser, String field) {
     SafariSolrQueryParser qp = new SafariSolrQueryParser(qParser, field);
     if (phraseFields != null && ! phraseFields.isEmpty()) {

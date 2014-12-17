@@ -1,7 +1,5 @@
 package com.ifactory.press.db.solr.search;
 
-import java.util.Map;
-
 import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.common.util.NamedList;
 import org.apache.solr.request.SolrQueryRequest;
