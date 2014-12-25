@@ -353,6 +353,9 @@
 
     <field name="_version_" type="long" indexed="true" stored="true" />
 
+    <!-- points to the root document of a block of nested documents. Required for nested document support, may be removed otherwise -->
+    <field name="_root_" type="string" indexed="true" stored="false"/>
+
     <!-- Uncommenting the following will create a "timestamp" field using a 
       default value of "NOW" to indicate when each document was indexed. -->
     <field name="timestamp" type="date" indexed="true" stored="true"

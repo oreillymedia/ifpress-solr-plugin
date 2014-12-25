@@ -16,9 +16,7 @@
 
 package com.ifactory.press.db.solr.processor;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrQuery.ORDER;
@@ -114,8 +112,22 @@ public class UpdateDocValuesTest extends SolrTest {
       assertEquals (uri(n), getFirstUri(query));
     }
 
+    private void assertDocValue(String uri, Integer dv) throws SolrServerException {
+      final SolrQuery query = new SolrQuery (String.format("%s:\"%s\"", URI, uri));
+      final String weightField = String.format("field(%s)", WEIGHT_DV);
+      query.setFields(URI, weightField);
+      QueryResponse resp = solr.query(query);
+      SolrDocumentList docs = resp.getResults();
+      Integer wt = (Integer) docs.get(0).getFirstValue(weightField);
+      assertEquals (dv, wt);
+    }
+
     private String uri(int n) {
       return "/doc:" + n + ":x";
+    }
+    
+    private String uriChild(int n, int k) {
+      return "/doc:" + n + ":x/" + k;
     }
     
     private void assertNoDocValues() throws SolrServerException {
@@ -147,15 +159,17 @@ public class UpdateDocValuesTest extends SolrTest {
       req.add(doc);
       req.setPath(UPDATE_DOCVALUES);
       req.setParam(UpdateDocValuesProcessor.UPDATEDV_KEY_FIELD, "id");
+      req.setParam(UpdateDocValuesProcessor.UPDATEDV_VALUE_FIELD, "x");
       // doc with no value for key
       try {
         solr.request(req);
         assertFalse ("expected exception not thrown", true);
       } catch (SolrException e) {
-        assertTrue (e.getMessage().contains("no value for updatedv.key.field"));
+        assertTrue (e.getMessage(), e.getMessage().contains("no value for updatedv.key.field"));
       }
 
       doc.addField("id", "id0");
+      req.setParam(UpdateDocValuesProcessor.UPDATEDV_VALUE_FIELD, null);
       // no UpdateDocValuesProcessor.UPDATEDV_VALUE_FIELD
       try {
         solr.request(req);
@@ -179,12 +193,54 @@ public class UpdateDocValuesTest extends SolrTest {
       // no error thrown
     }
     
-    private void insertTestDocuments (int n) throws Exception {
-      insertTestDocuments (n, false);
+    @Test
+    /** Child documents' values should be set when indexed */
+    public void testBlockIndex() throws Exception {
+      insertTestDocuments(1, 1, false);
+      
+      // no doc values yet
+      assertDocValue(uri(1), 0);
+      assertDocValue(uriChild(1, 1), null);
+
+      UpdateRequest req = updateDocValues();
+      SolrInputDocument doc = new SolrInputDocument();
+      doc.addField(URI, uri(1));
+      doc.addField(WEIGHT_DV, 3);
+      req.add(doc);
+      solr.request(req);
+      solr.commit(false, true, true);
+      
+      // child doc dv still not set
+      assertDocValue(uri(1), 3);
+      assertDocValue(uriChild(1, 1), null);
+      
+      SolrInputDocument child = new SolrInputDocument();
+      child.addField(URI, uriChild(1, 1));
+      child.addField(WEIGHT_DV, 7);
+      doc.addChildDocument(child);
+      solr.request(req);
+      solr.commit(false, true, true);
+
+      // child doc dv updated
+      assertDocValue(uri(1), 3);
+      assertDocValue(uriChild(1, 1), 7);
+      
+      // re-add docs, preserving existing docvalues:
+      insertTestDocuments(1, 1, true);
+      assertDocValue(uri(1), 3);
+      assertDocValue(uriChild(1, 1), 7);
       
     }
     
+    private void insertTestDocuments (int n) throws Exception {
+      insertTestDocuments (n, false);
+    }
+    
     private void insertTestDocuments (int n, boolean preserveDV) throws Exception {
+      insertTestDocuments(n, 0, preserveDV);
+    }
+    
+    private void insertTestDocuments (int n, int nkids, boolean preserveDV) throws Exception {
       UpdateRequest req = new UpdateRequest();
       req.setPath(UPDATE_DOCVALUES);
       if (preserveDV) {
@@ -198,6 +254,12 @@ public class UpdateDocValuesTest extends SolrTest {
         // it's not enough to just put it in the solr schema
         if (! preserveDV) {
           doc.addField(WEIGHT_DV, 0);
+        }
+        for (int j = 1; j <= nkids; j++) {
+          SolrInputDocument kid = new SolrInputDocument();
+          kid.addField(URI, uriChild(i, j));
+          kid.addField(TEXT_FIELD, "This is child document " + i + "/" + j);
+          doc.addChildDocument(kid);
         }
         req.add(doc);
       }
