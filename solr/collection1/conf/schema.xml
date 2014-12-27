@@ -316,38 +316,34 @@
       required="true" /> <field name="id" type="string" indexed="true" stored="true" 
       required="true" /> <field name="type" type="string" indexed="true" stored="true" 
       required="true" /> -->
-    <field name="uri" type="string" indexed="true" stored="true"
-      required="true" />
-      
-        <field name="catchall" type="keyword" indexed="true" stored="false" multiValued="true" />
-    
-        <field name="size_i" type="int" indexed="false" stored="true" />
+    <field name="uri" type="string" indexed="true" stored="true" required="true" />
+    <field name="catchall" type="keyword" indexed="true" stored="false" multiValued="true" />
+    <field name="size_i" type="int" indexed="false" stored="true" />
     <field name="directory_b" type="boolean" indexed="true" stored="true" />
     <field name="binary" type="binary" indexed="false" stored="true" />
     <field name="title_t" type="text" indexed="true" stored="true" />
 
     <!-- text content that is searched by default; we store it so solr can 
       do highlighting -->
-    <field name="fulltext_t" type="text" indexed="true" stored="true"
-      multiValued="true" />
+    <field name="fulltext_t" type="text" indexed="true" stored="true" multiValued="true" />
 
     <!-- unstemmed text content -->
-    <field name="fulltext_t_unstemmed" type="text_unstemmed"
-      indexed="true" stored="false" multiValued="true" />
+    <field name="fulltext_t_unstemmed" type="text_unstemmed" indexed="true" stored="false" multiValued="true" />
 
     <!-- also index full-text as case-sensitive -->
-    <field name="fulltext_t_case" type="text_case_sensitive"
-      indexed="true" stored="false" multiValued="true" />
+    <field name="fulltext_t_case" type="text_case_sensitive" indexed="true" stored="false" multiValued="true" />
 
     <!-- support for case-sensitive and unstemmed searches -->
     <copyField source="fulltext_t" dest="fulltext_t_case" />
     <copyField source="fulltext_t" dest="fulltext_t_unstemmed" />
-
-        <field name="keyword" type="keyword" indexed="true" stored="false" multiValued="true" />
+    
+    <!--  used in block query test -->
+    <field name="text_t" type="text" indexed="true" stored="true" omitNorms="true" />
+    
+    <field name="keyword" type="keyword" indexed="true" stored="false" multiValued="true" />
 
     <!-- whether the content is active / enabled for display -->
-    <field name="active" type="boolean" indexed="true" stored="false"
-      multiValued="false" />
+    <field name="active" type="boolean" indexed="true" stored="false" multiValued="false" />
 
     <field name="payloads" type="payloads" indexed="true" stored="true" />
 
@@ -379,12 +375,10 @@
       the first appearing in the schema will be used. -->
     <dynamicField name="*_i" type="int" indexed="true"
       stored="false" />
-    <dynamicField name="*_s" type="string" indexed="true"
-      stored="false" />
+    <dynamicField name="*_s" type="string" indexed="true" stored="true" />
     <dynamicField name="*_l" type="long" indexed="true"
       stored="false" />
-    <dynamicField name="*_t" type="text" indexed="true"
-      stored="false" />
+    <dynamicField name="*_t" type="text" indexed="true" stored="true" />
     <dynamicField name="*_tu" type="text_unstemmed" indexed="true"
       stored="false" />
     <dynamicField name="*_b" type="boolean" indexed="true"

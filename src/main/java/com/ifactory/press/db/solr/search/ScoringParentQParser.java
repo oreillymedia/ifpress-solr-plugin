@@ -17,14 +17,10 @@
 
 package com.ifactory.press.db.solr.search;
 
-import org.apache.lucene.search.CachingWrapperFilter;
-import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.Filter;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.QueryWrapperFilter;
 import org.apache.lucene.search.join.FixedBitSetCachingWrapperFilter;
-import org.apache.lucene.search.join.ScoreMode;
-import org.apache.lucene.search.join.ToParentBlockJoinQuery;
 import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.request.SolrQueryRequest;
 import org.apache.solr.search.QParser;
@@ -57,9 +53,9 @@ class ScoringParentQParser extends QParser {
     String queryText = localParams.get(QueryParsing.V);
     // there is no child query, return parent filter from cache
     if (queryText == null || queryText.length()==0) {
-                  SolrConstantScoreQuery wrapped = new SolrConstantScoreQuery(getFilter(parentQ));
-                  wrapped.setCache(false);
-                  return wrapped;
+      SolrConstantScoreQuery wrapped = new SolrConstantScoreQuery(getFilter(parentQ));
+      wrapped.setCache(false);
+      return wrapped;
     }
     QParser childrenParser = subQuery(queryText, null);
     Query childrenQuery = childrenParser.getQuery();
@@ -67,9 +63,10 @@ class ScoringParentQParser extends QParser {
   }
 
   protected Query createQuery(Query parentList, Query query) {
-    return new ToParentBlockJoinQuery(query, getFilter(parentList), ScoreMode.Max);
+    return new SafariBlockJoinQuery(query, getFilter(parentList));
   }
 
+  @SuppressWarnings({ "rawtypes", "unchecked" })
   protected Filter getFilter(Query parentList) {
     SolrCache parentCache = req.getSearcher().getCache(CACHE_NAME);
     // lazily retrieve from solr cache
