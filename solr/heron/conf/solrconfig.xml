@@ -809,6 +809,7 @@
       <str name="hl.tag.post"><![CDATA[</b>]]></str>
       <str name="hl.tag.ellipsis">... </str>
       <str name="hl.bs.type">WHOLE</str>
+      <str name="hl.encoder">html</str>
       <str name="f.text.hl.bs.type">SENTENCE</str>
       <str name="f.text.hl.snippets">3</str>
 
@@ -870,6 +871,7 @@
       <str name="hl.bs.type">WHOLE</str>
       <str name="f.text.hl.bs.type">SENTENCE</str>
       <str name="f.text.hl.snippets">3</str>
+      <str name="hl.encoder">html</str>
 
 <!--
           <str name="hl.usePhraseHighlighter">true</str>
@@ -1600,7 +1602,8 @@ unless you are sure you always want it.
     -->
   <searchComponent class="solr.HighlightComponent" name="highlight">
 
-    <highlighting class="org.apache.solr.highlight.PostingsSolrHighlighter" />
+    <!--  <highlighting class="org.apache.solr.highlight.PostingsSolrHighlighter" /> -->
+    <highlighting class="com.ifactory.press.db.solr.highlight.SafariSolrHighlighter" />
 
   </searchComponent>
 
