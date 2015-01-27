@@ -39,7 +39,12 @@ public class SolrPostingsHighlighterTest extends HeronSolrTest {
     assertEquals (1, results.getNumFound());
     assertNotNull ("PH returns null highlight", resp.getHighlighting());
     String snippet = resp.getHighlighting().get("ch5").get("text").get(0);
-    assertTrue (snippet + " \n does not contain <b class=\"highlight\">gas</b>", snippet.contains("<b class=\"highlight\">gas</b>"));
+    assertTrue (snippet + " \n does not contain <b class=\"highlight\">gas</b>", 
+        snippet.contains("<b class=\"highlight\">gas</b>"));
+    
+    // verify that < and & are encoded, but not spaces and other punctuation:
+    assertTrue ("snippet not encoded properly?\n\n" + snippet,
+        snippet.contains("Electric-Powered Vehicles:<b class=\"highlight\">gas</b> What Technologies &lt; &amp; by 2015?"));
   }
 
 }

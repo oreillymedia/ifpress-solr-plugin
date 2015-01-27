@@ -65,28 +65,26 @@
     <fieldType name="text_en" class="solr.TextField" positionIncrementGap="100">
       <analyzer type="index">
         <!-- We are indexing mostly HTML so we need to ignore the tags -->
-        <charFilter class="solr.HTMLStripCharFilterFactory"/>
         <charFilter class="solr.PatternReplaceCharFilterFactory" pattern="([A-Za-z])\+\+" replacement="$1plusplus" />
         <charFilter class="solr.PatternReplaceCharFilterFactory" pattern="([A-Za-z])\#" replacement="$1sharp" />
         <tokenizer class="solr.WhitespaceTokenizerFactory"/>
         <!-- protwords.txt must have both cases since LF comes after WDF -->
         <!-- preserveOriginal so it gets boosted -->
-        <filter class="solr.WordDelimiterFilterFactory" stemEnglishPossessive="1" protected="protwords.txt" preserveOriginal="1" />
+        <filter class="solr.WordDelimiterFilterFactory" stemEnglishPossessive="1" protected="protwords.txt" catenateWords="1" catenateNumbers="1" />
         <filter class="solr.LowerCaseFilterFactory"/>
+        <filter class="solr.ASCIIFoldingFilterFactory"/>
         <!-- This deals with contractions -->
         <filter class="solr.SynonymFilterFactory" synonyms="synonyms.txt" expand="true" ignoreCase="true"/>
         <filter class="solr.HunspellStemFilterFactory" dictionary="en_US.dic" affix="en_US.aff" ignoreCase="true"/>
-        <filter class="solr.RemoveDuplicatesTokenFilterFactory"/>
       </analyzer>
       <analyzer type="query">
-        <charFilter class="solr.HTMLStripCharFilterFactory"/>
         <charFilter class="solr.PatternReplaceCharFilterFactory" pattern="([A-Za-z])\+\+" replacement="$1plusplus" />
         <charFilter class="solr.PatternReplaceCharFilterFactory" pattern="([A-Za-z])\#" replacement="$1sharp" />
         <tokenizer class="solr.WhitespaceTokenizerFactory"/>
-        <filter class="solr.WordDelimiterFilterFactory" protected="protwords.txt" catenateAll="1" preserveOriginal="1" />
+        <filter class="solr.WordDelimiterFilterFactory" protected="protwords.txt" catenateAll="0" />
         <filter class="solr.LowerCaseFilterFactory"/>
+        <filter class="solr.ASCIIFoldingFilterFactory"/>
         <filter class="solr.HunspellStemFilterFactory" dictionary="en_US.dic" affix="en_US.aff" ignoreCase="true"/>
-        <filter class="solr.RemoveDuplicatesTokenFilterFactory"/>
       </analyzer>
     </fieldType>
 

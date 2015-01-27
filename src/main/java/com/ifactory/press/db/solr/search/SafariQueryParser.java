@@ -11,8 +11,8 @@ import org.apache.solr.search.SyntaxError;
 import org.apache.solr.util.SolrPluginUtils;
 
 /**
- * Adds to the edismax parser the ability to specify a distinct set of fields to be queries 
- * by user-specified phrases (query clauses wrapped in double quotes).
+ * Adds to the edismax parser the ability to specify a distinct set of fields to be used  
+ * as the target fields for user-specified phrases (query clauses wrapped in double quotes).
  */
 public class SafariQueryParser extends ExtendedDismaxQParser {
 

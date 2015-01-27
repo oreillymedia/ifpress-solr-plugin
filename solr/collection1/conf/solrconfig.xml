@@ -1369,10 +1369,7 @@
        used in either the "defType" param for the QueryComponent (used
        by SearchHandler) or in LocalParams
     -->
-  <!-- example of registering a query parser -->
-  <!--
-     <queryParser name="myparser" class="com.mycompany.MyQParserPlugin"/>
-    -->
+   <queryParser name="scoring_parent" class="com.ifactory.press.db.solr.search.ScoringParentQParserPlugin"/>
 
   <!-- Function Parsers
 
