@@ -807,12 +807,12 @@
       <int name="hl.fragsize">450</int>
       <str name="hl.tag.pre"><![CDATA[<b class="highlight">]]></str>
       <str name="hl.tag.post"><![CDATA[</b>]]></str>
-      <str name="hl.tag.ellipsis">... </str>
+      <str name="hl.tag.ellipsis">¦</str>
       <str name="hl.bs.type">WHOLE</str>
       <str name="hl.encoder">html</str>
       <str name="f.text.hl.bs.type">SENTENCE</str>
       <str name="f.text.hl.snippets">3</str>
-
+      <str name="hl.multiValuedSeparatorChar">¦</str>
       <!-- if no fpid supplied, use * -->
       <str name="fpid">*</str>
     </lst>

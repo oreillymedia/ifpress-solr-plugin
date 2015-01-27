@@ -1,6 +1,10 @@
 package com.ifactory.press.db.solr.highlight;
 
+import java.util.Arrays;
+import java.util.Comparator;
+
 import org.apache.lucene.search.postingshighlight.DefaultPassageFormatter;
+import org.apache.lucene.search.postingshighlight.Passage;
 
 public class HighlightFormatter extends DefaultPassageFormatter {
   
@@ -10,6 +14,20 @@ public class HighlightFormatter extends DefaultPassageFormatter {
 
   public HighlightFormatter(String preTag, String postTag, String ellipsis, boolean equals) {
     super (preTag, postTag, ellipsis, equals);
+  }
+  
+  /**
+   * Sort the passages by *score* not by offset.
+   */
+  @Override
+  public String format(Passage passages[], String content) {
+    Arrays.sort(passages, new Comparator<Passage>() {
+      @Override
+      public int compare(Passage p1, Passage p2) {
+        return (int) (1000.0 * (p2.getScore() - p1.getScore()));
+      }
+    });
+    return super.format(passages, content);
   }
 
   /** 
