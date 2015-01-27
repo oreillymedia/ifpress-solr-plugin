@@ -14,6 +14,15 @@ import org.junit.Test;
 import com.ifactory.press.db.solr.SolrTest;
 
 public class SafariBlockJointest extends SolrTest {
+  /*
+   * This test sets up 100 documents in groups of 10; each decade (0-9, 10-19, etc)
+   * has the same parent, which is the highest numbered doc in that group (the one ending with 9).
+   * 
+   * Then it creates texts based on the factors of the document number so we have a rich set of 
+   * multiply-occurring tokens to use for tests.
+   * 
+   * The Idea of the SafariBlockJoin is to return the highest-scoring member of each group.
+   */
   
   @Test
   public void testDocumentSetup () throws Exception {
@@ -41,7 +50,25 @@ public class SafariBlockJointest extends SolrTest {
     SolrDocument doc = solr.query(query).getResults().get(0);
     assertEquals ("/doc/14", doc.get("uri").toString());
   }
+  
+  @Test
+  public void testFilterQueryInteraction() throws Exception {
+    SolrQuery query = new SolrQuery("{!scoring_parent which=type_s:parent} text_t:M");
+    query.setFilterQueries("-text_t:A");
+    // no docs returned since 2(A) divides 14(M)
+    QueryResponse resp = solr.query(query);
+    assertEquals (0, resp.getResults().getNumFound());
 
+    // expect to get back docs 14, 28, 56, 70
+    // 42 and 84 are excluded because they have B (ids divisible by 3).
+    // 98 is excluded because the *parent* has a B (id = 99, divisible by 3)
+    query.setFilterQueries("-text_t:B");
+    resp = solr.query(query);
+    assertEquals (4, resp.getResults().getNumFound());
+    SolrDocument doc = solr.query(query).getResults().get(2);
+    assertEquals ("/doc/56", doc.get("uri").toString());
+  }
+  
   @Test
   public void testParentMatch () throws Exception {
     SolrQuery query = new SolrQuery("{!scoring_parent which=type_s:parent} text_t:R");
@@ -97,6 +124,7 @@ public class SafariBlockJointest extends SolrTest {
           doc.addField("uri", "/doc/" + docid);
           doc.addField("block_i", i);
           if (j == 9) {
+            // docs with ids having '9' as their ones digit are parents of preceding contiguous child docs
             doc.addField("type_s", "parent");
           } else {
             doc.addField("type_s", "child");

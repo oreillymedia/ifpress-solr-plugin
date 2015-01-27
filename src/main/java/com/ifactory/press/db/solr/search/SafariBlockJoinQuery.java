@@ -28,6 +28,10 @@ import org.apache.lucene.util.FixedBitSet;
  * allow for easy overriding), allowing the parent to be its own child, and 
  * returning the top-scoring child (or the parent, if it is top-scorer) as the representative of the
  * group formed by the join, rather than always returning the parent.
+ * 
+ * The other main difference to Lucene's TPBJQ is that externally-applied filters (like Solr's fq) filter
+ * both child *and* parent docs.  In Lucene's version of this query, filters apply only to the parent docs.
+  *
  * @see ToParentBlockJoinQuery
  */
 
@@ -98,12 +102,11 @@ public class SafariBlockJoinQuery extends Query {
       childWeight.normalize(norm, topLevelBoost * joinQuery.getBoost());
     }
 
-    // NOTE: acceptDocs applies (and is checked) only in the
-    // parent document space
+    // NOTE: unlike Lucene's TPBJQ, acceptDocs applies to *both* child and parent documents
     @Override
     public Scorer scorer(AtomicReaderContext readerContext, Bits acceptDocs) throws IOException {
 
-      final Scorer childScorer = childWeight.scorer(readerContext, readerContext.reader().getLiveDocs());
+      final Scorer childScorer = childWeight.scorer(readerContext, acceptDocs);
       if (childScorer == null) {
         // No matches
         return null;
