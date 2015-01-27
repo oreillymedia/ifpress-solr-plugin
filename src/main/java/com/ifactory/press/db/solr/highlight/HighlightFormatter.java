@@ -19,6 +19,7 @@ public class HighlightFormatter extends DefaultPassageFormatter {
    * @param start index of the first character in content
    * @param end index of the character following the last character in content
    */
+  @Override
   protected void append(StringBuilder dest, String content, int start, int end) {
     if (escape) {
       for (int i = start; i < end; i++) {
