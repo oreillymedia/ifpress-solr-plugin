@@ -1,49 +1,21 @@
 package com.ifactory.press.db.solr.highlight;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.io.IOException;
 import java.io.InputStream;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.solr.client.solrj.SolrQuery;
-import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
-import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocumentList;
 import org.apache.solr.common.SolrInputDocument;
-import org.apache.solr.core.CoreContainer;
-import org.apache.solr.core.SolrCore;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
-public class SolrPostingsHighlighterTest {
-  
-  private CoreContainer coreContainer;
-  private SolrServer solr;
-  
-  @Before
-  public void startup() throws IOException, SolrServerException {
-    // start an embedded solr instance
-    coreContainer = new CoreContainer("solr");
-    coreContainer.load();
-    solr = new EmbeddedSolrServer(coreContainer, "heron");
-    solr.deleteByQuery("*:*");
-    solr.commit();
-  }
-  
-  @After
-  public void cleanup() throws IOException {
-    SolrCore core = coreContainer.getCore("heron");
-    if (core != null) {
-        core.close();
-    }
-    coreContainer.shutdown();
-  }
+import com.ifactory.press.db.solr.HeronSolrTest;
+
+public class SolrPostingsHighlighterTest extends HeronSolrTest {
   
   @Test
   public void testHighlightChapter5() throws SolrServerException, IOException {
