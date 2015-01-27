@@ -17,8 +17,6 @@
 
 package com.ifactory.press.db.solr.search;
 
-import org.apache.lucene.search.CachingWrapperFilter;
-import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.Filter;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.QueryWrapperFilter;
@@ -66,8 +64,8 @@ class ScoringParentQParser extends QParser {
     return createQuery(parentQ, childrenQuery);
   }
 
-  protected Query createQuery(Query parentList, Query query) {
-    return new ToParentBlockJoinQuery(query, getFilter(parentList), ScoreMode.Max);
+  protected Query createQuery(Query parentList, Query q) {
+    return new ToParentBlockJoinQuery(q, getFilter(parentList), ScoreMode.Max);
   }
 
   protected Filter getFilter(Query parentList) {
