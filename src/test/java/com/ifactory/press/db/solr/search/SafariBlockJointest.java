@@ -110,6 +110,31 @@ public class SafariBlockJointest extends SolrTest {
     assertEquals ("/doc/35", solr.query(query).getResults().get(5).get("uri").toString());
   }
   
+  @Test
+  public void testOrphanedDocs () throws Exception {
+    // create some orphans (children with no parents) and see what happens
+    //solr.deleteByQuery("type_s:parent");
+    solr.deleteById("/doc/9");
+    solr.deleteById("/doc/29");
+    solr.deleteById("/doc/99");
+    solr.commit();
+    // verify that the parent docs were deleted
+    SolrQuery query = new SolrQuery("*:*");
+    QueryResponse resp = solr.query(query);
+    assertEquals (97, resp.getResults().getNumFound());
+    
+    query = new SolrQuery("{!scoring_parent which=type_s:parent} text_t:F");
+    // expect not to get any docs back corresponding to the deleted parents 
+    // since they don't satisfy the parent/child relation
+    resp = solr.query(query);
+    assertEquals (7, resp.getResults().getNumFound());
+    
+    // now flush the deleted docs
+    solr.optimize();
+    resp = solr.query(query);
+    assertEquals (7, resp.getResults().getNumFound());
+  }
+  
   @Before 
   public void setup () throws Exception {
     insertTestDocuments ();

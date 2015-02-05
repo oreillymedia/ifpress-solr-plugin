@@ -199,7 +199,12 @@ public class SafariBlockJoinQuery extends Query {
         assert parentDoc != -1;
 
         //System.out.println("  nextChildDoc=" + nextChildDoc);
-        if (acceptDocs != null && !acceptDocs.get(parentDoc)) {
+        if ((acceptDocs != null && !acceptDocs.get(parentDoc))
+            // shouldn't happen, but it did.  I'm not sure if this is a consequence of our allowing 
+            // parents to be a child -- I don't think so -- it seems more likely the index can just get in 
+            // a state where there are children with no parent, and that could cause this?
+            || parentDoc == -1
+            ) {
           // Parent doc not accepted; skip child docs until
           // we hit a new parent doc:
           do {
