@@ -6,10 +6,9 @@ import java.util.Collections;
 import java.util.Locale;
 import java.util.Set;
 
-import org.apache.lucene.index.AtomicReaderContext;
+import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.search.ComplexExplanation;
 import org.apache.lucene.search.DocIdSet;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.Explanation;
@@ -18,7 +17,7 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
-import org.apache.lucene.search.join.FixedBitSetCachingWrapperFilter;
+import org.apache.lucene.search.join.QueryBitSetProducer;
 import org.apache.lucene.search.join.ToParentBlockJoinQuery;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.FixedBitSet;
@@ -51,7 +50,7 @@ public class SafariBlockJoinQuery extends Query {
    * 
    * @param childQuery Query matching child documents.
    * @param parentsFilter Filter (must produce FixedBitSet
-   * per-segment, like {@link FixedBitSetCachingWrapperFilter})
+   * per-segment, like {@link QueryBitSetProducer})
    * identifying the parent documents.
    * @param scoreMode How to aggregate multiple child scores
    * into a single parent score.
@@ -104,7 +103,7 @@ public class SafariBlockJoinQuery extends Query {
 
     // NOTE: unlike Lucene's TPBJQ, acceptDocs applies to *both* child and parent documents
     @Override
-    public Scorer scorer(AtomicReaderContext readerContext, Bits acceptDocs) throws IOException {
+    public Scorer scorer(LeafReaderContext readerContext, Bits acceptDocs) throws IOException {
 
       final Scorer childScorer = childWeight.scorer(readerContext, acceptDocs);
       if (childScorer == null) {
@@ -137,12 +136,12 @@ public class SafariBlockJoinQuery extends Query {
     }
 
     @Override
-    public Explanation explain(AtomicReaderContext context, int doc) throws IOException {
+    public Explanation explain(LeafReaderContext context, int doc) throws IOException {
       BlockJoinScorer scorer = (BlockJoinScorer) scorer(context, context.reader().getLiveDocs());
       if (scorer != null && scorer.advance(doc) == doc) {
         return scorer.explain(context.docBase);
       }
-      return new ComplexExplanation(false, 0.0f, "Not a match");
+      return Explanation.noMatch("Not a match");
     }
 
     @Override
@@ -284,8 +283,8 @@ public class SafariBlockJoinQuery extends Query {
     public Explanation explain(int docBase) throws IOException {
       int start = docBase + prevParentDoc + 1; // +1 b/c prevParentDoc is previous parent doc
       int end = docBase + parentDoc - 1; // -1 b/c parentDoc is parent doc
-      return new ComplexExplanation(
-          true, score(), String.format(Locale.ROOT, "Score based on child doc range from %d to %d", start, end)
+      return Explanation.match(
+          score(), String.format(Locale.ROOT, "Score based on child doc range from %d to %d", start, end)
       );
     }
 
