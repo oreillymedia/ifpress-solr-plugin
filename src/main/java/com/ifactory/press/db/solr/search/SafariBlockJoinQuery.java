@@ -196,7 +196,6 @@ public class SafariBlockJoinQuery extends Query {
         parentDoc = parentBits.nextSetBit(nextChildDoc);
 
         //System.out.println("  parentDoc=" + parentDoc);
-        assert parentDoc != -1;
 
         //System.out.println("  nextChildDoc=" + nextChildDoc);
         if ((acceptDocs != null && !acceptDocs.get(parentDoc))

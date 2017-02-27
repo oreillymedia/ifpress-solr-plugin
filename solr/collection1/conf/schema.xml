@@ -435,6 +435,7 @@
     <!--dynamicField name="*" type="ignored" multiValued="true" / -->
     
     <field name="weight_dv" type="int" indexed="false" stored="false" docValues="true" />
+    
 
   </fields>
 
