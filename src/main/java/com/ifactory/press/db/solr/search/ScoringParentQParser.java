@@ -17,9 +17,9 @@
 
 package com.ifactory.press.db.solr.search;
 
-import org.apache.lucene.search.Filter;
+import org.apache.solr.search.Filter;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.search.QueryWrapperFilter;
+import org.apache.solr.search.QueryWrapperFilter;
 import org.apache.lucene.search.join.FixedBitSetCachingWrapperFilter;
 import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.request.SolrQueryRequest;

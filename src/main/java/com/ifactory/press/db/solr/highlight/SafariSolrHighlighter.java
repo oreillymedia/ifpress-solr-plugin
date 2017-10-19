@@ -1,7 +1,7 @@
 package com.ifactory.press.db.solr.highlight;
 
-import org.apache.lucene.search.postingshighlight.PassageFormatter;
-import org.apache.lucene.search.postingshighlight.PassageScorer;
+import org.apache.lucene.search.uhighlight.PassageFormatter;
+import org.apache.lucene.search.uhighlight.PassageScorer;
 import org.apache.lucene.search.postingshighlight.PostingsHighlighter;
 import org.apache.solr.common.params.HighlightParams;
 import org.apache.solr.highlight.PostingsSolrHighlighter;
