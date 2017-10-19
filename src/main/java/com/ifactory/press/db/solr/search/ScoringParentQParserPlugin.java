@@ -6,10 +6,10 @@ import org.apache.solr.search.QParser;
 import org.apache.solr.search.join.BlockJoinParentQParserPlugin;
 
 public class ScoringParentQParserPlugin extends BlockJoinParentQParserPlugin {
-  
-  @Override
-  protected QParser createBJQParser(String qstr, SolrParams localParams, SolrParams params, SolrQueryRequest req) {
-    return new ScoringParentQParser(qstr, localParams, params, req);
-  }
-  
+
+    @Override
+    protected QParser createBJQParser(String qstr, SolrParams localParams, SolrParams params, SolrQueryRequest req) {
+        return new ScoringParentQParser(qstr, localParams, params, req);
+    }
+
 }

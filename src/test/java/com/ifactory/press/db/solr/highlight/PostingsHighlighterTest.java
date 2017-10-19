@@ -41,7 +41,7 @@ import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.postingshighlight.PostingsHighlighter;
 //864 * SOLR-10700: Deprecated and converted the PostingsSolrHighlighter to extend UnifiedSolrHighlighter and thus no
- // 865   longer use the PostingsHighlighter.  It should behave mostly the same. (David Smiley)
+// 865   longer use the PostingsHighlighter.  It should behave mostly the same. (David Smiley)
 import org.apache.lucene.store.RAMDirectory;
 import org.apache.lucene.util.Version;
 import org.junit.After;
@@ -68,12 +68,12 @@ public class PostingsHighlighterTest {
 
     @Test
     public void testHighlightChapter5() throws IOException {
-    // searching for "gas" didn't work on the Safari site
+        // searching for "gas" didn't work on the Safari site
 
         InputStream ch5stream = getClass().getResourceAsStream("ch5.txt");
         String ch5 = IOUtils.toString(ch5stream);
 
-    // add a single document to the index
+        // add a single document to the index
         // configure field with offsets at index time
         FieldType offsetsType = new FieldType(TextField.TYPE_STORED);
         offsetsType.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS);

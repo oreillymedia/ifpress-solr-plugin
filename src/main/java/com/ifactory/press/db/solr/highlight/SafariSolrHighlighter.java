@@ -10,7 +10,9 @@ import org.apache.solr.request.SolrQueryRequest;
 public class SafariSolrHighlighter extends PostingsSolrHighlighter {
 
   /** Creates an instance of the Lucene PostingsHighlighter. Provided for subclass extension so that
-   * a subclass can return a subclass of {@link PostingsSolrHighlighter.SolrExtendedPostingsHighlighter}. */
+   * a subclass can return a subclass of {@link PostingsSolrHighlighter.SolrExtendedPostingsHighlighter}.
+     * @param req
+     * @return  */
   @Override
   protected PostingsHighlighter getHighlighter(SolrQueryRequest req) {
     return new SafariPostingsHighlighter(req);
