@@ -39,7 +39,7 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.search.postingshighlight.PostingsHighlighter;
+import org.apache.solr.highlight.UnifiedSolrHighlighter;
 //864 * SOLR-10700: Deprecated and converted the PostingsSolrHighlighter to extend UnifiedSolrHighlighter and thus no
 // 865   longer use the PostingsHighlighter.  It should behave mostly the same. (David Smiley)
 import org.apache.lucene.store.RAMDirectory;
@@ -89,7 +89,7 @@ public class PostingsHighlighterTest {
         IndexSearcher searcher = new IndexSearcher(reader);
 
         // retrieve highlights at query time 
-        PostingsHighlighter highlighter = new PostingsHighlighter(100000);
+        UnifiedSolrHighlighter highlighter = new UnifiedSolrHighlighter();//new PostingsHighlighter(100000);
         Query query = new TermQuery(new Term("text", "gas"));
         TopDocs topDocs = searcher.search(query, 1);
         String highlights[] = highlighter.highlight("text", query, searcher, topDocs);

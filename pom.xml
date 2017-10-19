@@ -57,6 +57,11 @@
         <version>7.1.0</version>
     </dependency>
     <dependency>
+        <groupId>org.apache.lucene</groupId>
+        <artifactId>lucene-join</artifactId>
+        <version>7.1.0</version>
+    </dependency>
+    <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <version>4.11</version>
