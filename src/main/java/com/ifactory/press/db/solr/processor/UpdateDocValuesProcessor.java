@@ -139,9 +139,21 @@ public class UpdateDocValuesProcessor extends UpdateRequestProcessor {
             int docID = docs.scoreDocs[0].doc;
             for (String valueField : valueFields) {
                 if (doc.get(valueField) == null) {
-                    NumericDocValues ndv = searcher.getAtomicReader().getNumericDocValues(valueField);
+                    NumericDocValues ndv = searcher.getSlowAtomicReader().getNumericDocValues(valueField);
+                    //TODO
+                    //was getAtomicReader
                     if (ndv != null) {
-                        long lvalue = ndv.get(docID);
+                        
+                        long lvalue;
+                        if (ndv.docID() < docID) {
+                            ndv.advance(docID);
+                        } 
+                        if (ndv.docID() == docID) {
+                            lvalue = ndv.longValue();
+                        } else {
+                            lvalue = 0l;
+                        }
+                        
                         doc.addField(valueField, lvalue);
                         // LOG.debug("retrieved doc value %d", lvalue);
                     } else {
