@@ -37,6 +37,9 @@ import org.apache.solr.common.params.TermsParams;
 import org.junit.Test;
 
 import com.ifactory.press.db.solr.SolrTest;
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
 public class FieldMergingProcessorTest extends SolrTest {
@@ -94,7 +97,12 @@ public class FieldMergingProcessorTest extends SolrTest {
     
     private void assertQueryCount (int count, String query) throws SolrServerException {
         SolrQuery solrQuery = new SolrQuery (query);
-        QueryResponse resp = solr.query(solrQuery);
+        QueryResponse resp = null;
+        try {
+            resp = solr.query(solrQuery);
+        } catch (IOException ex) {
+            Logger.getLogger(FieldMergingProcessorTest.class.getName()).log(Level.SEVERE, null, ex);
+        }
         SolrDocumentList docs = resp.getResults();
         assertEquals (count, docs.size());
         
@@ -106,7 +114,12 @@ public class FieldMergingProcessorTest extends SolrTest {
         solrQuery.setParam(TermsParams.TERMS, true);
         solrQuery.setParam(TermsParams.TERMS_LIMIT, "100");
         solrQuery.setParam(TermsParams.TERMS_FIELD, field);
-        QueryResponse resp = solr.query(solrQuery);
+        QueryResponse resp = null;
+        try {
+            resp = solr.query(solrQuery);
+        } catch (IOException ex) {
+            Logger.getLogger(FieldMergingProcessorTest.class.getName()).log(Level.SEVERE, null, ex);
+        }
         return resp.getTermsResponse().getTermMap().get(field);
     }
     
