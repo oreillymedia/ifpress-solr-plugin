@@ -1,5 +1,8 @@
 package com.ifactory.press.db.solr.spelling.suggest;
 
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Multimaps;
 import java.io.Closeable;
 import java.io.IOException;
 import java.text.BreakIterator;
@@ -8,9 +11,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.Token;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
@@ -19,6 +20,7 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.spell.HighFrequencyDictionary;
 import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.BytesRefBuilder;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.util.NamedList;
 import org.apache.solr.core.CloseHook;
@@ -26,13 +28,10 @@ import org.apache.solr.core.SolrCore;
 import org.apache.solr.search.SolrIndexSearcher;
 import org.apache.solr.spelling.SpellingOptions;
 import org.apache.solr.spelling.SpellingResult;
+import org.apache.solr.spelling.Token;
 import org.apache.solr.spelling.suggest.Suggester;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Multimaps;
 
 /**
  * <h3>A suggester that draws suggestions from terms in multiple fields.</h3>
@@ -412,7 +411,10 @@ public class MultiSuggester extends Suggester {
       // commit
       ConcurrentHashMap<String, Integer> batch = fld.pending;
       fld.pending = new ConcurrentHashMap<String, Integer>(batch.size());
+      
       BytesRef bytes = new BytesRef(maxSuggestionLength);
+      BytesRefBuilder bytesRefBuilder = new BytesRefBuilder();
+      bytesRefBuilder.append(bytes);
       Term t = new Term(fld.fieldName, bytes);
       long minCount = (long) (fld.minFreq * docCount);
       long maxCount = (long) (docCount <= 1 ? Long.MAX_VALUE : (fld.maxFreq * docCount + 1));
@@ -442,8 +444,10 @@ public class MultiSuggester extends Suggester {
             weight = (fld.weight * count) / docCount;
           }
         }
-        bytes.copyChars(term);
-        // LOG.debug("add " + bytes.utf8ToString());
+        //bytes.copyChars(term) //rfhi
+        bytesRefBuilder.copyChars(term);
+        bytes = bytesRefBuilder.get();
+        
         ais.update(bytes, weight);
       }
     }
