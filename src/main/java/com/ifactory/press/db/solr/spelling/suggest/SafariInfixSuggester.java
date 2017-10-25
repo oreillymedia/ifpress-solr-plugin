@@ -2,7 +2,6 @@ package com.ifactory.press.db.solr.spelling.suggest;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
@@ -85,11 +84,8 @@ public class SafariInfixSuggester extends AnalyzingInfixSuggester {
       return null;
     }
 
-    @Override
-    public Comparator<BytesRef> getComparator() {
-      return null;
-    }
-
+    // rfhi removed comparator
+    
     @Override
     public long weight() {
       return 0;
