@@ -1,12 +1,12 @@
 package com.ifactory.press.db.solr.search;
 
-import static org.junit.Assert.assertEquals;
-
+import com.ifactory.press.db.solr.SolrTest;
 import java.util.Arrays;
-
 import org.apache.lucene.index.Term;
+import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.BoostQuery;
 import org.apache.lucene.search.DisjunctionMaxQuery;
 import org.apache.lucene.search.PhraseQuery;
 import org.apache.lucene.search.Query;
@@ -16,9 +16,9 @@ import org.apache.solr.core.SolrCore;
 import org.apache.solr.request.LocalSolrQueryRequest;
 import org.apache.solr.request.SolrQueryRequest;
 import org.apache.solr.search.SyntaxError;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
-import com.ifactory.press.db.solr.SolrTest;
+import org.junit.Test;
 
 public class SafariQueryParserTest extends SolrTest {
 
@@ -49,15 +49,18 @@ public class SafariQueryParserTest extends SolrTest {
     }
 
     private Query B(Query q, float boost) {
-        q.setBoost(boost);
+        BoostQuery boostQuery = new BoostQuery(q, boost); // rfhi q should be boosted, test this - may be anonymouse
         return q;
     }
 
+    // rfhi This change was straightforward and should test out --Check this--
     private PhraseQuery PQ(String f, String... vals) {
-        PhraseQuery pq = new PhraseQuery();
+        PhraseQuery.Builder builder = new PhraseQuery.Builder();
+        
         for (String v : vals) {
-            pq.add(T(f, v));
+            builder.add(T(f, v));
         }
+        PhraseQuery pq = builder.build();
         return pq;
     }
 
@@ -66,11 +69,16 @@ public class SafariQueryParserTest extends SolrTest {
     }
 
     private BooleanQuery BQ(float b, Query... clauses) {
-        BooleanQuery bq = new BooleanQuery(clauses.length <= 1);
+        BooleanQuery.Builder booleanQueryBuilder = new BooleanQuery.Builder();
+        
+        //booleanQueryBuilder.add(clauses.length <= 1);
+        // rfhi TODO the boolean query started with the above clause. The 
+        // builder below will work
         for (Query q : clauses) {
-            bq.add(q, Occur.MUST);
+            booleanQueryBuilder.add(new BooleanClause(q, Occur.MUST));
         }
-        bq.setBoost(b);
+        BooleanQuery bq = booleanQueryBuilder.build();
+        BoostQuery boostQuery = new BoostQuery(bq, b);
         return bq;
     }
 
