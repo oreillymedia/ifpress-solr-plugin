@@ -10,17 +10,17 @@ import org.junit.Test;
 
 public class DismaxTest extends HeronSolrTest {
 
-  @Test
-  public void testParsePlus () throws SolrServerException, IOException {
-    SolrInputDocument doc = new SolrInputDocument();
-    doc.addField("id", "1");
-    doc.addField("text", "love + death");
-    solr.add(doc);
-    solr.commit();
-    SolrQuery query = new SolrQuery("life + death");
-    query.setShowDebugInfo(true);
-    query.set("indent", "true");
-    SolrResponse resp = solr.query(query);
-    System.out.println(resp.getResponse().get("debug"));
-  }
+    @Test
+    public void testParsePlus() throws SolrServerException, IOException {
+        SolrInputDocument doc = new SolrInputDocument();
+        doc.addField("id", "1");
+        doc.addField("text", "love + death");
+        solr.add(doc);
+        solr.commit();
+        SolrQuery query = new SolrQuery("life + death");
+        query.setShowDebugInfo(true);
+        query.set("indent", "true");
+        SolrResponse resp = solr.query(query);
+        System.out.println(resp.getResponse().get("debug"));
+    }
 }

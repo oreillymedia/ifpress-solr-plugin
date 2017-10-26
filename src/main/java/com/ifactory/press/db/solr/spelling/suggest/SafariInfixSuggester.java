@@ -16,101 +16,101 @@ import org.apache.lucene.util.Version;
 
 public class SafariInfixSuggester extends AnalyzingInfixSuggester {
 
-  private final boolean highlight;
+    private final boolean highlight;
 
-  public enum Context {
-    SHOW, HIDE
-  };
+    public enum Context {
+        SHOW, HIDE
+    };
 
-  private Set<BytesRef> showContext, hideContext;
+    private Set<BytesRef> showContext, hideContext;
 
-  public SafariInfixSuggester(Version matchVersion, Directory dir, Analyzer indexAnalyzer, Analyzer queryAnalyzer,
-      int minPrefixChars, boolean highlight) throws IOException {
-    super(matchVersion, dir, indexAnalyzer, queryAnalyzer, minPrefixChars);
-    this.highlight = highlight;
+    public SafariInfixSuggester(Version matchVersion, Directory dir, Analyzer indexAnalyzer, Analyzer queryAnalyzer,
+            int minPrefixChars, boolean highlight) throws IOException {
+        super(matchVersion, dir, indexAnalyzer, queryAnalyzer, minPrefixChars);
+        this.highlight = highlight;
 
-    showContext = Collections.singleton(new BytesRef(new byte[] { (byte) Context.SHOW.ordinal() }));
-    hideContext = Collections.singleton(new BytesRef(new byte[] { (byte) Context.HIDE.ordinal() }));
+        showContext = Collections.singleton(new BytesRef(new byte[]{(byte) Context.SHOW.ordinal()}));
+        hideContext = Collections.singleton(new BytesRef(new byte[]{(byte) Context.HIDE.ordinal()}));
 
-    if (!DirectoryReader.indexExists(dir)) {
-      // no index in place -- build an empty one so we are prepared for updates
-      clear();
+        if (!DirectoryReader.indexExists(dir)) {
+            // no index in place -- build an empty one so we are prepared for updates
+            clear();
+        }
+
     }
 
-  }
-  
-  public void clear () throws IOException {
-    super.build(new EmptyInputIterator());
-  }
-
-  public void update(BytesRef bytes, long weight) throws IOException {
-    super.update(bytes, weight <= 0 ? hideContext : showContext, weight, null);
-  }
-
-  /**
-   * Like build(), but without flushing the old entries, and *ignores duplicate entries*
-   * 
-   * @param dict
-   * @throws IOException
-   */
-  public void add(Dictionary dict) throws IOException {
-    InputIterator iter = dict.getEntryIterator();
-    BytesRef text;
-    while ((text = iter.next()) != null) {
-      if (lookup(text.utf8ToString(), 1, true, false).size() > 0) {
-        continue;
-      }
-      add(text, iter.contexts(), iter.weight(), iter.payload());
+    public void clear() throws IOException {
+        super.build(new EmptyInputIterator());
     }
-  }
 
-  /*
-   * disable highlighting
-   */
-  @Override
-  public List<LookupResult> lookup(CharSequence key, Set<BytesRef> contexts, boolean onlyMorePopular, int num) throws IOException {
-    if (contexts != null) {
-      contexts.addAll(showContext);
-    } else {
-      contexts = showContext;
+    public void update(BytesRef bytes, long weight) throws IOException {
+        super.update(bytes, weight <= 0 ? hideContext : showContext, weight, null);
     }
-    return lookup(key, contexts, num, true, highlight);
-  }
 
-  static class EmptyInputIterator implements InputIterator {
+    /**
+     * Like build(), but without flushing the old entries, and *ignores
+     * duplicate entries*
+     *
+     * @param dict
+     * @throws IOException
+     */
+    public void add(Dictionary dict) throws IOException {
+        InputIterator iter = dict.getEntryIterator();
+        BytesRef text;
+        while ((text = iter.next()) != null) {
+            if (lookup(text.utf8ToString(), 1, true, false).size() > 0) {
+                continue;
+            }
+            add(text, iter.contexts(), iter.weight(), iter.payload());
+        }
+    }
 
+    /*
+     * disable highlighting
+     */
     @Override
-    public BytesRef next() throws IOException {
-      return null;
+    public List<LookupResult> lookup(CharSequence key, Set<BytesRef> contexts, boolean onlyMorePopular, int num) throws IOException {
+        if (contexts != null) {
+            contexts.addAll(showContext);
+        } else {
+            contexts = showContext;
+        }
+        return lookup(key, contexts, num, true, highlight);
     }
+
+    static class EmptyInputIterator implements InputIterator {
+
+        @Override
+        public BytesRef next() throws IOException {
+            return null;
+        }
 
     // rfhi removed comparator
-    
-    @Override
-    public long weight() {
-      return 0;
-    }
+        @Override
+        public long weight() {
+            return 0;
+        }
 
-    @Override
-    public BytesRef payload() {
-      return null;
-    }
+        @Override
+        public BytesRef payload() {
+            return null;
+        }
 
-    @Override
-    public boolean hasPayloads() {
-      return false;
-    }
+        @Override
+        public boolean hasPayloads() {
+            return false;
+        }
 
-    @Override
-    public Set<BytesRef> contexts() {
-      return null;
-    }
+        @Override
+        public Set<BytesRef> contexts() {
+            return null;
+        }
 
-    @Override
-    public boolean hasContexts() {
-      return false;
-    }
+        @Override
+        public boolean hasContexts() {
+            return false;
+        }
 
-  }
+    }
 
 }

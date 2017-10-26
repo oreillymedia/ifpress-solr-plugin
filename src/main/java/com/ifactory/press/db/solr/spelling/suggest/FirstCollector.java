@@ -7,19 +7,20 @@ import org.apache.lucene.search.SimpleCollector;
 import org.apache.lucene.search.Scorer;
 import org.apache.solr.search.EarlyTerminatingCollectorException;
 
-/** A collector to use when you know there will be no more than one match, or you don't
- * care which match you get; terminates after finding a match.
+/**
+ * A collector to use when you know there will be no more than one match, or you
+ * don't care which match you get; terminates after finding a match.
  */
 class FirstCollector extends SimpleCollector {
 
     private LeafReaderContext arc;
-    
+
     int docID = -1;
-    
+
     public int getDocID() {
         return docID;
     }
-    
+
     @Override
     public void setScorer(Scorer scorer) throws IOException {
     }

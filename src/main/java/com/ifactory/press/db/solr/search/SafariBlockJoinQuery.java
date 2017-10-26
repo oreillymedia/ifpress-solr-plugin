@@ -40,7 +40,7 @@ public class SafariBlockJoinQuery extends Query {
     private final Filter parentsFilter;
     private final Query childQuery;
 
-  // If we are rewritten, this is the original childQuery we
+    // If we are rewritten, this is the original childQuery we
     // were passed; we use this for .equals() and
     // .hashCode().  This makes rewritten query equal the
     // original, so that user does not have to .rewrite() their
@@ -55,7 +55,7 @@ public class SafariBlockJoinQuery extends Query {
      * {@link QueryBitSetProducer}) identifying the parent documents.
      * @param scoreMode How to aggregate multiple child scores into a single
      * parent score.
-   *
+     *
      */
     public SafariBlockJoinQuery(Query childQuery, Filter parentsFilter) {
         super();
@@ -120,7 +120,7 @@ public class SafariBlockJoinQuery extends Query {
                 return null;
             }
 
-      // NOTE: we cannot pass acceptDocs here because this
+            // NOTE: we cannot pass acceptDocs here because this
             // will (most likely, justifiably) cause the filter to
             // not return a FixedBitSet but rather a
             // BitsFilteredDocIdSet.  Instead, we filter by
@@ -185,7 +185,7 @@ public class SafariBlockJoinQuery extends Query {
 
         @Override
         public int nextDoc() throws IOException {
-      //System.out.println("Q.nextDoc() nextChildDoc=" + nextChildDoc);
+            //System.out.println("Q.nextDoc() nextChildDoc=" + nextChildDoc);
             // Loop until we hit a parentDoc that's accepted
             while (true) {
                 if (nextChildDoc == NO_MORE_DOCS) {
@@ -193,7 +193,7 @@ public class SafariBlockJoinQuery extends Query {
                     return parentDoc = NO_MORE_DOCS;
                 }
 
-        // Gather all children sharing the same parent as
+                // Gather all children sharing the same parent as
                 // nextChildDoc
                 parentDoc = parentBits.nextSetBit(nextChildDoc);
 
@@ -206,7 +206,7 @@ public class SafariBlockJoinQuery extends Query {
                         // parents to be a child -- I don't think so -- it seems more likely the index can just get in 
                         // a state where there are children with no parent, and that could cause this?
                         || parentDoc == -1) {
-          // Parent doc not accepted; skip child docs until
+                    // Parent doc not accepted; skip child docs until
                     // we hit a new parent doc:
                     do {
                         nextChildDoc = childScorer.nextDoc();
@@ -257,7 +257,7 @@ public class SafariBlockJoinQuery extends Query {
             }
 
             if (parentTarget == 0) {
-        // Callers should only be passing in a docID from
+                // Callers should only be passing in a docID from
                 // the parent space, so this means this parent
                 // has no children (it got docID 0), so it cannot
                 // possibly match.  We must handle this case
@@ -272,7 +272,7 @@ public class SafariBlockJoinQuery extends Query {
             assert prevParentDoc >= parentDoc;
             if (prevParentDoc > nextChildDoc) {
                 nextChildDoc = childScorer.advance(prevParentDoc);
-        // System.out.println("  childScorer advanced to child docID=" + nextChildDoc);
+                // System.out.println("  childScorer advanced to child docID=" + nextChildDoc);
                 //} else {
                 //System.out.println("  skip childScorer advance");
             }

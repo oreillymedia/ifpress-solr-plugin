@@ -56,7 +56,7 @@ public class SafariQueryParserTest extends SolrTest {
     // rfhi This change was straightforward and should test out --Check this--
     private PhraseQuery PQ(String f, String... vals) {
         PhraseQuery.Builder builder = new PhraseQuery.Builder();
-        
+
         for (String v : vals) {
             builder.add(T(f, v));
         }
@@ -70,7 +70,7 @@ public class SafariQueryParserTest extends SolrTest {
 
     private BooleanQuery BQ(float b, Query... clauses) {
         BooleanQuery.Builder booleanQueryBuilder = new BooleanQuery.Builder();
-        
+
         //booleanQueryBuilder.add(clauses.length <= 1);
         // rfhi TODO the boolean query started with the above clause. The 
         // builder below will work

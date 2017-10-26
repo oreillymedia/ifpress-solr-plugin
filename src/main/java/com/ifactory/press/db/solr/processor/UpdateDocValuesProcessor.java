@@ -134,7 +134,7 @@ public class UpdateDocValuesProcessor extends UpdateRequestProcessor {
         TermQuery query = new TermQuery(idTerm);
         TopDocs docs = searcher.search(query, 1);
         if (docs.totalHits == 1) {
-      // get the value
+            // get the value
             // LOG.debug(String.format("found %s", id));
             int docID = docs.scoreDocs[0].doc;
             for (String valueField : valueFields) {
@@ -143,17 +143,17 @@ public class UpdateDocValuesProcessor extends UpdateRequestProcessor {
                     //TODO
                     //was getAtomicReader
                     if (ndv != null) {
-                        
+
                         long lvalue;
                         if (ndv.docID() < docID) {
                             ndv.advance(docID);
-                        } 
+                        }
                         if (ndv.docID() == docID) {
                             lvalue = ndv.longValue();
                         } else {
                             lvalue = 0l;
                         }
-                        
+
                         doc.addField(valueField, lvalue);
                         // LOG.debug("retrieved doc value %d", lvalue);
                     } else {

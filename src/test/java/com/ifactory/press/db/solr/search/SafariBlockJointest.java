@@ -59,7 +59,7 @@ public class SafariBlockJointest extends SolrTest {
         QueryResponse resp = solr.query(query);
         assertEquals(0, resp.getResults().getNumFound());
 
-    // expect to get back docs 14, 28, 56, 70
+        // expect to get back docs 14, 28, 56, 70
         // 42 and 84 are excluded because they have B (ids divisible by 3).
         // 98 is excluded because the *parent* has a B (id = 99, divisible by 3)
         query.setFilterQueries("-text_t:B");
@@ -96,7 +96,7 @@ public class SafariBlockJointest extends SolrTest {
     @Test
     public void testParentGroupMatch() throws Exception {
         SolrQuery query = new SolrQuery("{!scoring_parent which=type_s:parent} text_t:F");
-    // expect to get back all docs divisible by 7 -- grouped by parent
+        // expect to get back all docs divisible by 7 -- grouped by parent
         // 7, 14, (21, 28), 35, (42, 49), 56, 63, (70, 77), 84, (91, 98)
         QueryResponse resp = solr.query(query);
         assertEquals(10, resp.getResults().getNumFound());
@@ -112,7 +112,7 @@ public class SafariBlockJointest extends SolrTest {
 
     @Test
     public void testOrphanedDocs() throws Exception {
-    // create some orphans (children with no parents) and see what happens
+        // create some orphans (children with no parents) and see what happens
         //solr.deleteByQuery("type_s:parent");
         solr.deleteById("/doc/9");
         solr.deleteById("/doc/29");
@@ -124,7 +124,7 @@ public class SafariBlockJointest extends SolrTest {
         assertEquals(97, resp.getResults().getNumFound());
 
         query = new SolrQuery("{!scoring_parent which=type_s:parent} text_t:F");
-    // expect not to get any docs back corresponding to the deleted parents 
+        // expect not to get any docs back corresponding to the deleted parents 
         // since they don't satisfy the parent/child relation
         resp = solr.query(query);
         assertEquals(7, resp.getResults().getNumFound());
@@ -155,7 +155,7 @@ public class SafariBlockJointest extends SolrTest {
                     doc.addField("type_s", "child");
                 }
                 StringBuilder text = new StringBuilder();
-          // create a text of one letter words; one for each factor of docid (from 2 to 27), with
+                // create a text of one letter words; one for each factor of docid (from 2 to 27), with
                 // multiple occurrences for square factors, eg:
                 // 28 -> "A A C F M" since 28 has factors 1,2,4,7,14,28 and 2^2=4
                 // 27 -> "B B B H"
