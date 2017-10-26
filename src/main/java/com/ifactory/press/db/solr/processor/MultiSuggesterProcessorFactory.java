@@ -21,66 +21,65 @@ import org.slf4j.LoggerFactory;
 import com.ifactory.press.db.solr.spelling.suggest.MultiSuggester;
 
 public class MultiSuggesterProcessorFactory extends UpdateRequestProcessorFactory implements SolrCoreAware {
-    
+
     private String suggesterComponentName;
-    
+
     private final ArrayList<MultiSuggester> suggesters = new ArrayList<MultiSuggester>();
-    
+
     private static final Logger LOG = LoggerFactory.getLogger(MultiSuggesterProcessor.class);
-    
-    
+
     @Override
-    public void init (@SuppressWarnings("rawtypes") NamedList args) {
+    public void init(@SuppressWarnings("rawtypes") NamedList args) {
         Object componentName = args.get("suggester-component");
         if (componentName == null) {
             throw new SolrException(ErrorCode.SERVER_ERROR, "Missing configuration: 'suggester-component'");
         }
         suggesterComponentName = componentName.toString();
     }
-    
+
     @Override
     public UpdateRequestProcessor getInstance(SolrQueryRequest req, SolrQueryResponse rsp, UpdateRequestProcessor next) {
-      return new MultiSuggesterProcessor(suggesters, next);
+        return new MultiSuggesterProcessor(suggesters, next);
     }
-    
+
     @Override
     public void inform(SolrCore core) {
-        
-      MultiSuggesterCommitListener listener = new MultiSuggesterCommitListener(core, suggesters);
-      core.getUpdateHandler().registerCommitCallback(listener);
-      core.getUpdateHandler().registerSoftCommitCallback(listener);
-      
-      SpellCheckComponent suggesterComponent = (SpellCheckComponent) core.getSearchComponent(suggesterComponentName);
-      if (suggesterComponent == null) {
-        LOG.warn("No suggester component found named: " + suggesterComponentName);
-        return;
-      }
-        
-      for (SolrSpellChecker spellChecker : suggesterComponent.getSpellCheckers().values()) {
-        if (spellChecker instanceof MultiSuggester) {
-          suggesters.add ((MultiSuggester) spellChecker);
+
+        MultiSuggesterCommitListener listener = new MultiSuggesterCommitListener(core, suggesters);
+        core.getUpdateHandler().registerCommitCallback(listener);
+        core.getUpdateHandler().registerSoftCommitCallback(listener);
+
+        SpellCheckComponent suggesterComponent = (SpellCheckComponent) core.getSearchComponent(suggesterComponentName);
+        if (suggesterComponent == null) {
+            LOG.warn("No suggester component found named: " + suggesterComponentName);
+            return;
         }
-      }
-        
-      core.addCloseHook(new CloseHook() {
-                
-        @Override
-        public void preClose(SolrCore coreParam) {
-        }
-                
-        @Override
-        public void postClose(SolrCore coreParam) {
-          for (MultiSuggester suggester : suggesters) {
-            try {
-              if (suggester != null) {
-                suggester.close();
-              }
-            } catch (IOException e) {
-              LOG.error("An exception occurred while closing", e);
+
+        for (SolrSpellChecker spellChecker : suggesterComponent.getSpellCheckers().values()) {
+            if (spellChecker instanceof MultiSuggester) {
+                suggesters.add((MultiSuggester) spellChecker);
             }
-          }
         }
-      });        
+
+        core.addCloseHook(new CloseHook() {
+
+            @Override
+            public void preClose(SolrCore coreParam) {
+            }
+
+            @Override
+            public void postClose(SolrCore coreParam) {
+                for (MultiSuggester suggester : suggesters) {
+                    try {
+                        if (suggester != null) {
+                            suggester.close();
+                        }
+                    } catch (IOException e) {
+                        LOG.error("An exception occurred while closing", e);
+                    }
+                }
+            }
+        });
 
     }
 

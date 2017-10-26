@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.ifactory.press.db.solr.analysis;
 
 import java.util.ArrayList;
@@ -38,7 +37,7 @@ public final class PoolingAnalyzerWrapper extends AnalyzerWrapper {
 
     /**
      * Constructs with wrapped analyzer
-     * 
+     *
      * @param analyzer
      */
     public PoolingAnalyzerWrapper(Analyzer analyzer) {
@@ -68,14 +67,14 @@ public final class PoolingAnalyzerWrapper extends AnalyzerWrapper {
         public PooledReuseStrategy() {
         }
 
-        public void createPool (Analyzer analyzer) {
+        public void createPool(Analyzer analyzer) {
             setStoredValue(analyzer, new TokenStreamComponentsPool());
         }
 
         private TokenStreamComponentsPool getPool(Analyzer analyzer) {
             return (TokenStreamComponentsPool) getStoredValue(analyzer);
         }
-        
+
         /**
          * Retrieves the components from a per-field pool containing components
          * that are free for re-use. If the pool is empty, returns null, causing
@@ -105,6 +104,7 @@ public final class PoolingAnalyzerWrapper extends AnalyzerWrapper {
     }
 
     protected static class TokenStreamComponentsPool {
+
         private final HashMap<String, ArrayList<TokenStreamComponents>> available;
         private final HashMap<String, ArrayList<TokenStreamComponents>> reserved;
 

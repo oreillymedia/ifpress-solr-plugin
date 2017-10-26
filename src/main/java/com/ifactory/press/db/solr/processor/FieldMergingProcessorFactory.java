@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.ifactory.press.db.solr.processor;
 
 import java.util.HashMap;
@@ -32,7 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class FieldMergingProcessorFactory extends UpdateRequestProcessorFactory implements SolrCoreAware {
-    
+
     private static Logger log = LoggerFactory.getLogger(FieldMergingProcessorFactory.class);
     private String destinationField;
     private HashMap<String, Analyzer> sourceAnalyzers;
@@ -44,15 +43,15 @@ public class FieldMergingProcessorFactory extends UpdateRequestProcessorFactory 
         schema = core.getLatestSchema();
         doInit();
     }
-    
+
     @Override
-    public void init (@SuppressWarnings("rawtypes") NamedList args) {
+    public void init(@SuppressWarnings("rawtypes") NamedList args) {
         initArgs = args;
     }
-    
-    private void doInit () {
+
+    private void doInit() {
         Object o = initArgs.get("destinationField");
-        if (o == null || ! (o instanceof String)) {
+        if (o == null || !(o instanceof String)) {
             log.error("destinationField must be present as a string, got " + o);
             return;
         }
@@ -63,7 +62,7 @@ public class FieldMergingProcessorFactory extends UpdateRequestProcessorFactory 
             return;
         }
         o = initArgs.get("sourceField");
-        if (o == null || ! (o instanceof NamedList)) {
+        if (o == null || !(o instanceof NamedList)) {
             log.error("sourceField must be present as a list, got " + o);
             return;
         }
@@ -71,21 +70,21 @@ public class FieldMergingProcessorFactory extends UpdateRequestProcessorFactory 
         if (sourceFields.size() == 0) {
             log.error("destinationField must not be empty");
         }
-        sourceAnalyzers= new HashMap<String, Analyzer>();
+        sourceAnalyzers = new HashMap<String, Analyzer>();
         for (int i = 0; i < sourceFields.size(); i++) {
             String sourceFieldName = sourceFields.getName(i);
             o = sourceFields.getVal(i);
             FieldType fieldType;
-            if (o instanceof String && ! ((String) o).isEmpty()) {
+            if (o instanceof String && !((String) o).isEmpty()) {
                 String analysisFieldName = (String) o;
                 fieldType = schema.getFieldTypeByName(analysisFieldName);
                 if (fieldType == null) {
-                    log.error ("No such field type: " + analysisFieldName);
+                    log.error("No such field type: " + analysisFieldName);
                 }
             } else {
                 fieldType = schema.getFieldType(sourceFieldName);
                 if (fieldType == null) {
-                    log.error ("No field type for field: " + sourceFieldName);
+                    log.error("No field type for field: " + sourceFieldName);
                 }
             }
             if (fieldType != null) {

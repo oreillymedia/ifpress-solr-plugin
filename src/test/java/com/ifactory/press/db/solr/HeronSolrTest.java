@@ -17,13 +17,13 @@ public class HeronSolrTest {
 
     @Before
     public void startup() throws IOException, SolrServerException {
-      // start an embedded solr instance
-      coreContainer = new CoreContainer("solr");
-      coreContainer.load();
-      solr = new EmbeddedSolrServer(coreContainer, "heron");
-      solr.deleteByQuery("*:*");
-      solr.commit();
-    }    
+        // start an embedded solr instance
+        coreContainer = new CoreContainer("solr");
+        coreContainer.load();
+        solr = new EmbeddedSolrServer(coreContainer, "heron");
+        solr.deleteByQuery("*:*");
+        solr.commit();
+    }
 
     @After
     public void shutdown() throws Exception {
@@ -32,6 +32,6 @@ public class HeronSolrTest {
             core.close();
         }
         coreContainer.shutdown();
-    }    
+    }
 
 }

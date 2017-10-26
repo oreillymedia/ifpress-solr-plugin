@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.ifactory.press.db.solr.search;
 
 import org.apache.lucene.search.Filter;
@@ -30,69 +29,66 @@ import org.apache.solr.search.SolrConstantScoreQuery;
 import org.apache.solr.search.SyntaxError;
 
 class ScoringParentQParser extends QParser {
-  /** implementation detail subject to change */
-  public String CACHE_NAME="perSegFilter";
 
-  protected String getParentFilterLocalParamName() {
-    return "which";
-  }
+    /**
+     * implementation detail subject to change
+     */
+    public String CACHE_NAME = "perSegFilter";
 
-  ScoringParentQParser(String qstr, SolrParams localParams, SolrParams params, SolrQueryRequest req) {
-    super(qstr, localParams, params, req);
-  }
-
-  @Override
-  public Query parse() throws SyntaxError {
-    if (localParams == null) {
-      throw new SyntaxError ("join query parser must be invoked using localParams");
+    protected String getParentFilterLocalParamName() {
+        return "which";
     }
-    String filter = localParams.get(getParentFilterLocalParamName());
-    QParser parentParser = subQuery(filter, null);
-    Query parentQ = parentParser.getQuery();
 
-    String queryText = localParams.get(QueryParsing.V);
-    // there is no child query, return parent filter from cache
-    if (queryText == null || queryText.length()==0) {
-      SolrConstantScoreQuery wrapped = new SolrConstantScoreQuery(getFilter(parentQ));
-      wrapped.setCache(false);
-      return wrapped;
+    ScoringParentQParser(String qstr, SolrParams localParams, SolrParams params, SolrQueryRequest req) {
+        super(qstr, localParams, params, req);
     }
-    QParser childrenParser = subQuery(queryText, null);
-    Query childrenQuery = childrenParser.getQuery();
-    return createQuery(parentQ, childrenQuery);
-  }
 
-  protected Query createQuery(Query parentList, Query q) {
-    return new SafariBlockJoinQuery(q, getFilter(parentList));
-  }
+    @Override
+    public Query parse() throws SyntaxError {
+        if (localParams == null) {
+            throw new SyntaxError("join query parser must be invoked using localParams");
+        }
+        String filter = localParams.get(getParentFilterLocalParamName());
+        QParser parentParser = subQuery(filter, null);
+        Query parentQ = parentParser.getQuery();
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
-  protected Filter getFilter(Query parentList) {
-    SolrCache parentCache = req.getSearcher().getCache(CACHE_NAME);
-    // lazily retrieve from solr cache
-    Filter filter = null;
-    if (parentCache != null) {
-      filter = (Filter) parentCache.get(parentList);
+        String queryText = localParams.get(QueryParsing.V);
+        // there is no child query, return parent filter from cache
+        if (queryText == null || queryText.length() == 0) {
+            SolrConstantScoreQuery wrapped = new SolrConstantScoreQuery(getFilter(parentQ));
+            wrapped.setCache(false);
+            return wrapped;
+        }
+        QParser childrenParser = subQuery(queryText, null);
+        Query childrenQuery = childrenParser.getQuery();
+        return createQuery(parentQ, childrenQuery);
     }
-    Filter result;
-    if (filter == null) {
-      result = createParentFilter(parentList);
-      if (parentCache != null) {
-        parentCache.put(parentList, result);
-      }
-    } else {
-      result = filter;
-    }
-    return result;
-  }
 
-  protected Filter createParentFilter(Query parentQ) {
-    return new FixedBitSetCachingWrapperFilter(new QueryWrapperFilter(parentQ));
-  }
+    protected Query createQuery(Query parentList, Query q) {
+        return new SafariBlockJoinQuery(q, getFilter(parentList));
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    protected Filter getFilter(Query parentList) {
+        SolrCache parentCache = req.getSearcher().getCache(CACHE_NAME);
+        // lazily retrieve from solr cache
+        Filter filter = null;
+        if (parentCache != null) {
+            filter = (Filter) parentCache.get(parentList);
+        }
+        Filter result;
+        if (filter == null) {
+            result = createParentFilter(parentList);
+            if (parentCache != null) {
+                parentCache.put(parentList, result);
+            }
+        } else {
+            result = filter;
+        }
+        return result;
+    }
+
+    protected Filter createParentFilter(Query parentQ) {
+        return new FixedBitSetCachingWrapperFilter(new QueryWrapperFilter(parentQ));
+    }
 }
-
-
-
-
-
-

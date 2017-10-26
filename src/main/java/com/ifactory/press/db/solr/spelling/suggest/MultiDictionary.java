@@ -25,161 +25,162 @@ import com.ifactory.press.db.solr.spelling.suggest.SafariInfixSuggester.Context;
  */
 public class MultiDictionary implements Dictionary {
 
-  private final List<WeightedDictionary> dicts;
-  
-  public MultiDictionary() {
-    dicts = new ArrayList<WeightedDictionary>();
-  }
+    private final List<WeightedDictionary> dicts;
 
-  public void addDictionary(Dictionary dict, long minWeight, long maxWeight, float weight) {
-    dicts.add(new WeightedDictionary(dict, minWeight, maxWeight, weight));
-  }
-
-  @Override
-  public InputIterator getEntryIterator() throws IOException {
-    return new MultiInputIterator();
-  }
-
-  public static String stripAfflatus(String s) {
-    // strip off non-letters and digits (incl. ideographics and all surrogates)
-    int i = 0;
-    int length = s.length();
-    if (length == 0) {
-      return s;
-    }
-    for (; i < length; i++) {
-      char c = s.charAt(i);
-      if (Character.isLetterOrDigit(c)) {
-        break;
-      }
-    }
-    int j = length - 1;
-    for (; j > i; j--) {
-      char c = s.charAt(j);
-      if (Character.isLetterOrDigit(c)) {
-        break;
-      }
-    }
-    if (j - i == length) {
-      return s;
-    }
-    return s.substring(i, j + 1);
-  }
-
-  final static class WeightedDictionary {
-    final long minWeight;
-    final long maxWeight;
-    final float weight;
-    final Dictionary dict;
-
-    WeightedDictionary(Dictionary dict, long minWeight, long maxWeight, float weight) {
-      this.dict = dict;
-      this.minWeight = minWeight;
-      this.maxWeight = maxWeight;
-      this.weight = weight;
-    }
-  }
-
-  final class MultiInputIterator implements InputIterator {
-
-    private int cur;
-    private WeightedDictionary curDict;
-    private InputIterator curInput;
-    private BytesRefBuilder scratch; // TODO: move to BytesRefBuilder as we upgrade
-    private Set<BytesRef> contexts;
-
-    public MultiInputIterator() throws IOException {
-      cur = -1;
-      scratch = new BytesRefBuilder();
-      nextDict();
+    public MultiDictionary() {
+        dicts = new ArrayList<WeightedDictionary>();
     }
 
-    private WeightedDictionary nextDict() throws IOException {
-      if (++cur < dicts.size()) {
-        curDict = dicts.get(cur);
-        curInput = curDict.dict.getEntryIterator();
-        if (curInput.hasContexts()) {
-          contexts = new HashSet<BytesRef> (curInput.contexts());
-          contexts.add(new BytesRef(new byte[] { (byte) Context.SHOW.ordinal() }));
-        } else {
-          contexts =  Collections.singleton(new BytesRef(new byte[] { (byte) Context.SHOW.ordinal() }));
-        }
-      } else {
-        curDict = null;
-        curInput = null;
-      }
-      return curDict;
+    public void addDictionary(Dictionary dict, long minWeight, long maxWeight, float weight) {
+        dicts.add(new WeightedDictionary(dict, minWeight, maxWeight, weight));
     }
 
     @Override
-    public BytesRef next() throws IOException {
-      BytesRef nextTerm;
-      for (;;) {
-        if (curInput == null) {
-          return null;
+    public InputIterator getEntryIterator() throws IOException {
+        return new MultiInputIterator();
+    }
+
+    public static String stripAfflatus(String s) {
+        // strip off non-letters and digits (incl. ideographics and all surrogates)
+        int i = 0;
+        int length = s.length();
+        if (length == 0) {
+            return s;
         }
-        nextTerm = curInput.next();
-        if (nextTerm == null) {
-          nextDict();
-          continue;
+        for (; i < length; i++) {
+            char c = s.charAt(i);
+            if (Character.isLetterOrDigit(c)) {
+                break;
+            }
         }
+        int j = length - 1;
+        for (; j > i; j--) {
+            char c = s.charAt(j);
+            if (Character.isLetterOrDigit(c)) {
+                break;
+            }
+        }
+        if (j - i == length) {
+            return s;
+        }
+        return s.substring(i, j + 1);
+    }
+
+    final static class WeightedDictionary {
+
+        final long minWeight;
+        final long maxWeight;
+        final float weight;
+        final Dictionary dict;
+
+        WeightedDictionary(Dictionary dict, long minWeight, long maxWeight, float weight) {
+            this.dict = dict;
+            this.minWeight = minWeight;
+            this.maxWeight = maxWeight;
+            this.weight = weight;
+        }
+    }
+
+    final class MultiInputIterator implements InputIterator {
+
+        private int cur;
+        private WeightedDictionary curDict;
+        private InputIterator curInput;
+        private BytesRefBuilder scratch; // TODO: move to BytesRefBuilder as we upgrade
+        private Set<BytesRef> contexts;
+
+        public MultiInputIterator() throws IOException {
+            cur = -1;
+            scratch = new BytesRefBuilder();
+            nextDict();
+        }
+
+        private WeightedDictionary nextDict() throws IOException {
+            if (++cur < dicts.size()) {
+                curDict = dicts.get(cur);
+                curInput = curDict.dict.getEntryIterator();
+                if (curInput.hasContexts()) {
+                    contexts = new HashSet<BytesRef>(curInput.contexts());
+                    contexts.add(new BytesRef(new byte[]{(byte) Context.SHOW.ordinal()}));
+                } else {
+                    contexts = Collections.singleton(new BytesRef(new byte[]{(byte) Context.SHOW.ordinal()}));
+                }
+            } else {
+                curDict = null;
+                curInput = null;
+            }
+            return curDict;
+        }
+
+        @Override
+        public BytesRef next() throws IOException {
+            BytesRef nextTerm;
+            for (;;) {
+                if (curInput == null) {
+                    return null;
+                }
+                nextTerm = curInput.next();
+                if (nextTerm == null) {
+                    nextDict();
+                    continue;
+                }
         // check thresholds - note that the minWeight test may be redundant with
-        // HighFrequencyDictionary's
-        // threshold; a possible performance optimization would be to create a
-        // specialized version of this
-        // class for use w/HFD that skips that test...
-        if (curInput.weight() > curDict.maxWeight || curInput.weight() < curDict.minWeight) {
-          continue;
+                // HighFrequencyDictionary's
+                // threshold; a possible performance optimization would be to create a
+                // specialized version of this
+                // class for use w/HFD that skips that test...
+                if (curInput.weight() > curDict.maxWeight || curInput.weight() < curDict.minWeight) {
+                    continue;
+                }
+                break;
+            }
+            return stripAfflatus(nextTerm);
         }
-        break;
-      }
-      return stripAfflatus(nextTerm);
-    }
 
-    private BytesRef stripAfflatus(BytesRef nextTerm) {
+        private BytesRef stripAfflatus(BytesRef nextTerm) {
       // strip off non-letters and digits (incl. ideographics and all
-      // surrogates)
-      String s0 = nextTerm.utf8ToString();
-      String s = MultiDictionary.stripAfflatus(s0);
-      if (s == s0) {
-        return nextTerm;
-      }
-      scratch.copyChars(s);
-      return scratch.get();
-    }
+            // surrogates)
+            String s0 = nextTerm.utf8ToString();
+            String s = MultiDictionary.stripAfflatus(s0);
+            if (s == s0) {
+                return nextTerm;
+            }
+            scratch.copyChars(s);
+            return scratch.get();
+        }
 
-    @Override
-    public long weight() {
+        @Override
+        public long weight() {
       // TODO possible performance optimization would avoid this when weight ==
-      // 1.0?
-      return (long) (curInput.weight() * curDict.weight);
-    }
+            // 1.0?
+            return (long) (curInput.weight() * curDict.weight);
+        }
 
-    @Override
-    public Comparator<BytesRef> getComparator() {
-      return curInput.getComparator();
-    }
+        @Override
+        public Comparator<BytesRef> getComparator() {
+            return curInput.getComparator();
+        }
 
-    @Override
-    public BytesRef payload() {
-      return curInput.payload();
-    }
+        @Override
+        public BytesRef payload() {
+            return curInput.payload();
+        }
 
-    @Override
-    public boolean hasPayloads() {
-      return curInput.hasPayloads();
-    }
+        @Override
+        public boolean hasPayloads() {
+            return curInput.hasPayloads();
+        }
 
-    @Override
-    public Set<BytesRef> contexts() {
-      return contexts;
-    }
+        @Override
+        public Set<BytesRef> contexts() {
+            return contexts;
+        }
 
-    @Override
-    public boolean hasContexts() {
-      return true;
-    }
+        @Override
+        public boolean hasContexts() {
+            return true;
+        }
 
-  }
+    }
 
 }
