@@ -100,9 +100,16 @@ public class PostingsHighlighterTest {
 
     class SynonymAnalyzer extends Analyzer {
 
-        @Override
-        protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
+        
+        /*protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
             Tokenizer tokenizer = new WhitespaceTokenizer(reader);
+            TokenFilter filter = new LowerCaseFilter(tokenizer);
+            return new TokenStreamComponents(tokenizer, filter);
+        }*/  // rfhi
+
+        @Override
+        protected TokenStreamComponents createComponents(String string) {
+            Tokenizer tokenizer = new WhitespaceTokenizer();
             TokenFilter filter = new LowerCaseFilter(tokenizer);
             return new TokenStreamComponents(tokenizer, filter);
         }
@@ -117,12 +124,12 @@ public class PostingsHighlighterTest {
         }
 
         @Override
-        protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
+        protected TokenStreamComponents createComponents(String fieldName) { //, Reader reader) {
             CharFilter charFilter = new HTMLStripCharFilter(reader);
             Pattern pat1 = Pattern.compile("([A-Za-z])\\+\\+");
             charFilter = new PatternReplaceCharFilter(pat1, "$1plusplus", charFilter);
             charFilter = new PatternReplaceCharFilter(Pattern.compile("([A-Za-z])\\#"), "$1sharp", charFilter);
-            Tokenizer tokenizer = new WhitespaceTokenizer(charFilter);
+            Tokenizer tokenizer = new WhitespaceTokenizer(); //(charFilter);
             // TODO protwords.txt
             TokenFilter filter = new WordDelimiterFilter(tokenizer,
                     GENERATE_WORD_PARTS
