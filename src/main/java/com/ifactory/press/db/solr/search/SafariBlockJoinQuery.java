@@ -5,6 +5,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Locale;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.IndexReader;
@@ -12,7 +14,7 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.DocIdSet;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.Explanation;
-import org.apache.lucene.search.Filter;
+import org.apache.solr.search.Filter;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Scorer;
@@ -183,14 +185,14 @@ public class SafariBlockJoinQuery extends Query {
             return parentDoc;
         }
 
-        @Override
+        // rfhi took out override, is this needed?
         public int nextDoc() throws IOException {
             //System.out.println("Q.nextDoc() nextChildDoc=" + nextChildDoc);
             // Loop until we hit a parentDoc that's accepted
             while (true) {
-                if (nextChildDoc == NO_MORE_DOCS) {
+                if (nextChildDoc == DocIdSetIterator.NO_MORE_DOCS) {
                     //System.out.println("  end");
-                    return parentDoc = NO_MORE_DOCS;
+                    return parentDoc = DocIdSetIterator.NO_MORE_DOCS;
                 }
 
                 // Gather all children sharing the same parent as
@@ -209,7 +211,7 @@ public class SafariBlockJoinQuery extends Query {
                     // Parent doc not accepted; skip child docs until
                     // we hit a new parent doc:
                     do {
-                        nextChildDoc = childScorer.nextDoc();
+                        nextChildDoc = childScorer.iterator().nextDoc(); // rfhi added .iterator()
                     } while (nextChildDoc <= parentDoc);
 
                     continue;
@@ -225,7 +227,7 @@ public class SafariBlockJoinQuery extends Query {
                         maxScoringDoc = nextChildDoc;
                     }
                     totalFreq += childFreq;
-                    nextChildDoc = childScorer.nextDoc();
+                    nextChildDoc = childScorer.iterator().nextDoc();
                 } while (nextChildDoc <= parentDoc);
 
                 //System.out.println("  return parentDoc=" + parentDoc + " childDocUpto=" + childDocUpto);
@@ -248,12 +250,12 @@ public class SafariBlockJoinQuery extends Query {
             return totalFreq;
         }
 
-        @Override
+        // rfhi took out override, is this needed?
         public int advance(int parentTarget) throws IOException {
 
             //System.out.println("Q.advance parentTarget=" + parentTarget);
-            if (parentTarget == NO_MORE_DOCS) {
-                return parentDoc = NO_MORE_DOCS;
+            if (parentTarget == DocIdSetIterator.NO_MORE_DOCS) {
+                return parentDoc = DocIdSetIterator.NO_MORE_DOCS;
             }
 
             if (parentTarget == 0) {
@@ -271,7 +273,7 @@ public class SafariBlockJoinQuery extends Query {
             //System.out.println("  rolled back to prevParentDoc=" + prevParentDoc + " vs parentDoc=" + parentDoc);
             assert prevParentDoc >= parentDoc;
             if (prevParentDoc > nextChildDoc) {
-                nextChildDoc = childScorer.advance(prevParentDoc);
+                nextChildDoc = childScorer.iterator().advance(prevParentDoc);
                 // System.out.println("  childScorer advanced to child docID=" + nextChildDoc);
                 //} else {
                 //System.out.println("  skip childScorer advance");
@@ -290,16 +292,27 @@ public class SafariBlockJoinQuery extends Query {
             );
         }
 
-        @Override
+        
         public long cost() {
-            return childScorer.cost();
+            return childScorer.iterator().cost();  // rfhi added iterator
+        }
+
+        @Override
+        public DocIdSetIterator iterator() {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
         }
 
     }
 
-    @Override
+    //@Override rfhi more extract terms to check out  IndexSearcher and Float
     public void extractTerms(Set<Term> terms) {
-        childQuery.extractTerms(terms);
+        Weight w = null;
+        try {
+            w = childQuery.createWeight(null, true, 0.8f);
+        } catch (IOException ex) {
+            Logger.getLogger(SafariBlockJoinQuery.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        w.extractTerms(terms);
     }
 
     @Override
@@ -326,8 +339,8 @@ public class SafariBlockJoinQuery extends Query {
         if (_other instanceof SafariBlockJoinQuery) {
             final SafariBlockJoinQuery other = (SafariBlockJoinQuery) _other;
             return origChildQuery.equals(other.origChildQuery)
-                    && parentsFilter.equals(other.parentsFilter)
-                    && super.equals(other);
+                    && parentsFilter.equals(other.parentsFilter);
+                    //&& super.equals(other); //rfhi no super call - abstract //TODO
         } else {
             return false;
         }
@@ -336,8 +349,8 @@ public class SafariBlockJoinQuery extends Query {
     @Override
     public int hashCode() {
         final int prime = 31;
-        int hash = super.hashCode();
-        hash = prime * hash + origChildQuery.hashCode();
+        int hash = 1;  // rfhi this is abstract to begin with, so can't call super
+        hash = prime * hash + origChildQuery.hashCode();  // rfhi should we add or mult?
         hash = prime * hash + parentsFilter.hashCode();
         return hash;
     }
