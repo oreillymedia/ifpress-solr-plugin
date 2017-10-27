@@ -3,6 +3,8 @@ package com.ifactory.press.db.solr.highlight;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.CharArrayReader;
 import java.text.ParseException;
 import java.util.regex.Pattern;
 import org.apache.commons.io.IOUtils;
@@ -125,7 +127,9 @@ public class PostingsHighlighterTest {
         }
 
         @Override
-        protected TokenStreamComponents createComponents(String fieldName) { //, Reader reader) {
+        protected TokenStreamComponents createComponents(String fieldName) { 
+//, Reader reader) { rfhi had to take this out of param list  -- need to trace
+            Reader reader = new CharArrayReader(fieldName.toCharArray());
             CharFilter charFilter = new HTMLStripCharFilter(reader);
             Pattern pat1 = Pattern.compile("([A-Za-z])\\+\\+");
             charFilter = new PatternReplaceCharFilter(pat1, "$1plusplus", charFilter);
