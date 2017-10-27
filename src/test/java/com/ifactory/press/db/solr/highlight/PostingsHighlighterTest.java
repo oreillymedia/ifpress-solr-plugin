@@ -1,15 +1,10 @@
 package com.ifactory.press.db.solr.highlight;
 
-import static org.junit.Assert.*;
-import static org.apache.lucene.analysis.miscellaneous.WordDelimiterFilter.*;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.Reader;
 import java.text.ParseException;
 import java.util.regex.Pattern;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.CharFilter;
@@ -20,6 +15,7 @@ import org.apache.lucene.analysis.core.LowerCaseFilter;
 import org.apache.lucene.analysis.core.WhitespaceTokenizer;
 import org.apache.lucene.analysis.miscellaneous.RemoveDuplicatesTokenFilter;
 import org.apache.lucene.analysis.miscellaneous.WordDelimiterFilter;
+import static org.apache.lucene.analysis.miscellaneous.WordDelimiterFilter.*;
 import org.apache.lucene.analysis.pattern.PatternReplaceCharFilter;
 import org.apache.lucene.analysis.synonym.SolrSynonymParser;
 import org.apache.lucene.analysis.synonym.SynonymFilter;
@@ -39,12 +35,13 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
-import org.apache.solr.highlight.UnifiedSolrHighlighter;
-//864 * SOLR-10700: Deprecated and converted the PostingsSolrHighlighter to extend UnifiedSolrHighlighter and thus no
-// 865   longer use the PostingsHighlighter.  It should behave mostly the same. (David Smiley)
 import org.apache.lucene.store.RAMDirectory;
 import org.apache.lucene.util.Version;
+import org.apache.solr.highlight.PostingsSolrHighlighter;
+//864 * SOLR-10700: Deprecated and converted the PostingsSolrHighlighter to extend UnifiedSolrHighlighter and thus no
+// 865   longer use the PostingsHighlighter.  It should behave mostly the same. (David Smiley)
 import org.junit.After;
+import static org.junit.Assert.*;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -57,7 +54,8 @@ public class PostingsHighlighterTest {
     @Before
     public void startup() throws IOException {
         RAMDirectory dir = new RAMDirectory();
-        IndexWriterConfig iwc = new IndexWriterConfig(VERSION, new SafariAnalyzer(true));
+        // rfhi version is being taken out: Does this matter?  //VERSION, 
+        IndexWriterConfig iwc = new IndexWriterConfig(new SafariAnalyzer(true));
         iw = new IndexWriter(dir, iwc);
     }
 
@@ -85,14 +83,17 @@ public class PostingsHighlighterTest {
         iw.addDocument(doc);
         iw.commit();
 
-        DirectoryReader reader = DirectoryReader.open(iw, true);
+        DirectoryReader reader = DirectoryReader.open(iw); //, true);   // rfhi - doesn't need boolean
         IndexSearcher searcher = new IndexSearcher(reader);
 
         // retrieve highlights at query time 
-        UnifiedSolrHighlighter highlighter = new UnifiedSolrHighlighter();//new PostingsHighlighter(100000);
+        PostingsSolrHighlighter highlighter = new PostingsSolrHighlighter();//new PostingsHighlighter(100000);
         Query query = new TermQuery(new Term("text", "gas"));
         TopDocs topDocs = searcher.search(query, 1);
-        String highlights[] = highlighter.highlight("text", query, searcher, topDocs);
+        //String highlights[] = highlighter.highlight("text", query, searcher, topDocs);  //rfhi took this out test this
+        String[] entries = {"text"};
+        String highlights[] = highlighter.getHighlightFields(query, null, entries);  // null is SolrQueryRequest -- is this searcher?
+        //highlighter.do
         assertEquals(1, highlights.length);
         assertNotNull("PH returns null highlight", highlights[0]);
         assertTrue(highlights[0] + " \n does not contain <b>gas</b>", highlights[0].contains("<b>gas</b>"));
