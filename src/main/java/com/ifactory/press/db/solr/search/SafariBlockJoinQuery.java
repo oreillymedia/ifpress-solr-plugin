@@ -96,7 +96,7 @@ public class SafariBlockJoinQuery extends Query {
         public Query getQuery() {
             return joinQuery;
         } */
-
+/*
         @Override
         public float getValueForNormalization() throws IOException {
             return childWeight.getValueForNormalization() * joinQuery.getBoost() * joinQuery.getBoost();
@@ -106,9 +106,9 @@ public class SafariBlockJoinQuery extends Query {
         public void normalize(float norm, float topLevelBoost) {
             childWeight.normalize(norm, topLevelBoost * joinQuery.getBoost());
         }
-
+*/
         // NOTE: unlike Lucene's TPBJQ, acceptDocs applies to *both* child and parent documents
-        @Override
+        //@Override  rfhi
         public Scorer scorer(LeafReaderContext readerContext, Bits acceptDocs) throws IOException {
 
             //final Scorer childScorer = childWeight.scorer(readerContext, acceptDocs);
@@ -118,7 +118,7 @@ public class SafariBlockJoinQuery extends Query {
                 return null;
             }
 
-            final int firstChildDoc = childScorer.nextDoc();
+            final int firstChildDoc = childScorer.iterator().nextDoc();
             if (firstChildDoc == DocIdSetIterator.NO_MORE_DOCS) {
                 // No matches
                 return null;
@@ -334,7 +334,7 @@ public class SafariBlockJoinQuery extends Query {
             Query rewritten = new SafariBlockJoinQuery(origChildQuery,
                     childRewrite,
                     parentsFilter);
-            rewritten.setBoost(getBoost());
+            //rewritten.setBoost(getBoost());
             return rewritten;
         } else {
             return this;
