@@ -73,9 +73,10 @@ public class SafariBlockJoinQuery extends Query {
         this.parentsFilter = parentsFilter;
     }
 
-    @Override
+    //@Override  rfhi 
     public Weight createWeight(IndexSearcher searcher) throws IOException {
-        return new BlockJoinWeight(this, childQuery.createWeight(searcher), parentsFilter);
+        //return new BlockJoinWeight(this, childQuery.createWeight(searcher), parentsFilter);
+        return new BlockJoinWeight(this, childQuery.createWeight(searcher, true, 0.8f), parentsFilter);  // rfhi createWeight was createWeight(searcher)
     }
 
     private static class BlockJoinWeight extends Weight {
@@ -85,16 +86,16 @@ public class SafariBlockJoinQuery extends Query {
         private final Filter parentsFilter;
 
         public BlockJoinWeight(Query joinQuery, Weight childWeight, Filter parentsFilter) {
-            super();
+            super(joinQuery);  //super() rfhi
             this.joinQuery = joinQuery;
             this.childWeight = childWeight;
             this.parentsFilter = parentsFilter;
         }
 
-        @Override
+        /* @Override   // rfhi
         public Query getQuery() {
             return joinQuery;
-        }
+        } */
 
         @Override
         public float getValueForNormalization() throws IOException {
@@ -110,7 +111,8 @@ public class SafariBlockJoinQuery extends Query {
         @Override
         public Scorer scorer(LeafReaderContext readerContext, Bits acceptDocs) throws IOException {
 
-            final Scorer childScorer = childWeight.scorer(readerContext, acceptDocs);
+            //final Scorer childScorer = childWeight.scorer(readerContext, acceptDocs);
+            final Scorer childScorer = childWeight.scorer(readerContext); // accept docs need to go in
             if (childScorer == null) {
                 // No matches
                 return null;
@@ -133,11 +135,11 @@ public class SafariBlockJoinQuery extends Query {
                 // No matches
                 return null;
             }
-            if (!(parents instanceof FixedBitSet)) {
+            if (!(parents.bits() instanceof FixedBitSet)) {
                 throw new IllegalStateException("parentFilter must return FixedBitSet; got " + parents);
             }
 
-            return new BlockJoinScorer(this, childScorer, (FixedBitSet) parents, firstChildDoc, acceptDocs);
+            return new BlockJoinScorer(this, childScorer,  (FixedBitSet)parents.bits(), firstChildDoc, acceptDocs); // (FixedBitSet)parents  rfhi
         }
 
         @Override
@@ -149,9 +151,19 @@ public class SafariBlockJoinQuery extends Query {
             return Explanation.noMatch("Not a match");
         }
 
-        @Override
+        //@Override
         public boolean scoresDocsOutOfOrder() {
             return false;
+        }
+
+        @Override
+        public void extractTerms(Set<Term> set) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
+        @Override
+        public Scorer scorer(LeafReaderContext lrc) throws IOException {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
         }
     }
 
@@ -250,7 +262,7 @@ public class SafariBlockJoinQuery extends Query {
             return totalFreq;
         }
 
-        // rfhi took out override, is this needed?
+        // @Override  rfhi took out override, is this needed?  This may not be called if some other method is called instead
         public int advance(int parentTarget) throws IOException {
 
             //System.out.println("Q.advance parentTarget=" + parentTarget);
