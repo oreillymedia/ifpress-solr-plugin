@@ -4,7 +4,7 @@ import java.io.File;
 import java.io.IOException;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.solr.client.solrj.SolrServer;
+import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
 import org.apache.solr.core.CoreContainer;
@@ -17,7 +17,7 @@ import org.junit.BeforeClass;
 public class SolrTest {
 
     static CoreContainer coreContainer;
-    protected SolrServer solr;
+    protected SolrClient solr;   // rivey
 
     @BeforeClass
     public static void startup() throws Exception {
