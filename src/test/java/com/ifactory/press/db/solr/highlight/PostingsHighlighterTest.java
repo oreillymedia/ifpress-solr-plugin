@@ -98,16 +98,11 @@ public class PostingsHighlighterTest {
 
     class SynonymAnalyzer extends Analyzer {
 
-        //@Override
-        protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
-            Tokenizer tokenizer = new WhitespaceTokenizer(reader);
-            TokenFilter filter = new LowerCaseFilter(tokenizer);
-            return new TokenStreamComponents(tokenizer, filter);
-        }
-
         @Override //  rivey newly added
         protected TokenStreamComponents createComponents(String string) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            Tokenizer tokenizer = new WhitespaceTokenizer(); //  (reader);   rivey does this not need a reader passed to it? check usage
+            TokenFilter filter = new LowerCaseFilter(tokenizer);
+            return new TokenStreamComponents(tokenizer, filter);
         }
     }
 
