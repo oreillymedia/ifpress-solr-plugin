@@ -19,6 +19,8 @@ import org.apache.solr.common.params.CoreAdminParams.CoreAdminAction;
 import org.junit.Test;
 
 import com.ifactory.press.db.solr.SolrTest;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class MultiSuggesterTest extends SolrTest {
 
@@ -109,7 +111,12 @@ public class MultiSuggesterTest extends SolrTest {
         SolrQuery q = new SolrQuery(prefix);
         q.setRequestHandler("/suggest/" + suggester);
         q.set("spellcheck.count", 100);
-        QueryResponse resp = solr.query(q);
+        QueryResponse resp = null;  // rivey add catch
+        try {
+            resp = solr.query(q);
+        } catch (IOException ex) {
+            Logger.getLogger(MultiSuggesterTest.class.getName()).log(Level.SEVERE, null, ex);
+        }
         SpellCheckResponse scr = resp.getSpellCheckResponse();
         assertNotNull("no spell check reponse found", scr);
         Suggestion suggestion = scr.getSuggestion(prefix);
@@ -175,9 +182,14 @@ public class MultiSuggesterTest extends SolrTest {
         SolrQuery q = new SolrQuery("t");
         q.setRequestHandler("/suggest/title");
         q.set("spellcheck.build", "true");
-        solr.query(q);
+        QueryResponse qr = null;
+        try {
+            qr = solr.query(q);
+        } catch (IOException ex) {
+            Logger.getLogger(MultiSuggesterTest.class.getName()).log(Level.SEVERE, null, ex);
+        }
         q.setRequestHandler("/suggest/all");
-        return solr.query(q);
+        return qr;
     }
 
     /*
