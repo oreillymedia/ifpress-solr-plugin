@@ -28,6 +28,9 @@ import org.apache.solr.common.SolrInputDocument;
 import org.junit.Test;
 
 import com.ifactory.press.db.solr.SolrTest;
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class UpdateDocValuesTest extends SolrTest {
 
@@ -118,7 +121,12 @@ public class UpdateDocValuesTest extends SolrTest {
         final SolrQuery query = new SolrQuery(String.format("%s:\"%s\"", URI, uri));
         final String weightField = String.format("field(%s)", WEIGHT_DV);
         query.setFields(URI, weightField);
-        QueryResponse resp = solr.query(query);
+        QueryResponse resp = null; // rivey adding catch exception
+        try {
+            resp = solr.query(query);
+        } catch (IOException ex) {
+            Logger.getLogger(UpdateDocValuesTest.class.getName()).log(Level.SEVERE, null, ex);
+        }
         SolrDocumentList docs = resp.getResults();
         Integer wt = (Integer) docs.get(0).getFirstValue(weightField);
         assertEquals(dv, wt);
@@ -147,7 +155,12 @@ public class UpdateDocValuesTest extends SolrTest {
     }
 
     private String getFirstUri(SolrQuery query) throws SolrServerException {
-        QueryResponse resp = solr.query(query);
+        QueryResponse resp = null;
+        try {
+            resp = solr.query(query);
+        } catch (IOException ex) {
+            Logger.getLogger(UpdateDocValuesTest.class.getName()).log(Level.SEVERE, null, ex);
+        }
         SolrDocumentList docs = resp.getResults();
         return (String) docs.get(0).getFirstValue(URI);
     }
