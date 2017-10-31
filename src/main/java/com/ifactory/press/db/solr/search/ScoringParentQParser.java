@@ -19,7 +19,7 @@ package com.ifactory.press.db.solr.search;
 import org.apache.lucene.search.Filter;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.QueryWrapperFilter;
-import org.apache.lucene.search.join.FixedBitSetCachingWrapperFilter;
+//import org.apache.lucene.search.join.FixedBitSetCachingWrapperFilter;
 import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.request.SolrQueryRequest;
 import org.apache.solr.search.QParser;
@@ -89,6 +89,6 @@ class ScoringParentQParser extends QParser {
     }
 
     protected Filter createParentFilter(Query parentQ) {
-        return new FixedBitSetCachingWrapperFilter(new QueryWrapperFilter(parentQ));
+        return new QueryWrapperFilter(parentQ); // rfhi was FixedBitSetCachingWrapperFilter
     }
 }
