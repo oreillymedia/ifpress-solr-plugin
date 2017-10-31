@@ -87,10 +87,12 @@ public class SafariInfixSuggester extends AnalyzingInfixSuggester {
             return null;
         }
 
+        /* rivey  comparator is not inherited as abstract here
         @Override
         public Comparator<BytesRef> getComparator() {
             return null;
         }
+        */
 
         @Override
         public long weight() {
