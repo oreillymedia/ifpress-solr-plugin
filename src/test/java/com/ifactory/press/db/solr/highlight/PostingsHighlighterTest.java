@@ -1,5 +1,6 @@
 package com.ifactory.press.db.solr.highlight;
 
+import java.io.CharArrayReader;
 import static org.junit.Assert.*;
 import static org.apache.lucene.analysis.miscellaneous.WordDelimiterFilter.*;
 
@@ -114,8 +115,10 @@ public class PostingsHighlighterTest {
             this.isIndexAnalyzer = isIndexAnalyzer;
         }
 
-        //@Override
-        protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
+        @Override
+        protected TokenStreamComponents createComponents(String fieldName) {
+            //, Reader reader) { rivey - had to take this out of param list  -- need to trace
+            Reader reader = new CharArrayReader(fieldName.toCharArray());
             CharFilter charFilter = new HTMLStripCharFilter(reader);
             Pattern pat1 = Pattern.compile("([A-Za-z])\\+\\+");
             charFilter = new PatternReplaceCharFilter(pat1, "$1plusplus", charFilter);  // this is freed
@@ -152,10 +155,6 @@ public class PostingsHighlighterTest {
             }
         }
 
-        @Override  // rivey added this
-        protected TokenStreamComponents createComponents(String string) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-        }
 
     }
 
