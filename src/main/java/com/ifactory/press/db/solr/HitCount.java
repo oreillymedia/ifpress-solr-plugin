@@ -55,7 +55,7 @@ public class HitCount extends ValueSourceParser {
         Query q = fp.subQuery(fp.getParams().get("q"), "lucene").getQuery();
         Weight w = null;
         try {
-            w = q.createWeight(null, true); // rivey need to get Weight in order to extract terms
+            w = q.createWeight(null, true); // rivey need to get Weight in order to extract terms  IndexSearcher needed here
         } catch (IOException ex) {
             Logger.getLogger(HitCount.class.getName()).log(Level.SEVERE, null, ex);
         }
