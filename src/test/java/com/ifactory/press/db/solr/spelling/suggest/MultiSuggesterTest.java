@@ -182,7 +182,7 @@ public class MultiSuggesterTest extends SolrTest {
         SolrQuery q = new SolrQuery("t");
         q.setRequestHandler("/suggest/title");
         q.set("spellcheck.build", "true");
-        QueryResponse qr = null;
+        QueryResponse qr = null;  // rivey catch exception
         try {
             qr = solr.query(q);
         } catch (IOException ex) {
