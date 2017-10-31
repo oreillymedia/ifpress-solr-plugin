@@ -119,7 +119,7 @@ public class PostingsHighlighterTest {
             this.isIndexAnalyzer = isIndexAnalyzer;
         }
 
-        @Override
+        //@Override
         protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
             CharFilter charFilter = new HTMLStripCharFilter(reader);
             Pattern pat1 = Pattern.compile("([A-Za-z])\\+\\+");
