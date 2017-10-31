@@ -15,6 +15,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.ifactory.press.db.solr.HeronSolrTest;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class SolrPostingsHighlighterTest extends HeronSolrTest {
 
@@ -46,7 +48,12 @@ public class SolrPostingsHighlighterTest extends HeronSolrTest {
         query.set("hl.tag.ellipsis", "¦");
         query.set("f.text.hl.snippets", 3); // override value of 3 specified in solrconfig.xml
         // query.set("hl.maxAnalyzedChars", 250000);
-        QueryResponse resp = solr.query(query);
+        QueryResponse resp = null;
+        try {
+            resp = solr.query(query);
+        } catch (IOException ex) {
+            Logger.getLogger(SolrPostingsHighlighterTest.class.getName()).log(Level.SEVERE, null, ex);
+        }
         SolrDocumentList results = resp.getResults();
         assertEquals(1, results.getNumFound());
         assertNotNull("PH returns null highlight", resp.getHighlighting());
