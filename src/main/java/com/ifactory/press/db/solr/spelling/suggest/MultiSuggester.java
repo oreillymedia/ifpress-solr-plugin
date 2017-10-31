@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimaps;
+import org.apache.lucene.util.BytesRefBuilder;
 
 /**
  * <h3>A suggester that draws suggestions from terms in multiple fields.</h3>
@@ -411,7 +412,9 @@ public class MultiSuggester extends Suggester {
             // commit
             ConcurrentHashMap<String, Integer> batch = fld.pending;
             fld.pending = new ConcurrentHashMap<String, Integer>(batch.size());
-            BytesRef bytes = new BytesRef(maxSuggestionLength);
+            BytesRef bytes = new BytesRef(maxSuggestionLength);  // rivey 3 lines to prep for below
+            BytesRefBuilder bytesRefBuilder = new BytesRefBuilder();
+            bytesRefBuilder.append(bytes);
             Term t = new Term(fld.fieldName, bytes);
             long minCount = (long) (fld.minFreq * docCount);
             long maxCount = (long) (docCount <= 1 ? Long.MAX_VALUE : (fld.maxFreq * docCount + 1));
@@ -442,7 +445,7 @@ public class MultiSuggester extends Suggester {
                     }
                 }
                 //bytes.copyChars(term) //rfhi
-                bytesRefBuilder.copyChars(term);
+                bytesRefBuilder.copyChars(term);  // rivey build it instead of using deprecated internal bytesref functionality
                 bytes = bytesRefBuilder.get();
                 ais.update(bytes, weight);
             }
