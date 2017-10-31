@@ -156,10 +156,10 @@ public class MultiDictionary implements Dictionary {
             return (long) (curInput.weight() * curDict.weight);
         }
 
-        @Override
+        /* @Override
         public Comparator<BytesRef> getComparator() {
             return curInput.getComparator();
-        }
+        } */
 
         @Override
         public BytesRef payload() {
