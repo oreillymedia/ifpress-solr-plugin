@@ -31,7 +31,7 @@ import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.FieldInfo.IndexOptions;
+import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.Term;
@@ -98,11 +98,16 @@ public class PostingsHighlighterTest {
 
     class SynonymAnalyzer extends Analyzer {
 
-        @Override
+        //@Override
         protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
             Tokenizer tokenizer = new WhitespaceTokenizer(reader);
             TokenFilter filter = new LowerCaseFilter(tokenizer);
             return new TokenStreamComponents(tokenizer, filter);
+        }
+
+        @Override //  rivey newly added
+        protected TokenStreamComponents createComponents(String string) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
         }
     }
 
@@ -120,7 +125,8 @@ public class PostingsHighlighterTest {
             Pattern pat1 = Pattern.compile("([A-Za-z])\\+\\+");
             charFilter = new PatternReplaceCharFilter(pat1, "$1plusplus", charFilter);
             charFilter = new PatternReplaceCharFilter(Pattern.compile("([A-Za-z])\\#"), "$1sharp", charFilter);
-            Tokenizer tokenizer = new WhitespaceTokenizer(charFilter);
+            Tokenizer tokenizer = new WhitespaceTokenizer();
+            //Tokenizer tokenizer = new WhitespaceTokenizer(charFilter);
             // TODO protwords.txt
             TokenFilter filter = new WordDelimiterFilter(tokenizer,
                     GENERATE_WORD_PARTS
