@@ -46,7 +46,7 @@ public class HitCount extends ValueSourceParser {
         // we could call fp.parseNestedQuery()
         //LUCENE-6425: Replaced Query.extractTerms with Weight.extractTerms.
         //3015   (Adrien Grand)
-        HashSet<String> fields = new HashSet<String>(); 
+        HashSet<String> fields = new HashSet<>(); 
         while (fp.hasMoreArguments()) {
             fields.add(fp.parseArg());
         }
@@ -60,13 +60,13 @@ public class HitCount extends ValueSourceParser {
             Logger.getLogger(HitCount.class.getName()).log(Level.SEVERE, null, ex);
         }
         
-        HashSet<Term> terms = new HashSet<Term>(); 
+        HashSet<Term> terms = new HashSet<>(); 
         try {
             w.extractTerms(terms);
         } catch (UnsupportedOperationException e) {
             return new DoubleConstValueSource (1);
         }
-        ArrayList<ValueSource> termcounts = new ArrayList<ValueSource>();
+        ArrayList<ValueSource> termcounts = new ArrayList<>();
         for (Term t : terms) {
             if (fields.isEmpty() || fields.contains (t.field())) {
                 termcounts.add (new TermFreqValueSource(t.field(), t.text(), t.field(), t.bytes()));
