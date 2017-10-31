@@ -28,7 +28,7 @@ public class SafariInfixSuggester extends AnalyzingInfixSuggester {
 
     public SafariInfixSuggester(Version matchVersion, Directory dir, Analyzer indexAnalyzer, Analyzer queryAnalyzer,
             int minPrefixChars, boolean highlight) throws IOException {
-        super(matchVersion, dir, indexAnalyzer, queryAnalyzer, minPrefixChars);
+        super(dir, indexAnalyzer, queryAnalyzer, minPrefixChars, true);  // rivey - (matchVersion, take out Needs Testing
         this.highlight = highlight;
 
         showContext = Collections.singleton(new BytesRef(new byte[]{(byte) Context.SHOW.ordinal()}));
