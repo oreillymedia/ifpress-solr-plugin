@@ -441,8 +441,9 @@ public class MultiSuggester extends Suggester {
                         weight = (fld.weight * count) / docCount;
                     }
                 }
-                bytes.copyChars(term);
-                // LOG.debug("add " + bytes.utf8ToString());
+                //bytes.copyChars(term) //rfhi
+                bytesRefBuilder.copyChars(term);
+                bytes = bytesRefBuilder.get();
                 ais.update(bytes, weight);
             }
         }
