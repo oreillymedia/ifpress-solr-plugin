@@ -114,7 +114,7 @@ public class SafariBlockJoinQuery extends Query {
                 return null;
             }
 
-            final int firstChildDoc = childScorer.nextDoc();
+            final int firstChildDoc = childScorer.iterator().nextDoc();  // rivey iterator added
             if (firstChildDoc == DocIdSetIterator.NO_MORE_DOCS) {
                 // No matches
                 return null;
@@ -188,9 +188,9 @@ public class SafariBlockJoinQuery extends Query {
       //System.out.println("Q.nextDoc() nextChildDoc=" + nextChildDoc);
             // Loop until we hit a parentDoc that's accepted
             while (true) {
-                if (nextChildDoc == NO_MORE_DOCS) {
+                if (nextChildDoc == DocIdSetIterator.NO_MORE_DOCS) {
                     //System.out.println("  end");
-                    return parentDoc = NO_MORE_DOCS;
+                    return parentDoc = DocIdSetIterator.NO_MORE_DOCS;
                 }
 
         // Gather all children sharing the same parent as
@@ -252,8 +252,8 @@ public class SafariBlockJoinQuery extends Query {
         public int advance(int parentTarget) throws IOException {
 
             //System.out.println("Q.advance parentTarget=" + parentTarget);
-            if (parentTarget == NO_MORE_DOCS) {
-                return parentDoc = NO_MORE_DOCS;
+            if (parentTarget == DocIdSetIterator.NO_MORE_DOCS) {
+                return parentDoc = DocIdSetIterator.NO_MORE_DOCS;
             }
 
             if (parentTarget == 0) {
@@ -293,6 +293,11 @@ public class SafariBlockJoinQuery extends Query {
         @Override
         public long cost() {
             return childScorer.cost();
+        }
+
+        @Override  // rivey - iterator method added here
+        public DocIdSetIterator iterator() {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
         }
 
     }
