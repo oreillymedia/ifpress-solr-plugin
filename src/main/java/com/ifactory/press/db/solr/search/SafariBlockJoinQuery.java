@@ -209,7 +209,7 @@ public class SafariBlockJoinQuery extends Query {
           // Parent doc not accepted; skip child docs until
                     // we hit a new parent doc:
                     do {
-                        nextChildDoc = childScorer.nextDoc();
+                        nextChildDoc = childScorer.iterator().nextDoc();
                     } while (nextChildDoc <= parentDoc);
 
                     continue;
@@ -225,7 +225,7 @@ public class SafariBlockJoinQuery extends Query {
                         maxScoringDoc = nextChildDoc;
                     }
                     totalFreq += childFreq;
-                    nextChildDoc = childScorer.nextDoc();
+                    nextChildDoc = childScorer.iterator().nextDoc();  // rivey added iterator
                 } while (nextChildDoc <= parentDoc);
 
                 //System.out.println("  return parentDoc=" + parentDoc + " childDocUpto=" + childDocUpto);
@@ -271,7 +271,7 @@ public class SafariBlockJoinQuery extends Query {
             //System.out.println("  rolled back to prevParentDoc=" + prevParentDoc + " vs parentDoc=" + parentDoc);
             assert prevParentDoc >= parentDoc;
             if (prevParentDoc > nextChildDoc) {
-                nextChildDoc = childScorer.advance(prevParentDoc);
+                nextChildDoc = childScorer.iterator().advance(prevParentDoc);  // rivey added iterator
         // System.out.println("  childScorer advanced to child docID=" + nextChildDoc);
                 //} else {
                 //System.out.println("  skip childScorer advance");
