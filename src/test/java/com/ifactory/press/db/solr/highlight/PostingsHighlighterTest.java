@@ -55,7 +55,7 @@ public class PostingsHighlighterTest {
     @Before
     public void startup() throws IOException {
         RAMDirectory dir = new RAMDirectory();
-        IndexWriterConfig iwc = new IndexWriterConfig(VERSION, new SafariAnalyzer(true));
+        IndexWriterConfig iwc = new IndexWriterConfig(new SafariAnalyzer(true));  // rivey took VERSION out
         iw = new IndexWriter(dir, iwc);
     }
 
