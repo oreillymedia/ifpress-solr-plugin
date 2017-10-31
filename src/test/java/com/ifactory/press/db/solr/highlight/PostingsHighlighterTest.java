@@ -118,7 +118,7 @@ public class PostingsHighlighterTest {
         protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
             CharFilter charFilter = new HTMLStripCharFilter(reader);
             Pattern pat1 = Pattern.compile("([A-Za-z])\\+\\+");
-            charFilter = new PatternReplaceCharFilter(pat1, "$1plusplus", charFilter);
+            charFilter = new PatternReplaceCharFilter(pat1, "$1plusplus", charFilter);  // this is freed
             charFilter = new PatternReplaceCharFilter(Pattern.compile("([A-Za-z])\\#"), "$1sharp", charFilter);
             Tokenizer tokenizer = new WhitespaceTokenizer();
             //Tokenizer tokenizer = new WhitespaceTokenizer(charFilter);
