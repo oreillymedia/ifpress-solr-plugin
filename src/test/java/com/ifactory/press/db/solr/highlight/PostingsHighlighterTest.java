@@ -72,7 +72,7 @@ public class PostingsHighlighterTest {
         InputStream ch5stream = getClass().getResourceAsStream("ch5.txt");
         String ch5 = IOUtils.toString(ch5stream);
 
-    // add a single document to the index
+        // add a single document to the index
         // configure field with offsets at index time
         FieldType offsetsType = new FieldType(TextField.TYPE_STORED);
         offsetsType.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS);

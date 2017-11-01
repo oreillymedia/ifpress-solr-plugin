@@ -39,7 +39,7 @@ public class SolrPostingsHighlighterTest extends HeronSolrTest {
         assertSnippet("who had fond memories", "Ruby's status as a next-generation scripting language inspired programmers <b>who</b> <b>had</b> <b>fond</b> <b>memories</b> of quick Perl projects but did not want to trade flexibility for readability.");
     }
 
-  // TODO - randomized testing -- search for phrases and/or words drawn from sentences and
+    // TODO - randomized testing -- search for phrases and/or words drawn from sentences and
     // expect those same sentences to be returned.
     private void assertSnippet(String q, String expectedSnippet) throws SolrServerException {
         SolrQuery query = new SolrQuery(q);
@@ -58,7 +58,7 @@ public class SolrPostingsHighlighterTest extends HeronSolrTest {
         assertEquals(1, results.getNumFound());
         assertNotNull("PH returns null highlight", resp.getHighlighting());
         String snippet = resp.getHighlighting().values().iterator().next().get("text").get(0).split("¦")[0];
-    // verify the snippet starts with the expected snippet text; it might be followed
+        // verify the snippet starts with the expected snippet text; it might be followed
         // by another contiguous snippet with no delimiter (hl.tag.ellipsis above) if there was a 
         // match in the following sentence
         int len = expectedSnippet.length();
