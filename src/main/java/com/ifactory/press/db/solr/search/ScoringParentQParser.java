@@ -65,7 +65,7 @@ class ScoringParentQParser extends QParser {
     }
 
     protected Query createQuery(Query parentList, Query q) {
-        return new SafariBlockJoinQuery(q, getQuery(parentList));
+        return new SafariBlockJoinQuery(q, (Filter) getQuery(parentList)); // rivey cast to Filter (solr) verify
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
