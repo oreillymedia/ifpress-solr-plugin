@@ -166,10 +166,9 @@ public class SafariBlockJoinQuery extends Query {
         private final Scorer childScorer;
         private final FixedBitSet parentBits;
         private final Bits acceptDocs;
-        private int parentDoc = -1;
         private int prevParentDoc;
         private int totalFreq;
-        private int nextChildDoc;
+        private final int nextChildDoc;
         private int maxScoringDoc;
         private float maxScore;
         DocIdSetIterator safDocSetIterator = null;
