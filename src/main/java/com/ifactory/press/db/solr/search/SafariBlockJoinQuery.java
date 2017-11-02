@@ -172,6 +172,7 @@ public class SafariBlockJoinQuery extends Query {
         private int maxScoringDoc;
         private float maxScore;
         DocIdSetIterator safDocSetIterator = null;
+        private int parentDoc = -1;
 
         public BlockJoinScorer(Weight weight, Scorer childScorer, FixedBitSet parentBits, int firstChildDoc, Bits acceptDocs) {
             super(weight);
