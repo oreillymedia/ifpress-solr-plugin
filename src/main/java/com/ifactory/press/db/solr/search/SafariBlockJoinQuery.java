@@ -12,6 +12,7 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.DocIdSet;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.Explanation;
+import org.apache.lucene.search.Filter;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Scorer;
@@ -36,7 +37,7 @@ import org.apache.lucene.util.FixedBitSet;
  */
 public class SafariBlockJoinQuery extends Query {
 
-    private final Query parentsFilter;
+    private final Filter parentsFilter;
     private final Query childQuery;
 
     // If we are rewritten, this is the original childQuery we
@@ -54,14 +55,14 @@ public class SafariBlockJoinQuery extends Query {
      * {@link QueryBitSetProducer}) identifying the parent documents.
      *
      */
-    public SafariBlockJoinQuery(Query childQuery, Query parentsFilter) { //parentsFilter changed to Query
+    public SafariBlockJoinQuery(Query childQuery, Filter parentsFilter) { //parentsFilter changed to Query
         super();
         this.origChildQuery = childQuery;
         this.childQuery = childQuery;
         this.parentsFilter = parentsFilter;
     }
 
-    private SafariBlockJoinQuery(Query origChildQuery, Query childQuery, Query parentsFilter) {
+    private SafariBlockJoinQuery(Query origChildQuery, Query childQuery, Filter parentsFilter) {
         super();
         this.origChildQuery = origChildQuery;
         this.childQuery = childQuery;
@@ -77,10 +78,10 @@ public class SafariBlockJoinQuery extends Query {
 
         private final Query joinQuery;
         private final Weight childWeight;
-        private final Query parentsFilter;
+        private final Filter parentsFilter;
         private Bits acceptDocs;
 
-        public BlockJoinWeight(Query joinQuery, Weight childWeight, Query parentsFilter) {
+        public BlockJoinWeight(Query joinQuery, Weight childWeight, Filter parentsFilter) {
             super(joinQuery);
             this.joinQuery = joinQuery;
             this.childWeight = childWeight;
@@ -123,7 +124,8 @@ public class SafariBlockJoinQuery extends Query {
             // not return a FixedBitSet but rather a
             // BitsFilteredDocIdSet.  Instead, we filter by
             // acceptDocs when we score:
-            final DocIdSet parents = parentsFilter.getDocIdSet(readerContext, null);
+            
+            final DocIdSet parents = parentsFilter.getDocIdSet(readerContext, acceptDocs);
 
             if (parents == null) {
                 // No matches
