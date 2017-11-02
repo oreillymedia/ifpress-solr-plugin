@@ -140,7 +140,7 @@ public class UpdateDocValuesProcessor extends UpdateRequestProcessor {
             for (String valueField : valueFields) {
                 if (doc.get(valueField) == null) {
                     //NumericDocValues ndv = searcher.getAtomicReader().getNumericDocValues(valueField);   // AtomicReader not available
-                    NumericDocValues ndv = searcher.getLeafReader().getNumericDocValues(valueField);
+                    NumericDocValues ndv = searcher.getSlowAtomicReader().getNumericDocValues(valueField); // rivey changed this to the next available object .slow
                     if (ndv != null) {
                         long lvalue = ndv.get(docID);
                         doc.addField(valueField, lvalue);
