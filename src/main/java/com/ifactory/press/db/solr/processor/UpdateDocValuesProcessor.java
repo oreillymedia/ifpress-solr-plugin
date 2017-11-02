@@ -134,7 +134,7 @@ public class UpdateDocValuesProcessor extends UpdateRequestProcessor {
         TermQuery query = new TermQuery(idTerm);
         TopDocs docs = searcher.search(query, 1);
         if (docs.totalHits == 1) {
-      // get the value
+            // get the value
             // LOG.debug(String.format("found %s", id));
             int docID = docs.scoreDocs[0].doc;
             for (String valueField : valueFields) {
