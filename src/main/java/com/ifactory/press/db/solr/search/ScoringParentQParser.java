@@ -16,10 +16,9 @@
  */
 package com.ifactory.press.db.solr.search;
 
-import org.apache.lucene.search.Filter;
 import org.apache.lucene.search.Query;  // this instead of filter
-import org.apache.lucene.search.QueryWrapperFilter;
-//import org.apache.lucene.search.join.FixedBitSetCachingWrapperFilter;
+import org.apache.solr.search.QueryWrapperFilter;
+//import org.apache.lucene.search.join.FixedBitSetCachingWrapperQuery;
 import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.request.SolrQueryRequest;
 import org.apache.solr.search.QParser;
@@ -33,9 +32,9 @@ class ScoringParentQParser extends QParser {
     /**
      * implementation detail subject to change
      */
-    public String CACHE_NAME = "perSegFilter";
+    public String CACHE_NAME = "perSegQuery";
 
-    protected String getParentFilterLocalParamName() {
+    protected String getParentQueryLocalParamName() {
         return "which";
     }
 
@@ -48,14 +47,14 @@ class ScoringParentQParser extends QParser {
         if (localParams == null) {
             throw new SyntaxError("join query parser must be invoked using localParams");
         }
-        String filter = localParams.get(getParentFilterLocalParamName());
+        String filter = localParams.get(getParentQueryLocalParamName());
         QParser parentParser = subQuery(filter, null);
         Query parentQ = parentParser.getQuery();
 
         String queryText = localParams.get(QueryParsing.V);
         // there is no child query, return parent filter from cache
         if (queryText == null || queryText.length() == 0) {
-            SolrConstantScoreQuery wrapped = new SolrConstantScoreQuery(getFilter(parentQ));
+            SolrConstantScoreQuery wrapped = new SolrConstantScoreQuery(getQuery(parentQ));
             wrapped.setCache(false);
             return wrapped;
         }
@@ -65,20 +64,20 @@ class ScoringParentQParser extends QParser {
     }
 
     protected Query createQuery(Query parentList, Query q) {
-        return new SafariBlockJoinQuery(q, getFilter(parentList));
+        return new SafariBlockJoinQuery(q, getQuery(parentList));
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    protected Filter getFilter(Query parentList) {
+    protected Query getQuery(Query parentList) {
         SolrCache parentCache = req.getSearcher().getCache(CACHE_NAME);
         // lazily retrieve from solr cache
-        Filter filter = null;   // turned into Query 
+        Query filter = null;   // turned into Query 
         if (parentCache != null) {
-            filter = (Filter) parentCache.get(parentList);
+            filter = (Query) parentCache.get(parentList);
         }
-        Filter result;
+        Query result;
         if (filter == null) {
-            result = createParentFilter(parentList);
+            result = createParentQuery(parentList);
             if (parentCache != null) {
                 parentCache.put(parentList, result);
             }
@@ -88,7 +87,7 @@ class ScoringParentQParser extends QParser {
         return result;
     }
 
-    protected Filter createParentFilter(Query parentQ) {
-        return new QueryWrapperFilter(parentQ); // rfhi was FixedBitSetCachingWrapperFilter
+    protected Query createParentQuery(Query parentQ) {
+        return new QueryWrapperFilter(parentQ); // rfhi was FixedBitSetCachingWrapperQuery
     }
 }
