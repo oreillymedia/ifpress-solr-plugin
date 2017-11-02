@@ -19,6 +19,7 @@ import org.apache.solr.search.SyntaxError;
 import org.junit.Test;
 
 import com.ifactory.press.db.solr.SolrTest;
+import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BoostQuery;
 
 public class SafariQueryParserTest extends SolrTest {
@@ -55,11 +56,12 @@ public class SafariQueryParserTest extends SolrTest {
     }
 
     private PhraseQuery PQ(String f, String... vals) {
-        PhraseQuery pq = new PhraseQuery();
+        PhraseQuery.Builder builder = new PhraseQuery.Builder();
+        //PhraseQuery pq = new PhraseQuery();
         for (String v : vals) {
-            pq.add(T(f, v));
+            builder.add(T(f, v));
         }
-        return pq;
+        return builder.build();
     }
 
     private BooleanQuery BQ(Query... clauses) {
@@ -67,13 +69,17 @@ public class SafariQueryParserTest extends SolrTest {
     }
 
     private BooleanQuery BQ(float b, Query... clauses) {
-        BooleanQuery bq = new BooleanQuery(clauses.length <= 1);
+        BooleanQuery.Builder booleanQueryBuilder = new BooleanQuery.Builder();
+
+        //booleanQueryBuilder.add(clauses.length <= 1);
+        // rfhi TODO the boolean query started with the above clause. The 
+        // builder below will work
         for (Query q : clauses) {
-            bq.add(q, Occur.MUST);
+            booleanQueryBuilder.add(new BooleanClause(q, Occur.MUST));
         }
-        BooleanQuery bqry = new BoostQuery(bq, b);
-        
-        return bqry;
+        BooleanQuery bq = booleanQueryBuilder.build();
+        BoostQuery boostQuery = new BoostQuery(bq, b);
+        return bq;
     }
 
     private DisjunctionMaxQuery DMQ(Query... clauses) {
