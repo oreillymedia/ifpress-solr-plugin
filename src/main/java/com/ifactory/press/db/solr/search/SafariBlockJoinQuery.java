@@ -52,8 +52,6 @@ public class SafariBlockJoinQuery extends Query {
      * @param childQuery Query matching child documents.
      * @param parentsFilter Filter (must produce FixedBitSet per-segment, like
      * {@link QueryBitSetProducer}) identifying the parent documents.
-     * @param scoreMode How to aggregate multiple child scores into a single
-     * parent score.
      *
      */
     public SafariBlockJoinQuery(Query childQuery, Query parentsFilter) { //parentsFilter changed to Query
@@ -105,14 +103,14 @@ public class SafariBlockJoinQuery extends Query {
 
         // NOTE: unlike Lucene's TPBJQ, acceptDocs applies to *both* child and parent documents
         @Override  // rivey does this need to be pushed to a composition  
-        public Scorer scorer(LeafReaderContext readerContext, Bits acceptDocs) throws IOException {
-
+        public Scorer scorer(LeafReaderContext readerContext) throws IOException {
+            
             final Scorer childScorer = childWeight.scorer(readerContext);//, acceptDocs);
             if (childScorer == null) {
                 // No matches
                 return null;
             }
-
+            
             final int firstChildDoc = childScorer.iterator().nextDoc();  // rivey iterator added
             if (firstChildDoc == DocIdSetIterator.NO_MORE_DOCS) {
                 // No matches
@@ -137,26 +135,26 @@ public class SafariBlockJoinQuery extends Query {
             return new BlockJoinScorer(this, childScorer, (FixedBitSet) parents, firstChildDoc, acceptDocs);
         }
 
-        @Override
+        /* @Override
         public Explanation explain(LeafReaderContext context, int doc) throws IOException {
             BlockJoinScorer scorer = (BlockJoinScorer) scorer(context, context.reader().getLiveDocs());
             if (scorer != null && scorer.advance(doc) == doc) {
                 return scorer.explain(context.docBase);
             }
             return Explanation.noMatch("Not a match");
-        }
+        } */
 
         /* @Override
         public boolean scoresDocsOutOfOrder() {
             return false;
         } */   //rivey - find this //TODO
         @Override
-        public void extractTerms(Set<Term> set) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        public void extractTerms(Set<Term> set) {  // rivey // TODO   Verify this!!! 
+            this.extractTerms(set);
         }
 
         @Override
-        public Scorer scorer(LeafReaderContext lrc) throws IOException {
+        public Explanation explain(LeafReaderContext lrc, int i) throws IOException {
             throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
         }
     }
@@ -164,7 +162,7 @@ public class SafariBlockJoinQuery extends Query {
     static class BlockJoinScorer extends Scorer {
 
         private final Scorer childScorer;
-        private final FixedBitSet parentBits;
+        
         private final Bits acceptDocs;
         private int prevParentDoc;
         private int totalFreq;
@@ -172,12 +170,12 @@ public class SafariBlockJoinQuery extends Query {
         private int maxScoringDoc;
         private float maxScore;
         DocIdSetIterator safDocSetIterator = null;
-        private int parentDoc = -1;
+        private final int parentDoc = -1;
 
         public BlockJoinScorer(Weight weight, Scorer childScorer, FixedBitSet parentBits, int firstChildDoc, Bits acceptDocs) {
             super(weight);
             //System.out.println("Q.init firstChildDoc=" + firstChildDoc);
-            this.parentBits = parentBits;
+            
             this.childScorer = childScorer;
             this.acceptDocs = acceptDocs;
             nextChildDoc = firstChildDoc;
