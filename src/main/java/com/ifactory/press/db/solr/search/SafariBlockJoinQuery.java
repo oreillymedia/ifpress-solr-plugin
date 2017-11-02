@@ -9,10 +9,11 @@ import java.util.Set;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.search.BoostQuery;
 import org.apache.lucene.search.DocIdSet;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.Explanation;
-import org.apache.lucene.search.Filter;
+import org.apache.solr.search.Filter;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Scorer;
@@ -258,8 +259,8 @@ public class SafariBlockJoinQuery extends Query {
         if (_other instanceof SafariBlockJoinQuery) {
             final SafariBlockJoinQuery other = (SafariBlockJoinQuery) _other;
             return origChildQuery.equals(other.origChildQuery)
-                    && parentsFilter.equals(other.parentsFilter)
-                    && super.equals(other);
+                    && parentsFilter.equals(other.parentsFilter);
+                    
         } else {
             return false;
         }
@@ -268,7 +269,7 @@ public class SafariBlockJoinQuery extends Query {
     @Override
     public int hashCode() {
         final int prime = 31;
-        int hash = super.hashCode();
+        int hash = 0;
         hash = prime * hash + origChildQuery.hashCode();
         hash = prime * hash + parentsFilter.hashCode();
         return hash;
