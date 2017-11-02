@@ -51,8 +51,8 @@ public class SafariQueryParserTest extends SolrTest {
     }
 
     private Query B(Query q, float boost) {
-        q.setBoost(boost);
-        return q;
+        BoostQuery bq = new BoostQuery(q, boost);
+        return bq;
     }
 
     private PhraseQuery PQ(String f, String... vals) {
