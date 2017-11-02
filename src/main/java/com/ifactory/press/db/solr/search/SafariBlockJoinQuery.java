@@ -78,6 +78,7 @@ public class SafariBlockJoinQuery extends Query {
         private final Query joinQuery;
         private final Weight childWeight;
         private final Query parentsFilter;
+        private Bits acceptDocs;
 
         public BlockJoinWeight(Query joinQuery, Weight childWeight, Query parentsFilter) {
             super(joinQuery);
@@ -128,11 +129,11 @@ public class SafariBlockJoinQuery extends Query {
                 // No matches
                 return null;
             }
-            if (!(parents instanceof FixedBitSet)) {
+            if (!(parents.bits() instanceof FixedBitSet)) {
                 throw new IllegalStateException("parentFilter must return FixedBitSet; got " + parents);
             }
 
-            return new BlockJoinScorer(this, childScorer, (FixedBitSet) parents, firstChildDoc, acceptDocs);
+            return new BlockJoinScorer(this, childScorer, (FixedBitSet) parents.bits(), firstChildDoc, acceptDocs);  // rivey //TODO Initialize AcceptDocs
         }
 
         /* @Override
