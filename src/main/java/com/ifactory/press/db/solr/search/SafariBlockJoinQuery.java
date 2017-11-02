@@ -87,7 +87,7 @@ public class SafariBlockJoinQuery extends Query {
         }
 
         /* @Override    // rivey was final in superclass, cannot be overridden but can be called and does the same thing
-        public Query getQuery() {
+        public Query getQuery() {  // if we have confidence then this can be deleted
             return joinQuery;
         }*/
 
