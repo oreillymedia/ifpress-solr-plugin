@@ -71,7 +71,7 @@ class ScoringParentQParser extends QParser {
     protected Query getFilter(Query parentList) {
         SolrCache parentCache = req.getSearcher().getCache(CACHE_NAME);
         // lazily retrieve from solr cache
-        Query filter = null;   // turned into Query rivey
+        Query filter = null;   // turned into Query 
         if (parentCache != null) {
             filter = (Query) parentCache.get(parentList);
         }
