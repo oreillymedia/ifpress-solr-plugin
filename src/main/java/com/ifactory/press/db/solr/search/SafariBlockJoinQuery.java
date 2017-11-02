@@ -12,7 +12,6 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.DocIdSet;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.Explanation;
-import org.apache.lucene.search.Filter;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Scorer;
@@ -37,10 +36,10 @@ import org.apache.lucene.util.FixedBitSet;
  */
 public class SafariBlockJoinQuery extends Query {
 
-    private final Filter parentsFilter;
+    private final Query parentsFilter;
     private final Query childQuery;
 
-  // If we are rewritten, this is the original childQuery we
+    // If we are rewritten, this is the original childQuery we
     // were passed; we use this for .equals() and
     // .hashCode().  This makes rewritten query equal the
     // original, so that user does not have to .rewrite() their
@@ -55,16 +54,16 @@ public class SafariBlockJoinQuery extends Query {
      * {@link QueryBitSetProducer}) identifying the parent documents.
      * @param scoreMode How to aggregate multiple child scores into a single
      * parent score.
-   *
+    *
      */
-    public SafariBlockJoinQuery(Query childQuery, Filter parentsFilter) {
+    public SafariBlockJoinQuery(Query childQuery, Query parentsFilter) { //parentsFilter changed to Query
         super();
         this.origChildQuery = childQuery;
         this.childQuery = childQuery;
         this.parentsFilter = parentsFilter;
     }
 
-    private SafariBlockJoinQuery(Query origChildQuery, Query childQuery, Filter parentsFilter) {
+    private SafariBlockJoinQuery(Query origChildQuery, Query childQuery, Query parentsFilter) {
         super();
         this.origChildQuery = origChildQuery;
         this.childQuery = childQuery;
@@ -80,9 +79,9 @@ public class SafariBlockJoinQuery extends Query {
 
         private final Query joinQuery;
         private final Weight childWeight;
-        private final Filter parentsFilter;
+        private final Query parentsFilter;
 
-        public BlockJoinWeight(Query joinQuery, Weight childWeight, Filter parentsFilter) {
+        public BlockJoinWeight(Query joinQuery, Weight childWeight, Query parentsFilter) {
             super();
             this.joinQuery = joinQuery;
             this.childWeight = childWeight;
@@ -120,7 +119,7 @@ public class SafariBlockJoinQuery extends Query {
                 return null;
             }
 
-      // NOTE: we cannot pass acceptDocs here because this
+            // NOTE: we cannot pass acceptDocs here because this
             // will (most likely, justifiably) cause the filter to
             // not return a FixedBitSet but rather a
             // BitsFilteredDocIdSet.  Instead, we filter by
@@ -147,9 +146,19 @@ public class SafariBlockJoinQuery extends Query {
             return Explanation.noMatch("Not a match");
         }
 
-        @Override
+        /* @Override
         public boolean scoresDocsOutOfOrder() {
             return false;
+        } */   //rivey - find this //TODO
+
+        @Override
+        public void extractTerms(Set<Term> set) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
+        @Override
+        public Scorer scorer(LeafReaderContext lrc) throws IOException {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
         }
     }
 
@@ -185,7 +194,7 @@ public class SafariBlockJoinQuery extends Query {
 
         @Override
         public int nextDoc() throws IOException {
-      //System.out.println("Q.nextDoc() nextChildDoc=" + nextChildDoc);
+            //System.out.println("Q.nextDoc() nextChildDoc=" + nextChildDoc);
             // Loop until we hit a parentDoc that's accepted
             while (true) {
                 if (nextChildDoc == DocIdSetIterator.NO_MORE_DOCS) {
@@ -193,7 +202,7 @@ public class SafariBlockJoinQuery extends Query {
                     return parentDoc = DocIdSetIterator.NO_MORE_DOCS;
                 }
 
-        // Gather all children sharing the same parent as
+                // Gather all children sharing the same parent as
                 // nextChildDoc
                 parentDoc = parentBits.nextSetBit(nextChildDoc);
 
@@ -206,7 +215,7 @@ public class SafariBlockJoinQuery extends Query {
                         // parents to be a child -- I don't think so -- it seems more likely the index can just get in 
                         // a state where there are children with no parent, and that could cause this?
                         || parentDoc == -1) {
-          // Parent doc not accepted; skip child docs until
+                    // Parent doc not accepted; skip child docs until
                     // we hit a new parent doc:
                     do {
                         nextChildDoc = childScorer.iterator().nextDoc();
@@ -271,8 +280,8 @@ public class SafariBlockJoinQuery extends Query {
             //System.out.println("  rolled back to prevParentDoc=" + prevParentDoc + " vs parentDoc=" + parentDoc);
             assert prevParentDoc >= parentDoc;
             if (prevParentDoc > nextChildDoc) {
-                nextChildDoc = childScorer.iterator().advance(prevParentDoc);  // rivey added iterator
-        // System.out.println("  childScorer advanced to child docID=" + nextChildDoc);
+                nextChildDoc = childScorer.iterator().advance(prevParentDoc);  // rivey added iterator advance pushed into composition
+                // System.out.println("  childScorer advanced to child docID=" + nextChildDoc);
                 //} else {
                 //System.out.println("  skip childScorer advance");
             }
@@ -290,14 +299,15 @@ public class SafariBlockJoinQuery extends Query {
             );
         }
 
-        @Override
+        // removed iterator so this may be needed somewhere else //TODO 
         public long cost() {
-            return childScorer.cost();
+            return childScorer.iterator().cost();
         }
 
         @Override  // rivey - iterator method added here
         public DocIdSetIterator iterator() {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            return this.childScorer.iterator();  // wow could this be it??
+            //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
         }
 
     }
