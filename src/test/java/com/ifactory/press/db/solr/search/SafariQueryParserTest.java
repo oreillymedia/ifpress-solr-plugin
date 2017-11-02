@@ -19,6 +19,7 @@ import org.apache.solr.search.SyntaxError;
 import org.junit.Test;
 
 import com.ifactory.press.db.solr.SolrTest;
+import org.apache.lucene.search.BoostQuery;
 
 public class SafariQueryParserTest extends SolrTest {
 
@@ -70,8 +71,9 @@ public class SafariQueryParserTest extends SolrTest {
         for (Query q : clauses) {
             bq.add(q, Occur.MUST);
         }
-        bq.setBoost(b);
-        return bq;
+        BooleanQuery bqry = new BoostQuery(bq, b);
+        
+        return bqry;
     }
 
     private DisjunctionMaxQuery DMQ(Query... clauses) {
