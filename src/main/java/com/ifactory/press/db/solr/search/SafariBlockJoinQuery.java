@@ -222,8 +222,7 @@ public class SafariBlockJoinQuery extends Query {
 
         @Override  // rivey - iterator method added here
         public DocIdSetIterator iterator() {
-            return safDocSetIterator;  // wow could this be it?? INITIALIZE THIS
-            //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            return safDocSetIterator;  
         }
 
     }
