@@ -154,7 +154,7 @@ public class SafariBlockJoinQuery extends Query {
         } */   //rivey - find this //TODO
         @Override
         public void extractTerms(Set<Term> set) {  // rivey // TODO   Verify this!!! 
-            this.extractTerms(set);
+            
         }
 
         @Override
@@ -239,10 +239,8 @@ public class SafariBlockJoinQuery extends Query {
     public Query rewrite(IndexReader reader) throws IOException {
         final Query childRewrite = childQuery.rewrite(reader);
         if (childRewrite != childQuery) {
-            Query rewritten = new SafariBlockJoinQuery(origChildQuery,
-                    childRewrite,
-                    parentsFilter);
-            rewritten.setBoost(getBoost());
+            Query rewritten = new SafariBlockJoinQuery(origChildQuery, childRewrite, parentsFilter);
+            rewritten.(getBoost());
             return rewritten;
         } else {
             return this;

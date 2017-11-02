@@ -70,7 +70,10 @@ public class SafariQueryParserTest extends SolrTest {
 
     private BooleanQuery BQ(float b, Query... clauses) {
         BooleanQuery.Builder booleanQueryBuilder = new BooleanQuery.Builder();
-
+        //BooleanClause.Occur.MUST_NOT;
+        //booleanQueryBuilder.add(clauses.length <= 1); // verify
+        //TermQuery tq = new TermQuery();
+        //BooleanClause bc = new BooleanClause();
         //booleanQueryBuilder.add(clauses.length <= 1);
         // rfhi TODO the boolean query started with the above clause. The 
         // builder below will work
