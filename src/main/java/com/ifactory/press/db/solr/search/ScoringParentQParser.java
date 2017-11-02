@@ -16,6 +16,7 @@
  */
 package com.ifactory.press.db.solr.search;
 
+import org.apache.lucene.search.Filter;
 import org.apache.lucene.search.Query;  // this instead of filter
 import org.apache.lucene.search.QueryWrapperFilter;
 //import org.apache.lucene.search.join.FixedBitSetCachingWrapperFilter;
@@ -68,14 +69,14 @@ class ScoringParentQParser extends QParser {
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    protected Query getFilter(Query parentList) {
+    protected Filter getFilter(Query parentList) {
         SolrCache parentCache = req.getSearcher().getCache(CACHE_NAME);
         // lazily retrieve from solr cache
-        Query filter = null;   // turned into Query 
+        Filter filter = null;   // turned into Query 
         if (parentCache != null) {
-            filter = (Query) parentCache.get(parentList);
+            filter = (Filter) parentCache.get(parentList);
         }
-        Query result;
+        Filter result;
         if (filter == null) {
             result = createParentFilter(parentList);
             if (parentCache != null) {
@@ -87,7 +88,7 @@ class ScoringParentQParser extends QParser {
         return result;
     }
 
-    protected Query createParentFilter(Query parentQ) {
+    protected Filter createParentFilter(Query parentQ) {
         return new QueryWrapperFilter(parentQ); // rfhi was FixedBitSetCachingWrapperFilter
     }
 }
