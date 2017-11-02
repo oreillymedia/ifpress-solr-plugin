@@ -21,6 +21,7 @@ import org.apache.solr.search.QueryWrapperFilter;
 //import org.apache.lucene.search.join.FixedBitSetCachingWrapperQuery;
 import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.request.SolrQueryRequest;
+import org.apache.solr.search.Filter;
 import org.apache.solr.search.QParser;
 import org.apache.solr.search.QueryParsing;
 import org.apache.solr.search.SolrCache;
@@ -54,7 +55,7 @@ class ScoringParentQParser extends QParser {
         String queryText = localParams.get(QueryParsing.V);
         // there is no child query, return parent filter from cache
         if (queryText == null || queryText.length() == 0) {
-            SolrConstantScoreQuery wrapped = new SolrConstantScoreQuery(getQuery(parentQ));
+            SolrConstantScoreQuery wrapped = new SolrConstantScoreQuery((Filter) getQuery(parentQ));  // rivey - cast to Filter
             wrapped.setCache(false);
             return wrapped;
         }
