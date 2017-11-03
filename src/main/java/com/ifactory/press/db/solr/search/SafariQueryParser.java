@@ -26,7 +26,7 @@ public class SafariQueryParser extends ExtendedDismaxQParser {
     private Map<String, Float> phraseFields;
 
     public SafariQueryParser(String qstr, SolrParams localParams, SolrParams params, SolrQueryRequest req) {
-        super(qstr, localParams, params, req);
+        super(qstr, localParams, params, req); 
         SolrParams solrParams = SolrParams.wrapDefaults(localParams, params);
         phraseFields = SolrPluginUtils.parseFieldBoosts(solrParams.getParams(PQF));
     }
