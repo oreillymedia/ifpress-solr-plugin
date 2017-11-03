@@ -92,7 +92,7 @@ public class PostingsHighlighterTest {
         Query query = new TermQuery(new Term("text", "gas"));
         TopDocs topDocs = searcher.search(query, 1);
         String[] def = {"text"};
-        String highlights[] = highlighter.getHighlightFields(query, request, def); //.highlight("text", query, searcher, topDocs);
+        String highlights[] = highlighter.getHighlightFields(query, null, def); //.highlight("text", query, searcher, topDocs); // verify
         assertEquals(1, highlights.length);
         assertNotNull("PH returns null highlight", highlights[0]);
         assertTrue(highlights[0] + " \n does not contain <b>gas</b>", highlights[0].contains("<b>gas</b>"));
