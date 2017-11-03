@@ -166,11 +166,8 @@ public class SafariBlockJoinQuery extends Query {
     static class BlockJoinScorer extends Scorer {
 
         private final Scorer childScorer;
-        
-        private final Bits acceptDocs;
         private int prevParentDoc;
         private int totalFreq;
-        private final int nextChildDoc;
         private int maxScoringDoc;
         private float maxScore;
         private DocIdSetIterator safDocSetIterator = null;
@@ -178,11 +175,7 @@ public class SafariBlockJoinQuery extends Query {
 
         public BlockJoinScorer(Weight weight, Scorer childScorer, FixedBitSet parentBits, int firstChildDoc, Bits acceptDocs) {
             super(weight);
-            //System.out.println("Q.init firstChildDoc=" + firstChildDoc);
-            
             this.childScorer = childScorer;
-            this.acceptDocs = acceptDocs;
-            nextChildDoc = firstChildDoc;
             safDocSetIterator = new SafariDocIdSetIterator(weight, childScorer, parentBits, firstChildDoc, acceptDocs);
         }
 
