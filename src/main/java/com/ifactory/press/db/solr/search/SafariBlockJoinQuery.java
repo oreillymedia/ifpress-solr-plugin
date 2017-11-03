@@ -94,7 +94,7 @@ public class SafariBlockJoinQuery extends Query {
             return joinQuery;
         }*/
 
-        @Override
+        /*@Override
         public float getValueForNormalization() throws IOException {
             return childWeight.getValueForNormalization() * ((BoostQuery)joinQuery).getBoost() * ((BoostQuery)joinQuery).getBoost(); // rivey - was joinQuery.getBoost() 
         }
@@ -102,7 +102,7 @@ public class SafariBlockJoinQuery extends Query {
         @Override
         public void normalize(float norm, float topLevelBoost) {
             childWeight.normalize(norm, topLevelBoost * ((BoostQuery)joinQuery).getBoost());
-        }
+        } */
 
         // NOTE: unlike Lucene's TPBJQ, acceptDocs applies to *both* child and parent documents
         @Override  // rivey does this need to be pushed to a composition  
