@@ -44,21 +44,23 @@ public class HitCount extends ValueSourceParser {
     public ValueSource parse(FunctionQParser fp) throws SyntaxError {
         // hitcount() takes no arguments.  If we wanted to pass a query
         // we could call fp.parseNestedQuery()
-        
+
         //LUCENE-6425: Replaced Query.extractTerms with Weight.extractTerms.      rivey
         //3015   (Adrien Grand)
         HashSet<String> fields = new HashSet<String>();
         while (fp.hasMoreArguments()) {
             fields.add(fp.parseArg());
         }
-        
+
         Query q = fp.subQuery(fp.getParams().get("q"), "lucene").getQuery();
         Weight w = null;
+
         try {
-            w = q.createWeight(null, true); // rivey need to get Weight in order to extract terms  IndexSearcher needed here
+            w = q.createWeight(null, true, 0.8f); // rivey need to get Weight in order to extract terms  IndexSearcher needed here VERIFY
         } catch (IOException ex) {
             Logger.getLogger(HitCount.class.getName()).log(Level.SEVERE, null, ex);
         }
+
         HashSet<Term> terms = new HashSet<Term>();
         try {
             w.extractTerms(terms);

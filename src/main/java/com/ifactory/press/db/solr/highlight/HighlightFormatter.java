@@ -3,8 +3,8 @@ package com.ifactory.press.db.solr.highlight;
 import java.util.Arrays;
 import java.util.Comparator;
 
-import org.apache.lucene.search.postingshighlight.DefaultPassageFormatter;
-import org.apache.lucene.search.postingshighlight.Passage;
+import org.apache.lucene.search.uhighlight.DefaultPassageFormatter;
+import org.apache.lucene.search.uhighlight.Passage;
 
 public class HighlightFormatter extends DefaultPassageFormatter {
 

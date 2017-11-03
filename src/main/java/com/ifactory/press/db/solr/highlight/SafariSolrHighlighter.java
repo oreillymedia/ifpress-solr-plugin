@@ -1,25 +1,26 @@
 package com.ifactory.press.db.solr.highlight;
 
-import org.apache.lucene.search.postingshighlight.PassageFormatter;
-import org.apache.lucene.search.postingshighlight.PassageScorer;
-import org.apache.lucene.search.postingshighlight.PostingsHighlighter;
+import org.apache.lucene.search.uhighlight.PassageFormatter;
+import org.apache.lucene.search.uhighlight.PassageScorer;
 import org.apache.solr.common.params.HighlightParams;
-import org.apache.solr.highlight.PostingsSolrHighlighter;
+import org.apache.solr.highlight.UnifiedSolrHighlighter;
 import org.apache.solr.request.SolrQueryRequest;
 
-public class SafariSolrHighlighter extends PostingsSolrHighlighter {
+public class SafariSolrHighlighter extends UnifiedSolrHighlighter {
 
     /**
      * Creates an instance of the Lucene PostingsHighlighter. Provided for
      * subclass extension so that a subclass can return a subclass of
      * {@link PostingsSolrHighlighter.SolrExtendedPostingsHighlighter}.
+     * @param req
+     * @return 
      */
     @Override
-    protected PostingsHighlighter getHighlighter(SolrQueryRequest req) {
+    protected UnifiedSolrHighlighter.SolrExtendedUnifiedHighlighter getHighlighter(SolrQueryRequest req) {
         return new SafariPostingsHighlighter(req);
     }
 
-    public class SafariPostingsHighlighter extends SolrExtendedPostingsHighlighter {
+    public class SafariPostingsHighlighter extends UnifiedSolrHighlighter.SolrExtendedUnifiedHighlighter {
 
         public SafariPostingsHighlighter(SolrQueryRequest req) {
             super(req);

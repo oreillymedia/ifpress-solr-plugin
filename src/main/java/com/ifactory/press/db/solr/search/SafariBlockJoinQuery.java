@@ -70,9 +70,9 @@ public class SafariBlockJoinQuery extends Query {
         this.parentsFilter = parentsFilter;
     }
 
-    @Override
+    //@Override
     public Weight createWeight(IndexSearcher searcher, boolean needsScores) throws IOException {
-        return new BlockJoinWeight(this, childQuery.createWeight(searcher, needsScores), parentsFilter);
+        return new BlockJoinWeight(this, childQuery.createWeight(searcher, needsScores, 0.8f), parentsFilter);  // 0.8f filler value
     }
 
     private static class BlockJoinWeight extends Weight {

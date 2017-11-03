@@ -141,8 +141,18 @@ public class UpdateDocValuesProcessor extends UpdateRequestProcessor {
                 if (doc.get(valueField) == null) {
                     //NumericDocValues ndv = searcher.getAtomicReader().getNumericDocValues(valueField);   // AtomicReader not available
                     NumericDocValues ndv = searcher.getSlowAtomicReader().getNumericDocValues(valueField); // rivey changed this to the next available object .slow
+                    
                     if (ndv != null) {
-                        long lvalue = ndv.get(docID);
+                        long lvalue;
+                        if (ndv.docID() < docID) {
+                            ndv.advance(docID);
+                        }
+                        if (ndv.docID() == docID) {
+                            lvalue = ndv.longValue();
+                        } else {
+                            lvalue = 0l;
+                        }
+
                         doc.addField(valueField, lvalue);
                         // LOG.debug("retrieved doc value %d", lvalue);
                     } else {
