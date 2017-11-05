@@ -33,7 +33,7 @@ class ScoringParentQParser extends QParser {
     /**
      * implementation detail subject to change
      */
-    public String CACHE_NAME = "perSegQuery";
+    public String CACHE_NAME = "perSegFilter";  // rivey changed here
 
     protected String getParentQueryLocalParamName() {
         return "which";
