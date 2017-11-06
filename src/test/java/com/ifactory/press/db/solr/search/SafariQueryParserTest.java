@@ -37,7 +37,7 @@ public class SafariQueryParserTest extends SolrTest {
 
     @Test
     public void testNoPhraseFields() throws Exception {
-        assertParse(BQ(DMQ(TQ(A_T, "hey"))), "hey", "");
+        assertParse(TQ(A_T, "hey"), "hey", "");
         assertParse(BQ(BQ(DMQ(TQ(A_T, "one")), DMQ(TQ(A_T, "two")))), "+one +two", "");
         assertParse(BQ(DMQ(PQ(A_T, "one", "two"))), "\"one two\"", "");
     }
