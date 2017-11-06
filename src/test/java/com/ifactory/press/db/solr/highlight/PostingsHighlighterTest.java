@@ -37,25 +37,19 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
-import org.apache.solr.highlight.PostingsSolrHighlighter;
+import org.apache.lucene.search.uhighlight.UnifiedHighlighter;
 import org.apache.lucene.store.RAMDirectory;
 import org.apache.lucene.util.Version;
 import org.apache.solr.client.solrj.SolrClient;
-import org.apache.solr.common.util.NamedList;
 import org.apache.solr.core.CoreContainer;
 import org.apache.solr.core.SolrCore;
-import org.apache.solr.request.LocalSolrQueryRequest;
-import org.apache.solr.request.SolrQueryRequest;
-import org.apache.solr.search.DocList;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class PostingsHighlighterTest {
@@ -113,20 +107,15 @@ public class PostingsHighlighterTest {
         IndexSearcher searcher = new IndexSearcher(reader);
 
         // retrieve highlights at query time 
-        PostingsSolrHighlighter highlighter = new PostingsSolrHighlighter();
+        SafariAnalyzer sa = new SafariAnalyzer(true);
+        UnifiedHighlighter highlighter = new UnifiedHighlighter(searcher, sa);
         Query query = new TermQuery(new Term("text", "gas"));
         TopDocs topDocs = searcher.search(query, 1);
-        
-        
-        DocList docList = topDocs.scoreDocs;
-        SolrQueryRequest sqr = new LocalSolrQueryRequest(core, "query", "TermQuery", 1, 10, null);
-        
-        String[] def = {"text"};
-        //String highlights[] = highlighter.getHighlightFields(query, null, def); //.highlight("text", query, searcher, topDocs); // verify
-        NamedList<Object> highlights = highlighter.doHighlighting(docList, query, sqr, def);
        
-        assertEquals(1, highlights.size());
-        assertNotNull("PH returns null highlight", highlights.);
+        String highlights[]  = highlighter.highlight("text", query, topDocs);
+        
+        assertEquals(1, highlights.length);
+        assertNotNull("PH returns null highlight", highlights.length);
         assertTrue(highlights[0] + " \n does not contain <b>gas</b>", highlights[0].contains("<b>gas</b>"));
     }
 
