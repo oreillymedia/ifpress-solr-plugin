@@ -41,6 +41,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.postingshighlight.PostingsHighlighter;
+import org.apache.lucene.search.uhighlight.UnifiedHighlighter;
 import org.apache.lucene.store.RAMDirectory;
 import org.apache.lucene.util.Version;
 import org.junit.After;
@@ -88,12 +89,14 @@ public class PostingsHighlighterTest {
         IndexSearcher searcher = new IndexSearcher(reader);
 
         // retrieve highlights at query time 
-        PostingsHighlighter highlighter = new PostingsHighlighter(100000);
+        SafariAnalyzer sa = new SafariAnalyzer(true);
+        UnifiedHighlighter highlighter = new UnifiedHighlighter(searcher, sa);
         Query query = new TermQuery(new Term("text", "gas"));
         TopDocs topDocs = searcher.search(query, 1);
-        String highlights[] = highlighter.highlight("text", query, searcher, topDocs);
+       
+        String highlights[]  = highlighter.highlight("text", query, topDocs, 10000);
         assertEquals(1, highlights.length);
-        assertNotNull("PH returns null highlight", highlights[0]);
+        assertNotNull("PH returns null highlight", highlights.length);
         assertTrue(highlights[0] + " \n does not contain <b>gas</b>", highlights[0].contains("<b>gas</b>"));
     }
 
