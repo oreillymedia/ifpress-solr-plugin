@@ -1,6 +1,7 @@
 package com.ifactory.press.db.solr.highlight;
 
 import java.io.CharArrayReader;
+import java.io.File;
 import static org.junit.Assert.*;
 import static org.apache.lucene.analysis.miscellaneous.WordDelimiterFilter.*;
 
@@ -10,6 +11,7 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.text.ParseException;
 import java.util.regex.Pattern;
+import org.apache.commons.io.FileUtils;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.lucene.analysis.Analyzer;
@@ -35,6 +37,7 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
@@ -43,8 +46,16 @@ import org.apache.lucene.search.TopDocs;
 import org.apache.solr.highlight.PostingsSolrHighlighter;
 import org.apache.lucene.store.RAMDirectory;
 import org.apache.lucene.util.Version;
+import org.apache.solr.client.solrj.SolrClient;
+import org.apache.solr.common.util.NamedList;
+import org.apache.solr.core.CoreContainer;
+import org.apache.solr.core.SolrCore;
+import org.apache.solr.request.LocalSolrQueryRequest;
+import org.apache.solr.request.SolrQueryRequest;
+import org.apache.solr.search.DocList;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class PostingsHighlighterTest {
@@ -53,13 +64,27 @@ public class PostingsHighlighterTest {
 
     private IndexWriter iw;
 
+
+    static CoreContainer coreContainer;
+    protected SolrClient solr;   // rivey
+
     @Before
-    public void startup() throws IOException {
+    public void startup() throws Exception {
+        FileUtils.cleanDirectory(new File("solr/collection1/data/"));
+        FileUtils.cleanDirectory(new File("solr/collection1/suggestIndex/"));
+        FileUtils.cleanDirectory(new File("solr/heron/data/"));
+        // start an embedded solr instance
+        coreContainer = new CoreContainer("solr");
+        coreContainer.load();
         RAMDirectory dir = new RAMDirectory();
         IndexWriterConfig iwc = new IndexWriterConfig(new SafariAnalyzer(true));  // rivey took VERSION out
         iw = new IndexWriter(dir, iwc);
     }
-
+    
+    protected static SolrCore getDefaultCore() {
+        return coreContainer.getCore("collection1");
+    }
+    
     @After
     public void cleanup() throws IOException {
         iw.close();
@@ -68,7 +93,7 @@ public class PostingsHighlighterTest {
     @Test
     public void testHighlightChapter5() throws IOException {
     // searching for "gas" didn't work on the Safari site
-
+        SolrCore core = getDefaultCore();
         InputStream ch5stream = getClass().getResourceAsStream("ch5.txt");
         String ch5 = IOUtils.toString(ch5stream);
 
@@ -91,10 +116,17 @@ public class PostingsHighlighterTest {
         PostingsSolrHighlighter highlighter = new PostingsSolrHighlighter();
         Query query = new TermQuery(new Term("text", "gas"));
         TopDocs topDocs = searcher.search(query, 1);
+        
+        
+        DocList docList = topDocs.scoreDocs;
+        SolrQueryRequest sqr = new LocalSolrQueryRequest(core, "query", "TermQuery", 1, 10, null);
+        
         String[] def = {"text"};
-        String highlights[] = highlighter.getHighlightFields(query, null, def); //.highlight("text", query, searcher, topDocs); // verify
-        assertEquals(1, highlights.length);
-        assertNotNull("PH returns null highlight", highlights[0]);
+        //String highlights[] = highlighter.getHighlightFields(query, null, def); //.highlight("text", query, searcher, topDocs); // verify
+        NamedList<Object> highlights = highlighter.doHighlighting(docList, query, sqr, def);
+       
+        assertEquals(1, highlights.size());
+        assertNotNull("PH returns null highlight", highlights.);
         assertTrue(highlights[0] + " \n does not contain <b>gas</b>", highlights[0].contains("<b>gas</b>"));
     }
 
