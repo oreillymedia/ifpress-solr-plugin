@@ -57,11 +57,11 @@
             <version>7.1.0</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.noggit/noggit -->
-<dependency>
-    <groupId>org.noggit</groupId>
-    <artifactId>noggit</artifactId>
-    <version>0.5</version>
-</dependency>
+        <dependency>
+            <groupId>org.noggit</groupId>
+            <artifactId>noggit</artifactId>
+            <version>0.5</version>
+        </dependency>
 
         <dependency>
             <groupId>org.apache.lucene</groupId>
