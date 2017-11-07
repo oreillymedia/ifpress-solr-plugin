@@ -9,7 +9,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.nio.file.Path;
 import java.text.ParseException;
+import java.util.Collection;
 import java.util.regex.Pattern;
 import org.apache.commons.io.FileUtils;
 
@@ -48,6 +50,8 @@ import org.apache.lucene.util.Version;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.core.CoreContainer;
 import org.apache.solr.core.SolrCore;
+import org.apache.solr.core.SolrResourceLoader;
+import org.apache.solr.core.SolrXmlConfig;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -64,15 +68,24 @@ public class PostingsHighlighterTest {
 
     @Before
     public void startup() throws Exception {
-        FileUtils.cleanDirectory(new File("solr/collection1/data/"));
-        FileUtils.cleanDirectory(new File("solr/collection1/suggestIndex/"));
-        FileUtils.cleanDirectory(new File("solr/heron/data/"));
+        FileUtils.cleanDirectory(new File("solr/configsets/collection1/data/"));
+        FileUtils.cleanDirectory(new File("solr/configsets/collection1/suggestIndex/"));
+        FileUtils.cleanDirectory(new File("solr/configsets/heron/data/"));
         // start an embedded solr instance
         coreContainer = new CoreContainer("solr");
+        Collection<String> c = coreContainer.getAllCoreNames();
+        System.out.println("c = " + c.toString());
         coreContainer.load();
         RAMDirectory dir = new RAMDirectory();
         IndexWriterConfig iwc = new IndexWriterConfig(new SafariAnalyzer(true));  // rivey took VERSION out
         iw = new IndexWriter(dir, iwc);
+    }
+    
+     private CoreContainer init(Path homeDirectory, String xml) throws Exception {
+        SolrResourceLoader loader = new SolrResourceLoader(homeDirectory);
+        CoreContainer ret = new CoreContainer(SolrXmlConfig.fromString(loader, xml));
+        ret.load();
+        return ret;
     }
     
     protected static SolrCore getDefaultCore() {
