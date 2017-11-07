@@ -17,7 +17,7 @@ import org.junit.BeforeClass;
 public class SolrTest {
 
     static CoreContainer coreContainer;
-    protected SolrClient solr;   // rivey
+    protected org.apache.solr.client.solrj.embedded.EmbeddedSolrServer solr;   // rivey
 
     @BeforeClass
     public static void startup() throws Exception {
