@@ -33,12 +33,13 @@ public class MultiSuggesterTest extends SolrTest {
     @Test
     public void testMultiSuggest() throws Exception {
         rebuildSuggester();
-        //assertNoSuggestions();
+ //       assertNoSuggestions();
         insertTestDocuments(TITLE_FIELD);
 //        assertSuggestions();
         // Rebuilding the index leaves everything the same 
         rebuildSuggester();
         //assertSuggestions();
+        
     }
 
     @Test
@@ -63,7 +64,7 @@ public class MultiSuggesterTest extends SolrTest {
         //solr.commit();
         long numFound = solr.query(new SolrQuery("*:*")).getResults().getNumFound();
         assertEquals(numDocs, numFound);
-        //assertSuggestions();
+        assertSuggestions();
         assertSuggestionCount("a1", 1, "title");
     }
 
@@ -303,13 +304,13 @@ public class MultiSuggesterTest extends SolrTest {
     public void testBuildStartsFresh() throws Exception {
         rebuildSuggester();
         insertTestDocuments(TITLE_FIELD);
-        Suggestion suggestion = assertSuggestionCount("a2", 2, "all"); //change back to 1
+        Suggestion suggestion = assertSuggestionCount("a2", 1, "all"); //change back to 1
         assertEquals("a2 document ", suggestion.getAlternatives().get(0));
         // solr.deleteById("/doc/2");
         solr.deleteByQuery("*:*");
         solr.commit();
         rebuildSuggester();
-        assertSuggestionCount("a2", 2, "all");
+        assertSuggestionCount("a2", 0, "all");
     }
 
     @Test

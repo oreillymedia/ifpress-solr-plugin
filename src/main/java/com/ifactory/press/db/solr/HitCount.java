@@ -28,6 +28,7 @@ import org.apache.lucene.queries.function.valuesource.SumFloatFunction;
 import org.apache.lucene.queries.function.valuesource.TermFreqValueSource;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Weight;
+import org.apache.solr.core.SolrCore;
 import org.apache.solr.search.FunctionQParser;
 import org.apache.solr.search.SyntaxError;
 import org.apache.solr.search.ValueSourceParser;
@@ -39,7 +40,7 @@ import org.apache.solr.search.ValueSourceParser;
  * are counted.
  */
 public class HitCount extends ValueSourceParser {
-
+    
     @Override
     public ValueSource parse(FunctionQParser fp) throws SyntaxError {
         // hitcount() takes no arguments.  If we wanted to pass a query
@@ -63,6 +64,7 @@ public class HitCount extends ValueSourceParser {
         try {
             w.extractTerms(terms);
         } catch (UnsupportedOperationException e) {
+            System.out.println("e = " + e.getMessage());
             return new DoubleConstValueSource(1);
         }
         ArrayList<ValueSource> termcounts = new ArrayList<ValueSource>();
