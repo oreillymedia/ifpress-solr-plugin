@@ -40,7 +40,6 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.search.postingshighlight.PostingsHighlighter;
 import org.apache.lucene.search.uhighlight.UnifiedHighlighter;
 import org.apache.lucene.store.RAMDirectory;
 import org.apache.lucene.util.Version;
@@ -85,7 +84,7 @@ public class PostingsHighlighterTest {
         iw.addDocument(doc);
         iw.commit();
 
-        DirectoryReader reader = DirectoryReader.open(iw); //, //true);
+        DirectoryReader reader = DirectoryReader.open(iw); 
         IndexSearcher searcher = new IndexSearcher(reader);
 
         // retrieve highlights at query time 
