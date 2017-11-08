@@ -26,8 +26,10 @@ import org.apache.lucene.index.IndexableField;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.update.AddUpdateCommand;
 import org.apache.solr.update.processor.UpdateRequestProcessor;
+import org.apache.solr.common.util.JavaBinCodec.ObjectResolver;
 
 import com.ifactory.press.db.solr.analysis.PoolingAnalyzerWrapper;
+import org.apache.solr.common.util.JavaBinCodec;
 
 /**
  * FieldMergingProcessor is a Solr UpdateRequestProcessor that merges several
@@ -92,15 +94,18 @@ public class FieldMergingProcessor extends UpdateRequestProcessor {
                 Collection<Object> fieldValues = doc.getFieldValues(sourceFieldName);
                 if (fieldValues != null) {
                     for (Object value : fieldValues) {
+                        JavaBinCodec jbc = new JavaBinCodec();
+                        JavaBinCodec.ObjectResolver objResolver = jbc.getResolver();
+                        
                         IndexableField fieldValue = new TextField(destinationField, fieldAnalyzer.tokenStream(sourceFieldName, value.toString()));
-                        doc.addField(destinationField, fieldValue);
+                        
                     }
                 }
             }
         }
 
         if (next != null) {
-            next.processAdd(cmd);
+            next.processAdd(cmd); //here 
         }
 
         // and then release all the analyzers, readying them for re-use

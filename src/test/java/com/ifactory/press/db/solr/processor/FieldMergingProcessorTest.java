@@ -98,7 +98,7 @@ public class FieldMergingProcessorTest extends SolrTest {
         try {
             resp = solr.query(solrQuery);
         } catch (IOException ex) {
-            Logger.getLogger(FieldMergingProcessorTest.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(FieldMergingProcessorTest.class.getName()).log(Level.SEVERE, null, ex);  
         }
         SolrDocumentList docs = resp.getResults();
         assertEquals(count, docs.size());
