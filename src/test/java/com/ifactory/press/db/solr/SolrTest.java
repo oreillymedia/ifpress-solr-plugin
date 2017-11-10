@@ -21,11 +21,11 @@ public class SolrTest {
 
     @BeforeClass
     public static void startup() throws Exception {
-        FileUtils.cleanDirectory(new File("solr/collection1/data/"));
-        FileUtils.cleanDirectory(new File("solr/collection1/suggestIndex/"));
-        FileUtils.cleanDirectory(new File("solr/heron/data/"));
+        FileUtils.cleanDirectory(new File("server/solr/collection1/data/"));
+        FileUtils.cleanDirectory(new File("server/solr/collection1/suggestIndex/"));
+        FileUtils.cleanDirectory(new File("server/solr/heron/data/"));
         // start an embedded solr instance
-        coreContainer = new CoreContainer("solr");
+        coreContainer = new CoreContainer("server");
         coreContainer.load();
     }
 
@@ -36,9 +36,9 @@ public class SolrTest {
             core.close();
         }
         coreContainer.shutdown();
-        FileUtils.cleanDirectory(new File("solr/collection1/data/"));
-        FileUtils.cleanDirectory(new File("solr/collection1/suggestIndex/"));
-        FileUtils.cleanDirectory(new File("solr/heron/data/"));
+        FileUtils.cleanDirectory(new File("server/solr/collection1/data/"));
+        FileUtils.cleanDirectory(new File("server/solr/collection1/suggestIndex/"));
+        FileUtils.cleanDirectory(new File("server/solr/heron/data/"));
         coreContainer = null;
     }
 
