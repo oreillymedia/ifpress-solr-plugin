@@ -57,6 +57,7 @@ public class HitCount extends ValueSourceParser {
 
         //LUCENE-6425: Replaced Query.extractTerms with Weight.extractTerms.      rivey
         //3015   (Adrien Grand)
+        // dug this out https://issues.apache.org/jira/browse/LUCENE-6425 tells how to fix this
         HashSet<String> fields = new HashSet<String>();
         while (fp.hasMoreArguments()) {
             fields.add(fp.parseArg());
