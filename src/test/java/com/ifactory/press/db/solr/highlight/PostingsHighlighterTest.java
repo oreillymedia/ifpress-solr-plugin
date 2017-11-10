@@ -68,11 +68,11 @@ public class PostingsHighlighterTest {
 
     @Before
     public void startup() throws Exception {
-        FileUtils.cleanDirectory(new File("solr/configsets/collection1/data/"));
-        FileUtils.cleanDirectory(new File("solr/configsets/collection1/suggestIndex/"));
-        FileUtils.cleanDirectory(new File("solr/configsets/heron/data/"));
+        FileUtils.cleanDirectory(new File("server/solr/collection1/data/"));
+        FileUtils.cleanDirectory(new File("server/solr/collection1/suggestIndex/"));
+        FileUtils.cleanDirectory(new File("server/solr/heron/data/"));
         // start an embedded solr instance
-        coreContainer = new CoreContainer("solr");
+        coreContainer = new CoreContainer("server");
         Collection<String> c = coreContainer.getAllCoreNames();
         System.out.println("c = " + c.toString());
         coreContainer.load();
@@ -94,7 +94,7 @@ public class PostingsHighlighterTest {
     
     @After
     public void cleanup() throws IOException {
-        iw.close();
+        //iw.close();
     }
 
     @Test
