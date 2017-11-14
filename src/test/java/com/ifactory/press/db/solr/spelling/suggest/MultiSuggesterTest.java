@@ -168,7 +168,7 @@ public class MultiSuggesterTest extends SolrTest {
             doc = new SolrInputDocument();
             doc.addField("uri", "/doc/" + i);
             doc.addField(titleField, String.format("a%d document ", i));
-      // 'the' 'to' should get excluded from suggestions by maxWeight configured
+            // 'the' 'to' should get excluded from suggestions by maxWeight configured
             // to 0.3
             doc.addField(TEXT_FIELD, "the the to t" + i / 2);
             solr.add(doc);
