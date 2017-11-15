@@ -33,14 +33,14 @@ public class SafariQueryParserTest extends SolrTest {
     public void testPhraseFields() throws Exception {
         assertParse(BQ(DMQ(TQ(A_T, "hey"))), "hey", B_T2);
         assertParse(BQ(DMQ(B(PQ(B_T, "one", "two"), 2.0f))), "\"one two\"", B_T2);
-        //assertParse(BQ(BQ(DMQ(TQ(A_T, "hey")), DMQ(B(PQ(B_T, "one", "two"), 2.0f)), TQ("c_t", "ho"))), "+hey +\"one two\" +c_t:ho", B_T2);
+        assertParse(BQ(BQ(DMQ(TQ(A_T, "hey")), DMQ(B(PQ(B_T, "one", "two"), 2.0f)), TQ("c_t", "ho"))), "+hey +\"one two\" +c_t:ho", B_T2);
     }
     
     @Test
     public void testNoPhraseFields() throws Exception {
         assertParse(BQ(DMQ(TQ(A_T, "hey"))), "hey", "");
         assertParse(BQ(DMQ(TQ(A_T, "one")), DMQ(TQ(A_T, "two"))), "+one +two", "");
-        //assertParse(BQ(DMQ(PQ(A_T, "one", "two"))), "\"one two\"", "");
+        assertParse(BQ(DMQ(PQ(A_T, "one", "two"))), "\"one two\"", "");
     }
 
     private TermQuery TQ(String f, String v) {
@@ -99,7 +99,7 @@ public class SafariQueryParserTest extends SolrTest {
             Query parsed = parser.parse();  // ScoringParentQParser
             System.out.println("rivey: " + parsed.getClass() + " exp: " + expected.getClass());
             
-            assertEquals("+(" + expected.toString() + ")", parsed.toString());
+            assertEquals(expected, parsed);
         } finally {
             core.close();
         }
