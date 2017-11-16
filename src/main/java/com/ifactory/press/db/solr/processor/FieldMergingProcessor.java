@@ -98,7 +98,7 @@ public class FieldMergingProcessor extends UpdateRequestProcessor {
                         JavaBinCodec.ObjectResolver objResolver = jbc.getResolver();
                         
                         IndexableField fieldValue = new TextField(destinationField, fieldAnalyzer.tokenStream(sourceFieldName, value.toString()));
-                        
+                        doc.addField(destinationField, fieldValue);
                     }
                 }
             }
