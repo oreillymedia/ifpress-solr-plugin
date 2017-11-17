@@ -1228,7 +1228,7 @@ unless you are sure you always want it.
       <!--<float name="threshold">0.005</float>-->
       <float name="threshold">0.0</float>
       <!-- true == performance-killer. MultiSuggester handles incremental updates automatically, so there's no need for this anyway. -->
-      <str name="buildOnCommit">false</str>
+      <str name="buildOnCommit">true</str>
       <lst name="fields">
         <lst name="field">
           <str name="name">text</str>
@@ -1302,7 +1302,7 @@ unless you are sure you always want it.
       <str name="indexPath">${solr.core.instanceDir}/${solr.core.dataDir}/suggest-title</str>
       <str name="suggestAnalyzerFieldType">text_suggest</str>
       <float name="threshold">0.0</float>
-      <str name="buildOnCommit">false</str>
+      <str name="buildOnCommit">true</str>
     </lst>
 
     <lst name="spellchecker">
@@ -1329,7 +1329,7 @@ unless you are sure you always want it.
       <str name="indexPath">${solr.core.instanceDir}/${solr.core.dataDir}/suggest-publisher</str>
       <str name="suggestAnalyzerFieldType">text_suggest</str>
       <float name="threshold">0.0</float>
-      <str name="buildOnCommit">false</str>
+      <str name="buildOnCommit">true</str>
     </lst>
 
     <lst name="spellchecker">
