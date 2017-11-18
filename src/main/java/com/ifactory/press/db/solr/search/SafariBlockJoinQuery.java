@@ -79,7 +79,6 @@ public class SafariBlockJoinQuery extends Query {
         private final Query joinQuery;
         private final Weight childWeight;
         private final Filter parentsFilter;
-        private Bits acceptDocs;
 
         public BlockJoinWeight(Query joinQuery, Weight childWeight, Filter parentsFilter) {
             super(joinQuery);
@@ -125,7 +124,7 @@ public class SafariBlockJoinQuery extends Query {
             // BitsFilteredDocIdSet.  Instead, we filter by
             // acceptDocs when we score:
             
-            final DocIdSet parents = parentsFilter.getDocIdSet(readerContext, acceptDocs);
+            final DocIdSet parents = parentsFilter.getDocIdSet(readerContext, readerContext.reader().getLiveDocs());
 
             if (parents == null) {
                 // No matches
@@ -135,17 +134,17 @@ public class SafariBlockJoinQuery extends Query {
                 throw new IllegalStateException("parentFilter must return FixedBitSet; got " + parents);
             }
 
-            return new BlockJoinScorer(this, childScorer, (FixedBitSet) parents.bits(), firstChildDoc, acceptDocs);  // rivey //TODO Initialize AcceptDocs
+            return new BlockJoinScorer(this, childScorer, (FixedBitSet) parents.bits(), firstChildDoc, readerContext.reader().getLiveDocs());  
         }
 
-        /* @Override
+        @Override
         public Explanation explain(LeafReaderContext context, int doc) throws IOException {
-            BlockJoinScorer scorer = (BlockJoinScorer) scorer(context, context.reader().getLiveDocs());
-            if (scorer != null && scorer.advance(doc) == doc) {
+            BlockJoinScorer scorer = (BlockJoinScorer) scorer(context);
+            if (scorer != null && scorer.iterator().advance(doc) == doc) {
                 return scorer.explain(context.docBase);
             }
             return Explanation.noMatch("Not a match");
-        } */
+        } 
 
         /* @Override
         public boolean scoresDocsOutOfOrder() {
@@ -154,11 +153,6 @@ public class SafariBlockJoinQuery extends Query {
         @Override
         public void extractTerms(Set<Term> set) {  // rivey // TODO   Verify this!!! 
             this.extractTerms(set);
-        }
-
-        @Override
-        public Explanation explain(LeafReaderContext lrc, int i) throws IOException {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
         }
     }
 
