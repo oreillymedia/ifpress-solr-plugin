@@ -34,6 +34,9 @@ public class SafariQueryParser extends ExtendedDismaxQParser {
     /**
      * Creates a SafariSolrQueryParser, attaching any configured phrase fields
      * as aliases for the fake default field over which all phrases range
+     * @param qParser
+     * @param field
+     * @return 
      */
     @Override
     protected SafariSolrQueryParser createEdismaxQueryParser(QParser qParser, String field) {

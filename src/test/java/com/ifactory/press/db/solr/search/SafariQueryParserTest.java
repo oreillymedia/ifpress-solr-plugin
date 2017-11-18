@@ -21,7 +21,6 @@ import org.junit.Test;
 import com.ifactory.press.db.solr.SolrTest;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BoostQuery;
-import org.junit.Ignore;
 
 public class SafariQueryParserTest extends SolrTest {
 
@@ -57,7 +56,7 @@ public class SafariQueryParserTest extends SolrTest {
     }
 
     private PhraseQuery PQ(String f, String... vals) {
-        PhraseQuery.Builder builder = new PhraseQuery.Builder();
+        PhraseQuery.Builder builder = new PhraseQuery.Builder();  // use builder
         //PhraseQuery pq = new PhraseQuery();
         for (String v : vals) {
             builder.add(T(f, v));
