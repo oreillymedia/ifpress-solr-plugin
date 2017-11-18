@@ -3,11 +3,15 @@ package com.ifactory.press.db.solr.search;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.MultiReader;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.DocIdSet;
 import org.apache.lucene.search.DocIdSetIterator;
@@ -87,10 +91,17 @@ public class SafariBlockJoinQuery extends Query {
             this.parentsFilter = parentsFilter;
         }
 
-        /* @Override    // rivey was final in superclass, cannot be overridden but can be called and does the same thing
-        public Query getQuery() {  // if we have confidence then this can be deleted
-            return joinQuery;
-        }*/
+        @Override
+        public void extractTerms(Set<Term> set) {  // rivey 
+            IndexReader emptyReader = null;
+            try {
+                emptyReader = new MultiReader();
+                Set<Term> termSet = new HashSet<Term>();
+                new IndexSearcher(emptyReader).createNormalizedWeight(joinQuery, false).extractTerms(termSet);
+            } catch (IOException ex) {
+                Logger.getLogger(SafariBlockJoinQuery.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
 
         @Override
         public float getValueForNormalization() throws IOException {
@@ -105,13 +116,13 @@ public class SafariBlockJoinQuery extends Query {
         // NOTE: unlike Lucene's TPBJQ, acceptDocs applies to *both* child and parent documents
         @Override  // rivey does this need to be pushed to a composition  
         public Scorer scorer(LeafReaderContext readerContext) throws IOException {
-            
+
             final Scorer childScorer = childWeight.scorer(readerContext);//, acceptDocs);
             if (childScorer == null) {
                 // No matches
                 return null;
             }
-            
+
             final int firstChildDoc = childScorer.iterator().nextDoc();  // rivey iterator added
             if (firstChildDoc == DocIdSetIterator.NO_MORE_DOCS) {
                 // No matches
@@ -123,7 +134,6 @@ public class SafariBlockJoinQuery extends Query {
             // not return a FixedBitSet but rather a
             // BitsFilteredDocIdSet.  Instead, we filter by
             // acceptDocs when we score:
-            
             final DocIdSet parents = parentsFilter.getDocIdSet(readerContext, readerContext.reader().getLiveDocs());
 
             if (parents == null) {
@@ -134,7 +144,7 @@ public class SafariBlockJoinQuery extends Query {
                 throw new IllegalStateException("parentFilter must return FixedBitSet; got " + parents);
             }
 
-            return new BlockJoinScorer(this, childScorer, (FixedBitSet) parents.bits(), firstChildDoc, readerContext.reader().getLiveDocs());  
+            return new BlockJoinScorer(this, childScorer, (FixedBitSet) parents.bits(), firstChildDoc, readerContext.reader().getLiveDocs());
         }
 
         @Override
@@ -144,22 +154,14 @@ public class SafariBlockJoinQuery extends Query {
                 return scorer.explain(context.docBase);
             }
             return Explanation.noMatch("Not a match");
-        } 
-
-        /* @Override
-        public boolean scoresDocsOutOfOrder() {
-            return false;
-        } */   //rivey - find this //TODO
-        @Override
-        public void extractTerms(Set<Term> set) {  // rivey // TODO   Verify this!!! 
-            this.extractTerms(set);
         }
+
     }
 
     static class BlockJoinScorer extends Scorer {
 
         private final Scorer childScorer;
-        
+
         private final Bits acceptDocs;
         private int prevParentDoc;
         private int totalFreq;
@@ -172,7 +174,7 @@ public class SafariBlockJoinQuery extends Query {
         public BlockJoinScorer(Weight weight, Scorer childScorer, FixedBitSet parentBits, int firstChildDoc, Bits acceptDocs) {
             super(weight);
             //System.out.println("Q.init firstChildDoc=" + firstChildDoc);
-            
+
             this.childScorer = childScorer;
             this.acceptDocs = acceptDocs;
             nextChildDoc = firstChildDoc;
@@ -218,15 +220,21 @@ public class SafariBlockJoinQuery extends Query {
 
         @Override  // rivey - iterator method added here
         public DocIdSetIterator iterator() {
-            return safDocSetIterator;  
+            return safDocSetIterator;
         }
 
     }
 
-    /* @Override  // rivey - not called but VERIFY THIS
-    public void extractTerms(Set<Term> terms) {
-        childQuery.extractTerms(terms);
-    } */
+    public void extractTerms(Set<Term> set) {  // rivey  Does this appear somewhere else? was an override
+        IndexReader emptyReader;
+        try {
+            emptyReader = new MultiReader();
+            Set<Term> termSet = new HashSet<Term>();
+            new IndexSearcher(emptyReader).createNormalizedWeight(childQuery, false).extractTerms(termSet);
+        } catch (IOException ex) {
+            Logger.getLogger(SafariBlockJoinQuery.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
 
     @Override
     public Query rewrite(IndexReader reader) throws IOException {
