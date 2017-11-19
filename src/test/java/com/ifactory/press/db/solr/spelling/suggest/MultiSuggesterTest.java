@@ -332,7 +332,7 @@ public class MultiSuggesterTest extends SolrTest {
         // different code path 
         doc.addField("keyword", TITLE.toLowerCase());
         solr.add(doc);
-        solr.commit();
+        //solr.commit();
         Suggestion suggestion = assertSuggestionCount("dawn", 2, "all");
         assertEquals("The Dawning of a New Era", suggestion.getAlternatives().get(0));
         assertEquals("dawning", suggestion.getAlternatives().get(1));

@@ -30,6 +30,8 @@ public class SafariQueryParserTest extends SolrTest {
 
     @Test
     public void testPhraseFields() throws Exception {
+        System.out.println("expected = " + BQ(DMQ(TQ(A_T, "hey"))));
+        System.out.println("expected = " + BQ(DMQ(TQ(A_T, "hey"))));
         assertParse(BQ(DMQ(TQ(A_T, "hey"))), "hey", B_T2);
         assertParse(BQ(DMQ(B(PQ(B_T, "one", "two"), 2.0f))), "\"one two\"", B_T2);
         assertParse(BQ(BQ(DMQ(TQ(A_T, "hey")), DMQ(B(PQ(B_T, "one", "two"), 2.0f)), TQ("c_t", "ho"))), "+hey +\"one two\" +c_t:ho", B_T2);
@@ -96,6 +98,7 @@ public class SafariQueryParserTest extends SolrTest {
 
             SafariQueryParser parser = new SafariQueryParser(query, localParams, params, req);
             Query parsed = parser.parse();  // ScoringParentQParser
+            System.out.println("parsed = " + parsed.toString());
             System.out.println("rivey: " + parsed.getClass() + " exp: " + expected.getClass());
             
             assertEquals(expected, parsed);
