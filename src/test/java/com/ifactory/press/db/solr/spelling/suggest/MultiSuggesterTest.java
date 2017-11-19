@@ -183,6 +183,8 @@ public class MultiSuggesterTest extends SolrTest {
         SolrQuery q = new SolrQuery("t");
         q.setRequestHandler("/suggest/title");
         q.set("spellcheck.build", "true");
+        q.set("suggester.build", "true");
+        q.set("suggester.buildAll", "true");
         QueryResponse qr = null;  // rivey catch exception
         try {
             qr = solr.query(q);
@@ -190,6 +192,7 @@ public class MultiSuggesterTest extends SolrTest {
             System.out.println("REBUILD: error may cause other ones: " + ex.getMessage());
             Logger.getLogger(MultiSuggesterTest.class.getName()).log(Level.SEVERE, null, ex);
         }
+        
         q.setRequestHandler("/suggest/all");
         System.out.println("qr = " + qr.getSpellCheckResponse());
         return qr;
@@ -201,7 +204,7 @@ public class MultiSuggesterTest extends SolrTest {
     @Test
     public void testSegmentLongSuggestion() throws Exception {
         // erase any lingering data
-        rebuildSuggester();
+        //rebuildSuggester();
 
         SolrInputDocument doc = new SolrInputDocument();
         doc.addField("uri", "/doc/1");
@@ -227,7 +230,8 @@ public class MultiSuggesterTest extends SolrTest {
         // suggester is configured to segment at 100 char bounds
         SolrQuery q = new SolrQuery("AAAA");
         q.setRequestHandler("/suggest/all");
-        rebuildSuggester();
+        //rebuildSuggester();
+        solr.commit();
         QueryResponse resp = solr.query(q);
         SpellCheckResponse scr = resp.getSpellCheckResponse();
         assertNotNull("no spell check reponse found", scr);

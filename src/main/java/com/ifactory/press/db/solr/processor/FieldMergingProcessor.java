@@ -93,7 +93,7 @@ public class FieldMergingProcessor extends UpdateRequestProcessor {
                 if (fieldValues != null) {
                     for (Object value : fieldValues) {
                         IndexableField fieldValue = new TextField(destinationField, fieldAnalyzer.tokenStream(sourceFieldName, value.toString()));
-                        doc.addField(destinationField, fieldValue);
+                        doc.addField(destinationField, value);
                     }
                 }
             }
