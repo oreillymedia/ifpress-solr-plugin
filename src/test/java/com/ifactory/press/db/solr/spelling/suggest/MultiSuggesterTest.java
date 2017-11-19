@@ -47,7 +47,7 @@ public class MultiSuggesterTest extends SolrTest {
         rebuildSuggester();
         
         insertTestDocuments(TITLE_VALUE_FIELD);
-        //assertSuggestions();
+        assertSuggestions();
         assertSuggestionCount("a1", 1, "title");
         rebuildSuggester();
         //assertSuggestions();
@@ -75,7 +75,7 @@ public class MultiSuggesterTest extends SolrTest {
         long t0 = System.nanoTime();
         insertTestDocuments(TITLE_FIELD, 100);
         long t1 = System.nanoTime();
-        assertSuggestionCount("a2", 11, "all");   // rivey this was 11 before why?  12
+        assertSuggestionCount("a2", 11, "all");   
         System.out.println("testDocFreqWeight: " + (t1 - t0) + " ns");
     }
 
@@ -86,7 +86,7 @@ public class MultiSuggesterTest extends SolrTest {
         long t0 = System.nanoTime();
         insertTestDocuments(TITLE_VALUE_FIELD, 100);
         long t1 = System.nanoTime();
-        assertSuggestionCount("a2", 11, "all");   // rivey this was 11 before why?  12
+        assertSuggestionCount("a2", 11, "all");   
         System.out.println("testDocFreqWeight: " + (t1 - t0) + " ns");
     }
 
@@ -112,7 +112,7 @@ public class MultiSuggesterTest extends SolrTest {
         SolrQuery q = new SolrQuery(prefix);
         q.setRequestHandler("/suggest/" + suggester);
         q.set("spellcheck.count", 100);
-        QueryResponse resp = null;  // rivey add catch
+        QueryResponse resp = null;  
         try {
             resp = solr.query(q);
         } catch (IOException ex) {
@@ -138,7 +138,7 @@ public class MultiSuggesterTest extends SolrTest {
 
     private void assertSuggestions() throws SolrServerException {
         Suggestion suggestion = assertSuggestionCount("t", 8, "all");
-    // TITLE occurs once in a high-weighted field; t1-t4, etc each occur twice, t5 once, their/time occur once
+        // TITLE occurs once in a high-weighted field; t1-t4, etc each occur twice, t5 once, their/time occur once
         // 'the' and 'to' occur too many times and get excluded
         assertEquals(TITLE, suggestion.getAlternatives().get(0));
         for (int i = 1; i <= 5; i++) {
@@ -169,7 +169,7 @@ public class MultiSuggesterTest extends SolrTest {
             doc = new SolrInputDocument();
             doc.addField("uri", "/doc/" + i);
             doc.addField(titleField, String.format("a%d document ", i));
-      // 'the' 'to' should get excluded from suggestions by maxWeight configured
+            // 'the' 'to' should get excluded from suggestions by maxWeight configured
             // to 0.3
             doc.addField(TEXT_FIELD, "the the to t" + i / 2);
             solr.add(doc);
@@ -238,7 +238,7 @@ public class MultiSuggesterTest extends SolrTest {
         // should come first due to higher weighting of title
         Suggestion suggestion = scr.getSuggestion("AAAA");
         assertNotNull("No suggestion found for 'AAAA'", suggestion);
-    // max threshold sets weight of common terms to zero but doesn't exclude
+        // max threshold sets weight of common terms to zero but doesn't exclude
         // them
         assertEquals(1, suggestion.getNumFound());
 
