@@ -21,13 +21,15 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.document.TextField;
+import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexableField;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.update.AddUpdateCommand;
 import org.apache.solr.update.processor.UpdateRequestProcessor;
 
 import com.ifactory.press.db.solr.analysis.PoolingAnalyzerWrapper;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.util.BytesRef;
 
 /**
  * FieldMergingProcessor is a Solr UpdateRequestProcessor that merges several
@@ -90,9 +92,16 @@ public class FieldMergingProcessor extends UpdateRequestProcessor {
                 String sourceFieldName = entry.getKey();
                 Analyzer fieldAnalyzer = entry.getValue();
                 Collection<Object> fieldValues = doc.getFieldValues(sourceFieldName);
+
                 if (fieldValues != null) {
+                    int count = 0;
                     for (Object value : fieldValues) {
-                        IndexableField fieldValue = new TextField(destinationField, fieldAnalyzer.tokenStream(sourceFieldName, value.toString()));
+                        count++;
+                        System.out.println("The " + count + " count value = " + value);
+                        BytesRef br = new BytesRef(value.toString().getBytes());
+                        System.out.println("br = " + br.utf8ToString());
+                        IndexableField fieldValue = new StringField(destinationField, br, Field.Store.YES);//new TextField(destinationField, fieldAnalyzer.tokenStream(sourceFieldName, value.toString()));
+                        System.out.println("fieldValue = " + fieldValue.name() + " " + fieldValue.stringValue());
                         doc.addField(destinationField, fieldValue);
                     }
                 }
@@ -100,7 +109,8 @@ public class FieldMergingProcessor extends UpdateRequestProcessor {
         }
 
         if (next != null) {
-            next.processAdd(cmd); //here 
+            System.out.println("we are adding cmd = " + cmd.toString());
+            next.processAdd(cmd);
         }
 
         // and then release all the analyzers, readying them for re-use
