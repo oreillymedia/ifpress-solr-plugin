@@ -31,7 +31,7 @@ public class MultiSuggesterProcessor extends UpdateRequestProcessor {
             suggester.add(doc, cmd.getReq().getSearcher());
         }
         if (next != null) {
-            next.processAdd(cmd);
+            next.processAdd(cmd);  // rivey this is the call above FieldMerging processAdd
         }
     }
 
