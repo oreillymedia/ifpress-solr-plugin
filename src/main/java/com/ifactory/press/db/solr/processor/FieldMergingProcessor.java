@@ -21,15 +21,15 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.document.StringField;
+import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.IndexableField;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.update.AddUpdateCommand;
 import org.apache.solr.update.processor.UpdateRequestProcessor;
 
 import com.ifactory.press.db.solr.analysis.PoolingAnalyzerWrapper;
-import org.apache.lucene.document.Field;
-import org.apache.lucene.util.BytesRef;
+import java.util.Iterator;
+import org.apache.lucene.analysis.TokenStream;
 
 /**
  * FieldMergingProcessor is a Solr UpdateRequestProcessor that merges several
@@ -92,24 +92,26 @@ public class FieldMergingProcessor extends UpdateRequestProcessor {
                 String sourceFieldName = entry.getKey();
                 Analyzer fieldAnalyzer = entry.getValue();
                 Collection<Object> fieldValues = doc.getFieldValues(sourceFieldName);
-
                 if (fieldValues != null) {
-                    int count = 0;
                     for (Object value : fieldValues) {
-                        count++;
-                        System.out.println("The " + count + " count value = " + value);
-                        BytesRef br = new BytesRef(value.toString().getBytes());
-                        System.out.println("br = " + br.utf8ToString());
-                        IndexableField fieldValue = new StringField(destinationField, br, Field.Store.YES);//new TextField(destinationField, fieldAnalyzer.tokenStream(sourceFieldName, value.toString()));
-                        System.out.println("fieldValue = " + fieldValue.name() + " " + fieldValue.stringValue());
-                        doc.addField(destinationField, fieldValue);
+                        System.out.println("count value = " + value + " -- " + value.getClass());
+                        IndexableField fieldValue = new TextField(destinationField, fieldAnalyzer.tokenStream(sourceFieldName, value.toString()));
+                        TokenStream ts = fieldAnalyzer.tokenStream(sourceFieldName, value.toString());
+                        Iterator iter = ts.getAttributeImplsIterator();
+                        while (iter.hasNext()) {
+                            System.out.println("iter = " + iter.next());
+                        }
+                        
+                        System.out.println("fieldValueaaa = " + fieldAnalyzer.tokenStream(sourceFieldName, value.toString()));
+                        System.out.println("fieldValue = " + fieldValue.stringValue());
+                        doc.addField(destinationField, value);
+                        
                     }
                 }
             }
         }
 
         if (next != null) {
-            System.out.println("we are adding cmd = " + cmd.toString());
             next.processAdd(cmd);
         }
 
