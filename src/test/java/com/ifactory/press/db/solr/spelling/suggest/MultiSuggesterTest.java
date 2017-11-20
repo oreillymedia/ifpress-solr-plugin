@@ -119,7 +119,7 @@ public class MultiSuggesterTest extends SolrTest {
             Logger.getLogger(MultiSuggesterTest.class.getName()).log(Level.SEVERE, null, ex);
         }
         SpellCheckResponse scr = resp.getSpellCheckResponse();
-        assertNotNull("no spell check reponse found", scr);
+        assertNotNull("no spell check reponse found", scr); // null happens for empty assertions test
         Suggestion suggestion = scr.getSuggestion(prefix);
         if (count == 0) {
             assertNull("Unexpected suggestion found for " + prefix, suggestion);

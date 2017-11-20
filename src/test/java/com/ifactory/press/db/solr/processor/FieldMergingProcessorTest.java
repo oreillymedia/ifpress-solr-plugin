@@ -78,9 +78,15 @@ public class FieldMergingProcessorTest extends SolrTest {
         }
 
         HashSet<String> words = new HashSet<String>(Arrays.asList(TEST.split(" ")));
+        for (String word : words) {
+            System.out.println("word = " + word);
+        }
         int numWords = words.size();
+        System.out.println("numWords = " + numWords);
+        
         List<TermsResponse.Term> terms;
         terms = getTerms("catchall");
+        System.out.println("terms.size() = " + terms.size());
         // one term for each word in text + 1 for the title
         assertEquals("Wrong number of terms in catchall field", numWords + 1, terms.size());
         boolean found = false;
