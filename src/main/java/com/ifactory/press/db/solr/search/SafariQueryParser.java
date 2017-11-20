@@ -44,6 +44,7 @@ public class SafariQueryParser extends ExtendedDismaxQParser {
         if (phraseFields != null && !phraseFields.isEmpty()) {
             qp.addAlias(IMPOSSIBLE_PHRASE_FIELD_NAME, 0.0f, phraseFields);
         }
+        System.out.println("qp = " + qp.toString());
         return qp;
     }
 
@@ -51,10 +52,12 @@ public class SafariQueryParser extends ExtendedDismaxQParser {
 
         public SafariSolrQueryParser(QParser parser, String defaultField) {
             super(parser, defaultField);
+            System.out.println("defaultField = " + defaultField);
         }
 
         @Override
         protected Query getFieldQuery(String field, String val, int slop) throws SyntaxError {
+            System.out.println("slop = " + slop);
             if (IMPOSSIBLE_FIELD_NAME.equals(field)) {
                 if (getAlias(IMPOSSIBLE_PHRASE_FIELD_NAME) != null) {
                     // Use phrase fields (value of QPF parameter) when present and no explicit field was specified
