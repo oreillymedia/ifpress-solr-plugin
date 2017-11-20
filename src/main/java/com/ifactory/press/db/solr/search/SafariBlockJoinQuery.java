@@ -139,14 +139,14 @@ public class SafariBlockJoinQuery extends Query {
             return new BlockJoinScorer(this, childScorer, (FixedBitSet) parents.bits(), firstChildDoc, acceptDocs);  // rivey //TODO Initialize AcceptDocs
         }
 
-        /* @Override
+        @Override
         public Explanation explain(LeafReaderContext context, int doc) throws IOException {
-            BlockJoinScorer scorer = (BlockJoinScorer) scorer(context, context.reader().getLiveDocs());
-            if (scorer != null && scorer.advance(doc) == doc) {
+            BlockJoinScorer scorer = (BlockJoinScorer) scorer(context);
+            if (scorer != null && scorer.iterator().advance(doc) == doc) {
                 return scorer.explain(context.docBase);
             }
             return Explanation.noMatch("Not a match");
-        } */
+        }
 
         /* @Override
         public boolean scoresDocsOutOfOrder() {
@@ -157,10 +157,7 @@ public class SafariBlockJoinQuery extends Query {
             
         }
 
-        @Override
-        public Explanation explain(LeafReaderContext lrc, int i) throws IOException {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-        }
+        
     }
 
     static class BlockJoinScorer extends Scorer {
