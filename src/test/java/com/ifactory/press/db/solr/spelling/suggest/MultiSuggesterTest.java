@@ -327,7 +327,7 @@ public class MultiSuggesterTest extends SolrTest {
         doc.addField("uri", "/doc/1");
         // add a duplicate value to a field whose stored value is used as a suggestion source
         doc.addField("duplicate_title_t", TITLE.toLowerCase());
-    // add a duplicate value to a field whose indexed terms are used as a suggestion source
+        // add a duplicate value to a field whose indexed terms are used as a suggestion source
         // analyzed using a KeywordTokenizer, so the indexed value is the same, but exercises a 
         // different code path 
         doc.addField("keyword", TITLE.toLowerCase());

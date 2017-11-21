@@ -220,10 +220,10 @@ public class SafariBlockJoinQuery extends Query {
 
     }
 
-    /* @Override  // rivey - not called but VERIFY THIS
+    // @Override  // rivey - not called but VERIFY THIS
     public void extractTerms(Set<Term> terms) {
-        childQuery.extractTerms(terms);
-    } */
+        //childQuery.extractTerms(terms);
+    } 
 
     @Override
     public Query rewrite(IndexReader reader) throws IOException {
