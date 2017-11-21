@@ -142,7 +142,7 @@ public class SafariBlockJoinQuery extends Query {
                 // No matches
                 return null;
             }
-            if (!(parents instanceof BitDocIdSet)) {
+            if (!(parents.bits() instanceof FixedBitSet)) {
                 throw new IllegalStateException("parentFilter must return FixedBitSet; got " + parents);
             }
 
