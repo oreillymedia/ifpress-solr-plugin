@@ -46,7 +46,6 @@ public class MultiSuggesterTest extends SolrTest {
         insertTestDocuments(TITLE_VALUE_FIELD);
         assertSuggestionCount("a1", 1, "title");
         rebuildSuggester();
-        this.assertSuggestions();
         assertSuggestionCount("a1", 1, "title");
     }
 
