@@ -15,31 +15,14 @@
  */
 package com.ifactory.press.db.solr.processor;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 
-import org.apache.solr.client.solrj.SolrQuery;
-import org.apache.solr.client.solrj.SolrServerException;
-import org.apache.solr.client.solrj.response.QueryResponse;
-import org.apache.solr.client.solrj.response.TermsResponse;
-import org.apache.solr.common.SolrDocument;
-import org.apache.solr.common.SolrDocumentList;
 import org.apache.solr.common.SolrInputDocument;
-import org.apache.solr.common.params.CommonParams;
-import org.apache.solr.common.params.TermsParams;
 import org.junit.Test;
 
 import com.ifactory.press.db.solr.SolrTest;
-import java.io.IOException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import org.junit.Ignore;
 
 public class FieldMergingProcessorTest extends SolrTest {
 
@@ -50,7 +33,7 @@ public class FieldMergingProcessorTest extends SolrTest {
 
     // insert text_t and title_t and expect to get titles as phrase tokens and text as word tokens
     // in catchall
-    @Ignore
+    /* @Ignore
     @Test
     public void testMergeFields() throws Exception {
         SolrInputDocument doc = new SolrInputDocument();
@@ -92,9 +75,9 @@ public class FieldMergingProcessorTest extends SolrTest {
             }
         }
         assertTrue("title not found in catchall terms list", found);
-    }
+    } */
 
-    private void assertQueryCount(int count, String query) throws SolrServerException {
+    /* private void assertQueryCount(int count, String query) throws SolrServerException {
         SolrQuery solrQuery = new SolrQuery(query);
         QueryResponse resp = null;
         try {
@@ -120,7 +103,7 @@ public class FieldMergingProcessorTest extends SolrTest {
             Logger.getLogger(FieldMergingProcessorTest.class.getName()).log(Level.SEVERE, null, ex);
         }
         return resp.getTermsResponse().getTermMap().get(field);
-    }
+    } */
 
     
     @Test
