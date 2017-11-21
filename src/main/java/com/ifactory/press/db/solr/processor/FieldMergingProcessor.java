@@ -94,7 +94,7 @@ public class FieldMergingProcessor extends UpdateRequestProcessor {
                 Collection<Object> fieldValues = doc.getFieldValues(sourceFieldName);
                 if (fieldValues != null) {
                     for (Object value : fieldValues) {
-                        System.out.println("count value = " + value + " -- " + value.getClass());
+                        //System.out.println("count value = " + value + " -- " + value.getClass());
                         IndexableField fieldValue = new TextField(destinationField, fieldAnalyzer.tokenStream(sourceFieldName, value.toString()));
                         TokenStream ts = fieldAnalyzer.tokenStream(sourceFieldName, value.toString());
                         Iterator iter = ts.getAttributeImplsIterator();
@@ -102,8 +102,8 @@ public class FieldMergingProcessor extends UpdateRequestProcessor {
                             System.out.println("iter = " + iter.next());
                         }
                         
-                        System.out.println("fieldValueaaa = " + fieldAnalyzer.tokenStream(sourceFieldName, value.toString()));
-                        System.out.println("fieldValue = " + fieldValue.stringValue());
+                        //System.out.println("fieldValueaaa = " + fieldAnalyzer.tokenStream(sourceFieldName, value.toString()));
+                        //System.out.println("fieldValue = " + fieldValue.stringValue());
                         doc.addField(destinationField, value);
                         
                     }
