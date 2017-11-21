@@ -1,6 +1,7 @@
 package com.ifactory.press.db.solr.search;
 
 import java.io.IOException;
+import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -23,6 +24,7 @@ import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.search.join.QueryBitSetProducer;
 import org.apache.lucene.search.join.ToParentBlockJoinQuery;
+import org.apache.lucene.util.BitDocIdSet;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.FixedBitSet;
 
@@ -140,11 +142,11 @@ public class SafariBlockJoinQuery extends Query {
                 // No matches
                 return null;
             }
-            if (!(parents.bits() instanceof FixedBitSet)) {
+            if (!(parents instanceof BitDocIdSet)) {
                 throw new IllegalStateException("parentFilter must return FixedBitSet; got " + parents);
             }
 
-            return new BlockJoinScorer(this, childScorer, (FixedBitSet) parents.bits(), firstChildDoc, readerContext.reader().getLiveDocs());
+            return new BlockJoinScorer(this, childScorer, (BitSet) parents.bits(), firstChildDoc, readerContext.reader().getLiveDocs());
         }
 
         @Override
@@ -168,10 +170,10 @@ public class SafariBlockJoinQuery extends Query {
         private final int nextChildDoc;
         private int maxScoringDoc;
         private float maxScore;
-        DocIdSetIterator safDocSetIterator = null;
+        SafariDocIdSetIterator safDocSetIterator = null;
         private final int parentDoc = -1;
 
-        public BlockJoinScorer(Weight weight, Scorer childScorer, FixedBitSet parentBits, int firstChildDoc, Bits acceptDocs) {
+        public BlockJoinScorer(Weight weight, Scorer childScorer, BitSet parentBits, int firstChildDoc, Bits acceptDocs) {
             super(weight);
             //System.out.println("Q.init firstChildDoc=" + firstChildDoc);
 
@@ -219,7 +221,7 @@ public class SafariBlockJoinQuery extends Query {
         }
 
         @Override  // rivey - iterator method added here
-        public DocIdSetIterator iterator() {
+        public SafariDocIdSetIterator iterator() {
             return safDocSetIterator;
         }
 

@@ -1,11 +1,12 @@
 package com.ifactory.press.db.solr.search;
 
 import java.io.IOException;
+import java.util.BitSet;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.Bits;
-import org.apache.lucene.util.FixedBitSet;
+
 
 /**
  *
@@ -14,7 +15,7 @@ import org.apache.lucene.util.FixedBitSet;
 public class SafariDocIdSetIterator extends DocIdSetIterator {
 
     private final Scorer childScorer;
-    private final FixedBitSet parentBits;
+    private final BitSet parentBits;
     private final Bits acceptDocs;
     private int parentDoc = -1;
     private int prevParentDoc;
@@ -23,7 +24,7 @@ public class SafariDocIdSetIterator extends DocIdSetIterator {
     private int maxScoringDoc;
     private float maxScore;
 
-    public SafariDocIdSetIterator(Weight weight, Scorer childScorer, FixedBitSet parentBits, int firstChildDoc, Bits acceptDocs) {
+    public SafariDocIdSetIterator(Weight weight, Scorer childScorer, BitSet parentBits, int firstChildDoc, Bits acceptDocs) {
         //super(weight);
         //System.out.println("Q.init firstChildDoc=" + firstChildDoc);
         this.parentBits = parentBits;
@@ -100,7 +101,7 @@ public class SafariDocIdSetIterator extends DocIdSetIterator {
             return nextDoc();
         }
 
-        prevParentDoc = parentBits.prevSetBit(parentTarget - 1);
+        prevParentDoc = parentBits.previousSetBit(parentTarget - 1);
 
         //System.out.println("  rolled back to prevParentDoc=" + prevParentDoc + " vs parentDoc=" + parentDoc);
         assert prevParentDoc >= parentDoc;
