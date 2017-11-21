@@ -122,7 +122,7 @@ public class FieldMergingProcessorTest extends SolrTest {
         return resp.getTermsResponse().getTermMap().get(field);
     }
 
-    @Ignore
+    
     @Test
     public void testInsertMultiple() throws Exception {
         // test committing batches of documents to see if we can successfully re-use the analysis

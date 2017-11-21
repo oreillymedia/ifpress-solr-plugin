@@ -36,6 +36,7 @@ public class MultiSuggesterTest extends SolrTest {
         rebuildSuggester();
         assertNoSuggestions();
         insertTestDocuments(TITLE_FIELD);
+        
     }
 
     @Test
@@ -45,6 +46,7 @@ public class MultiSuggesterTest extends SolrTest {
         insertTestDocuments(TITLE_VALUE_FIELD);
         assertSuggestionCount("a1", 1, "title");
         rebuildSuggester();
+        this.assertSuggestions();
         assertSuggestionCount("a1", 1, "title");
     }
 
@@ -104,7 +106,7 @@ public class MultiSuggesterTest extends SolrTest {
         SolrQuery q = new SolrQuery(prefix);
         q.setRequestHandler("/suggest/" + suggester);
         q.set("spellcheck.count", 100);
-        QueryResponse resp = null;  // rivey add catch
+        QueryResponse resp = null;  
         try {
             resp = solr.query(q);
         } catch (IOException ex) {
