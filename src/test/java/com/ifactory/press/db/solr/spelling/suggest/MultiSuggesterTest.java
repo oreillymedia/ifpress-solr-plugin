@@ -36,10 +36,6 @@ public class MultiSuggesterTest extends SolrTest {
         rebuildSuggester();
         assertNoSuggestions();
         insertTestDocuments(TITLE_FIELD);
-//        assertSuggestions();
-        // Rebuilding the index leaves everything the same 
-        rebuildSuggester();
-//        assertSuggestions();
     }
 
     @Test
@@ -47,10 +43,8 @@ public class MultiSuggesterTest extends SolrTest {
         rebuildSuggester();
         assertNoSuggestions();
         insertTestDocuments(TITLE_VALUE_FIELD);
-        //assertSuggestions();
         assertSuggestionCount("a1", 1, "title");
         rebuildSuggester();
-        //assertSuggestions();
         assertSuggestionCount("a1", 1, "title");
     }
 
@@ -61,10 +55,8 @@ public class MultiSuggesterTest extends SolrTest {
         int numDocs = 10;
         insertTestDocuments(TITLE_VALUE_FIELD, numDocs, false);
         Thread.sleep(500); // wait for autocommit
-        //solr.commit();
         long numFound = solr.query(new SolrQuery("*:*")).getResults().getNumFound();
         assertEquals(numDocs, numFound);
-//        assertSuggestions();
         assertSuggestionCount("a1", 1, "title");
     }
 
@@ -323,11 +315,9 @@ public class MultiSuggesterTest extends SolrTest {
         System.out.println("fresh b4 assert sug count");
         Suggestion suggestion = assertSuggestionCount("a2", 1, "all"); // was 1
         assertEquals("a2 document", suggestion.getAlternatives().get(0).toString().trim());
-        // solr.deleteById("/doc/2");
         solr.deleteByQuery("*");
         solr.commit();
-        //rebuildSuggester();
-//        assertSuggestionCount("a2", 0, "all"); rivey
+        assertSuggestionCount("a2", 0, "all"); 
     }
 
     @Test
@@ -347,11 +337,9 @@ public class MultiSuggesterTest extends SolrTest {
         solr.commit();
         Suggestion suggestion = assertSuggestionCount("dawn", 1, "all");
         assertEquals("The Dawning of a New Era", suggestion.getAlternatives().get(0));
-        //assertEquals("dawning", suggestion.getAlternatives().get(1));
         // test rebuilding using a dictionary:
         rebuildSuggester();
         assertEquals("The Dawning of a New Era", suggestion.getAlternatives().get(0));
-        //assertEquals("dawning", suggestion.getAlternatives().get(1));
     }
 
 }
