@@ -28,6 +28,8 @@ import org.apache.solr.update.AddUpdateCommand;
 import org.apache.solr.update.processor.UpdateRequestProcessor;
 
 import com.ifactory.press.db.solr.analysis.PoolingAnalyzerWrapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * FieldMergingProcessor is a Solr UpdateRequestProcessor that merges several
@@ -67,7 +69,7 @@ import com.ifactory.press.db.solr.analysis.PoolingAnalyzerWrapper;
  */
 public class FieldMergingProcessor extends UpdateRequestProcessor {
 
-    // private static Logger log = LoggerFactory.getLogger(FieldMergingProcessorFactory.class);
+    private static Logger log = LoggerFactory.getLogger(FieldMergingProcessorFactory.class);
     private final String destinationField;
     private final HashMap<String, PoolingAnalyzerWrapper> sourceAnalyzers;
 

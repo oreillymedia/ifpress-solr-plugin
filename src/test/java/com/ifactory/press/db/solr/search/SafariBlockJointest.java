@@ -44,7 +44,7 @@ public class SafariBlockJointest extends SolrTest {
     @Test
     public void testChildMatch() throws Exception {
         SolrQuery query = new SolrQuery("{!scoring_parent which=type_s:parent} text_t:M");
-        // expect to get back docs 14, 28, 42, 56, 70, 84, 98
+        // expect to get back docs 14, 28, 42, 56, 70, 84, 98  // given this query defined parents - return children q={!scoring_parent which=content_type:book} content:compile
         QueryResponse resp = solr.query(query);
         assertEquals(7, resp.getResults().getNumFound());
         SolrDocument doc = solr.query(query).getResults().get(0);
