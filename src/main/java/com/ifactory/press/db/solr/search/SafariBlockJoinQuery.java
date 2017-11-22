@@ -1,5 +1,6 @@
 package com.ifactory.press.db.solr.search;
 
+import com.ifactory.press.db.solr.HitCount;
 import java.io.IOException;
 import java.util.BitSet;
 import java.util.Collection;
@@ -24,9 +25,9 @@ import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.search.join.QueryBitSetProducer;
 import org.apache.lucene.search.join.ToParentBlockJoinQuery;
-import org.apache.lucene.util.BitDocIdSet;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.FixedBitSet;
+import org.slf4j.LoggerFactory;
 
 /**
  * Derived from the standard Lucene (parent) block join ((by copy-paste, because
@@ -43,6 +44,7 @@ import org.apache.lucene.util.FixedBitSet;
  */
 public class SafariBlockJoinQuery extends Query {
 
+    private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(HitCount.class);
     private final Filter parentsFilter;
     private final Query childQuery;
 
@@ -101,7 +103,7 @@ public class SafariBlockJoinQuery extends Query {
                 Set<Term> termSet = new HashSet<Term>();
                 new IndexSearcher(emptyReader).createNormalizedWeight(joinQuery, false).extractTerms(termSet);
             } catch (IOException ex) {
-                Logger.getLogger(SafariBlockJoinQuery.class.getName()).log(Level.SEVERE, null, ex);
+                LOG.error("Error Extracting Terms ", ex.toString());
             }
         }
 
@@ -163,11 +165,8 @@ public class SafariBlockJoinQuery extends Query {
     static class BlockJoinScorer extends Scorer {
 
         private final Scorer childScorer;
-
-        private final Bits acceptDocs;
         private int prevParentDoc;
         private int totalFreq;
-        private final int nextChildDoc;
         private int maxScoringDoc;
         private float maxScore;
         SafariDocIdSetIterator safDocSetIterator = null;
@@ -175,11 +174,7 @@ public class SafariBlockJoinQuery extends Query {
 
         public BlockJoinScorer(Weight weight, Scorer childScorer, BitSet parentBits, int firstChildDoc, Bits acceptDocs) {
             super(weight);
-            //System.out.println("Q.init firstChildDoc=" + firstChildDoc);
-
             this.childScorer = childScorer;
-            this.acceptDocs = acceptDocs;
-            nextChildDoc = firstChildDoc;
             safDocSetIterator = new SafariDocIdSetIterator(weight, childScorer, parentBits, firstChildDoc, acceptDocs);
         }
 
@@ -234,7 +229,7 @@ public class SafariBlockJoinQuery extends Query {
             Set<Term> termSet = new HashSet<Term>();
             new IndexSearcher(emptyReader).createNormalizedWeight(childQuery, false).extractTerms(termSet);
         } catch (IOException ex) {
-            Logger.getLogger(SafariBlockJoinQuery.class.getName()).log(Level.SEVERE, null, ex);
+            LOG.error("Error Extracting Terms: ", ex.toString());
         }
     }
 

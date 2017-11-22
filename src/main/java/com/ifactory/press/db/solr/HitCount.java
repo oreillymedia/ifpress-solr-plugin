@@ -19,8 +19,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.MultiReader;
 
@@ -31,10 +29,10 @@ import org.apache.lucene.queries.function.valuesource.SumFloatFunction;
 import org.apache.lucene.queries.function.valuesource.TermFreqValueSource;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.search.Weight;
 import org.apache.solr.search.FunctionQParser;
 import org.apache.solr.search.SyntaxError;
 import org.apache.solr.search.ValueSourceParser;
+import org.slf4j.LoggerFactory;
 
 /**
  * Defines the Solr function hitcount([field, ...]) which returns the total of
@@ -43,6 +41,7 @@ import org.apache.solr.search.ValueSourceParser;
  * are counted.
  */
 public class HitCount extends ValueSourceParser {
+    private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(HitCount.class);
 
     @Override
     public ValueSource parse(FunctionQParser fp) throws SyntaxError {
@@ -52,7 +51,7 @@ public class HitCount extends ValueSourceParser {
         try {
             emptyReader = new MultiReader();
         } catch (IOException ex) {
-            Logger.getLogger(HitCount.class.getName()).log(Level.SEVERE, null, ex);
+            LOG.error("Error instantiating Multi-Reader", ex.toString());
         }
         Set<Term> termSet = new HashSet<Term>();
 
@@ -70,7 +69,7 @@ public class HitCount extends ValueSourceParser {
         try {
             new IndexSearcher(emptyReader).createNormalizedWeight(q, false).extractTerms(termSet);
         } catch (IOException ex) {
-            Logger.getLogger(HitCount.class.getName()).log(Level.SEVERE, null, ex);
+            LOG.error("Error instantiating IndexSearcher", ex.toString());
         } catch (UnsupportedOperationException e) {
             return new DoubleConstValueSource(1);
         }
