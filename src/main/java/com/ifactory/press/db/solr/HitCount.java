@@ -53,7 +53,6 @@ public class HitCount extends ValueSourceParser {
         } catch (IOException ex) {
             LOG.error("Error instantiating Multi-Reader", ex.toString());
         }
-        Set<Term> termSet = new HashSet<Term>();
 
         //LUCENE-6425: Replaced Query.extractTerms with Weight.extractTerms.      rivey
         //3015   (Adrien Grand)
@@ -67,7 +66,7 @@ public class HitCount extends ValueSourceParser {
 
         HashSet<Term> terms = new HashSet<Term>();
         try {
-            new IndexSearcher(emptyReader).createNormalizedWeight(q, false).extractTerms(termSet);
+            new IndexSearcher(emptyReader).createNormalizedWeight(q, false).extractTerms(terms);
         } catch (IOException ex) {
             LOG.error("Error instantiating IndexSearcher", ex.toString());
         } catch (UnsupportedOperationException e) {
