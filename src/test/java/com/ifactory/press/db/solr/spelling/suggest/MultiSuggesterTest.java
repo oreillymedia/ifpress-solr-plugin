@@ -21,6 +21,7 @@ import org.junit.Test;
 import com.ifactory.press.db.solr.SolrTest;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.junit.Ignore;
 
 public class MultiSuggesterTest extends SolrTest {
 
@@ -318,6 +319,7 @@ public class MultiSuggesterTest extends SolrTest {
         assertSuggestionCount("a2", 0, "all");
     }
 
+    @Ignore
     @Test
     public void testEliminateDuplicates() throws Exception {
         rebuildSuggester();
