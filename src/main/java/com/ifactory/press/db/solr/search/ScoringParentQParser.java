@@ -16,11 +16,23 @@
  */
 package com.ifactory.press.db.solr.search;
 
+import java.io.IOException;
+import java.util.Objects;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.search.DocIdSet;
 import org.apache.lucene.search.Query;  // this instead of filter
+import org.apache.lucene.search.join.BitSetProducer;
+import org.apache.lucene.search.join.QueryBitSetProducer;
+import org.apache.lucene.search.join.ScoreMode;
+import org.apache.lucene.util.BitDocIdSet;
+import org.apache.lucene.util.BitSet;
+import org.apache.lucene.util.Bits;
 import org.apache.solr.search.QueryWrapperFilter;
 //import org.apache.lucene.search.join.FixedBitSetCachingWrapperQuery;
+
 import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.request.SolrQueryRequest;
+import org.apache.solr.search.BitsFilteredDocIdSet;
 import org.apache.solr.search.Filter;
 import org.apache.solr.search.QParser;
 import org.apache.solr.search.QueryParsing;
@@ -29,11 +41,11 @@ import org.apache.solr.search.SolrConstantScoreQuery;
 import org.apache.solr.search.SyntaxError;
 
 class ScoringParentQParser extends QParser {
-
+    public static final String CACHE_NAME="perSegFilter";
     /**
      * implementation detail subject to change
      */
-    public String CACHE_NAME = "perSegFilter";  // rivey changed here
+    
 
     protected String getParentQueryLocalParamName() {
         return "which";
@@ -51,44 +63,104 @@ class ScoringParentQParser extends QParser {
         String filter = localParams.get(getParentQueryLocalParamName());
         QParser parentParser = subQuery(filter, null);
         Query parentQ = parentParser.getQuery();
-
+        String scoreMode = localParams.get("score", ScoreMode.None.name());
         String queryText = localParams.get(QueryParsing.V);
         // there is no child query, return parent filter from cache
         if (queryText == null || queryText.length() == 0) {
-            SolrConstantScoreQuery wrapped = new SolrConstantScoreQuery((Filter) getQuery(parentQ));  // rivey - cast to Filter
+            SolrConstantScoreQuery wrapped = new SolrConstantScoreQuery(getFilter(parentQ) );  // rivey - cast to Filter
             wrapped.setCache(false);
             return wrapped;
         }
         QParser childrenParser = subQuery(queryText, null);
         Query childrenQuery = childrenParser.getQuery();
-        return createQuery(parentQ, childrenQuery);
+        return createQuery(parentQ, childrenQuery, scoreMode);
     }
 
     protected Query createQuery(Query parentList, Query q) {
-        return new SafariBlockJoinQuery(q, (Filter) getQuery(parentList)); // rivey cast to Filter (solr) verify
+        return new SafariBlockJoinQuery(q, getFilter(parentList).filter, ScoreMode.None); // rivey cast to Filter (solr) verify
     }
 
-    @SuppressWarnings({"rawtypes", "unchecked"})
-    protected Query getQuery(Query parentList) {
-        SolrCache parentCache = req.getSearcher().getCache(CACHE_NAME);
+    protected Query createQuery(final Query parentList, Query query, String scoreMode) throws SyntaxError {
+        return new AllParentsAware(query, getFilter(parentList).filter, ScoreModeParser.parse(scoreMode), parentList);
+    }
+
+    BitDocIdSetFilterWrapper getFilter(Query parentList) {
+        return getCachedFilter(req, parentList);
+    }
+
+    static BitDocIdSetFilterWrapper getCachedFilter(final SolrQueryRequest request, Query parentList) {
+        SolrCache parentCache = request.getSearcher().getCache(CACHE_NAME);
         // lazily retrieve from solr cache
-        Query filter = null;   // turned into Query 
+        Filter filter = null;
         if (parentCache != null) {
-            filter = (Query) parentCache.get(parentList);
+            filter = (Filter) parentCache.get(parentList);
         }
-        Query result;
-        if (filter == null) {
-            result = createParentQuery(parentList);
+        BitDocIdSetFilterWrapper result;
+        if (filter instanceof BitDocIdSetFilterWrapper) {
+            result = (BitDocIdSetFilterWrapper) filter;
+        } else {
+            result = new BitDocIdSetFilterWrapper(createParentFilter(parentList));
             if (parentCache != null) {
                 parentCache.put(parentList, result);
             }
-        } else {
-            result = filter;
         }
         return result;
     }
 
-    protected Query createParentQuery(Query parentQ) {
-        return new QueryWrapperFilter(parentQ); // rfhi was FixedBitSetCachingWrapperQuery
+    private static BitSetProducer createParentFilter(Query parentQ) {
+        return new QueryBitSetProducer(parentQ);
     }
+
+    static final class AllParentsAware extends SafariBlockJoinQuery {
+
+        private final Query parentQuery;
+
+        private AllParentsAware(Query childQuery, BitSetProducer parentsFilter, ScoreMode scoreMode,
+                Query parentList) {
+            super(childQuery, parentsFilter, scoreMode);
+            parentQuery = parentList;
+        }
+
+        public Query getParentQuery() {
+            return parentQuery;
+        }
+    }
+
+    // We need this wrapper since BitDocIdSetFilter does not extend Filter
+    static class BitDocIdSetFilterWrapper extends Filter {
+
+        final BitSetProducer filter;
+
+        BitDocIdSetFilterWrapper(BitSetProducer filter) {
+            this.filter = filter;
+        }
+
+        @Override
+        public DocIdSet getDocIdSet(LeafReaderContext context, Bits acceptDocs) throws IOException {
+            BitSet set = filter.getBitSet(context);
+            if (set == null) {
+                return null;
+            }
+            return BitsFilteredDocIdSet.wrap(new BitDocIdSet(set), acceptDocs);
+        }
+
+        @Override
+        public String toString(String field) {
+            return getClass().getSimpleName() + "(" + filter + ")";
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            return sameClassAs(other)
+                    && Objects.equals(filter, getClass().cast(other).filter);
+        }
+
+        @Override
+        public int hashCode() {
+            return classHash() + filter.hashCode();
+        }
+
+    }
+    
+    
 }
