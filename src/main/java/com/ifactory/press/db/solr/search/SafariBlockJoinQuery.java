@@ -189,14 +189,6 @@ public class SafariBlockJoinQuery extends Query {
             return Explanation.noMatch("Not a match");
         }
 
-        /* @Override
-        public boolean scoresDocsOutOfOrder() {
-            return false;
-        } */   //rivey - find this //TODO
-        @Override
-        public void extractTerms(Set<Term> set) {  // rivey // TODO   Verify this!!! 
-
-        }
 
     }
 

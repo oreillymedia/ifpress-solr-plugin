@@ -165,6 +165,7 @@ public class SafariBlockJointest extends SolrTest {
                         text.append(k).append(' ');
                     }
                 }
+                System.out.println("docid: " + docid + " text_t = " + text.toString());
                 doc.addField("text_t", text.toString());
                 docs.add(doc);
             }

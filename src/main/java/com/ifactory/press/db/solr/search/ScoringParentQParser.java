@@ -27,9 +27,6 @@ import org.apache.lucene.search.join.ScoreMode;
 import org.apache.lucene.util.BitDocIdSet;
 import org.apache.lucene.util.BitSet;
 import org.apache.lucene.util.Bits;
-import org.apache.solr.search.QueryWrapperFilter;
-//import org.apache.lucene.search.join.FixedBitSetCachingWrapperQuery;
-
 import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.request.SolrQueryRequest;
 import org.apache.solr.search.BitsFilteredDocIdSet;
@@ -41,13 +38,14 @@ import org.apache.solr.search.SolrConstantScoreQuery;
 import org.apache.solr.search.SyntaxError;
 
 class ScoringParentQParser extends QParser {
-    public static final String CACHE_NAME="perSegFilter";
+
+    public static final String CACHE_NAME = "perSegFilter";
+
     /**
      * implementation detail subject to change
      */
-    
 
-    protected String getParentQueryLocalParamName() {
+    protected String getParentFilterLocalParamName() {
         return "which";
     }
 
@@ -60,28 +58,24 @@ class ScoringParentQParser extends QParser {
         if (localParams == null) {
             throw new SyntaxError("join query parser must be invoked using localParams");
         }
-        String filter = localParams.get(getParentQueryLocalParamName());
+        String filter = localParams.get(getParentFilterLocalParamName());
         QParser parentParser = subQuery(filter, null);
         Query parentQ = parentParser.getQuery();
-        String scoreMode = localParams.get("score", ScoreMode.None.name());
+
         String queryText = localParams.get(QueryParsing.V);
         // there is no child query, return parent filter from cache
         if (queryText == null || queryText.length() == 0) {
-            SolrConstantScoreQuery wrapped = new SolrConstantScoreQuery(getFilter(parentQ) );  // rivey - cast to Filter
+            SolrConstantScoreQuery wrapped = new SolrConstantScoreQuery(getFilter(parentQ));
             wrapped.setCache(false);
             return wrapped;
         }
         QParser childrenParser = subQuery(queryText, null);
         Query childrenQuery = childrenParser.getQuery();
-        return createQuery(parentQ, childrenQuery, scoreMode);
+        return createQuery(parentQ, childrenQuery);
     }
 
     protected Query createQuery(Query parentList, Query q) {
         return new SafariBlockJoinQuery(q, getFilter(parentList).filter, ScoreMode.None); // rivey cast to Filter (solr) verify
-    }
-
-    protected Query createQuery(final Query parentList, Query query, String scoreMode) throws SyntaxError {
-        return new AllParentsAware(query, getFilter(parentList).filter, ScoreModeParser.parse(scoreMode), parentList);
     }
 
     BitDocIdSetFilterWrapper getFilter(Query parentList) {
@@ -161,6 +155,5 @@ class ScoringParentQParser extends QParser {
         }
 
     }
-    
-    
+
 }
