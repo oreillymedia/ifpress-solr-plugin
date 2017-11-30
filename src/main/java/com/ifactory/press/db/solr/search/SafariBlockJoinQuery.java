@@ -4,11 +4,9 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Locale;
-import java.util.Set;
 
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.Term;
 import org.apache.lucene.search.DocIdSetIterator;
 import static org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS;
 import org.apache.lucene.search.Explanation;
@@ -21,7 +19,6 @@ import org.apache.lucene.search.TwoPhaseIterator;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.search.join.BitSetProducer;
 import org.apache.lucene.search.join.ScoreMode;
-import org.apache.lucene.search.join.ToParentBlockJoinQuery;
 import org.apache.lucene.util.BitSet;
 
 /**
@@ -52,9 +49,13 @@ public class SafariBlockJoinQuery extends Query {
 
     @Override
     public Weight createWeight(IndexSearcher searcher, boolean needsScores) throws IOException {
-        return new SafariBlockJoinQuery.BlockJoinWeight(this, childQuery.createWeight(searcher, needsScores), parentsFilter, needsScores ? scoreMode : ScoreMode.None);
+        return new BlockJoinWeight(this, childQuery.createWeight(searcher, needsScores), parentsFilter, needsScores ? scoreMode : ScoreMode.None);
     }
 
+    /* public Query getChildQuery() {
+        return childQuery;
+    }*/
+    
     private static class ParentApproximation extends DocIdSetIterator {
 
         private final DocIdSetIterator childApproximation;
@@ -100,11 +101,11 @@ public class SafariBlockJoinQuery extends Query {
 
     private static class ParentTwoPhase extends TwoPhaseIterator {
 
-        private final SafariBlockJoinQuery.ParentApproximation parentApproximation;
+        private final ParentApproximation parentApproximation;
         private final DocIdSetIterator childApproximation;
         private final TwoPhaseIterator childTwoPhase;
 
-        ParentTwoPhase(SafariBlockJoinQuery.ParentApproximation parentApproximation, TwoPhaseIterator childTwoPhase) {
+        ParentTwoPhase(ParentApproximation parentApproximation, TwoPhaseIterator childTwoPhase) {
             super(parentApproximation);
             this.parentApproximation = parentApproximation;
             this.childApproximation = childTwoPhase.approximation();
@@ -182,7 +183,7 @@ public class SafariBlockJoinQuery extends Query {
 
        @Override
         public Explanation explain(LeafReaderContext context, int doc) throws IOException {
-            ToSafParentBlockJoinQuery.BlockJoinScorer scorer = (ToSafParentBlockJoinQuery.BlockJoinScorer) scorer(context);
+            BlockJoinScorer scorer = (BlockJoinScorer) scorer(context);
             if (scorer != null && scorer.iterator().advance(doc) == doc) {
                 return scorer.explain(context, in);
             }
@@ -203,8 +204,8 @@ public class SafariBlockJoinQuery extends Query {
         private final ScoreMode scoreMode;
         private final DocIdSetIterator childApproximation;
         private final TwoPhaseIterator childTwoPhase;
-        private final SafariBlockJoinQuery.ParentApproximation parentApproximation;
-        private final SafariBlockJoinQuery.ParentTwoPhase parentTwoPhase;
+        private final ParentApproximation parentApproximation;
+        private final ParentTwoPhase parentTwoPhase;
         private float score;
         private int freq;
 
@@ -217,18 +218,18 @@ public class SafariBlockJoinQuery extends Query {
             childTwoPhase = childScorer.twoPhaseIterator();
             if (childTwoPhase == null) {
                 childApproximation = childScorer.iterator();
-                parentApproximation = new SafariBlockJoinQuery.ParentApproximation(childApproximation, parentBits);
+                parentApproximation = new ParentApproximation(childApproximation, parentBits);
                 parentTwoPhase = null;
             } else {
                 childApproximation = childTwoPhase.approximation();
-                parentApproximation = new SafariBlockJoinQuery.ParentApproximation(childTwoPhase.approximation(), parentBits);
-                parentTwoPhase = new SafariBlockJoinQuery.ParentTwoPhase(parentApproximation, childTwoPhase);
+                parentApproximation = new ParentApproximation(childTwoPhase.approximation(), parentBits);
+                parentTwoPhase = new ParentTwoPhase(parentApproximation, childTwoPhase);
             }
         }
 
         @Override
-        public Collection<Scorer.ChildScorer> getChildren() {
-            return Collections.singleton(new Scorer.ChildScorer(childScorer, "BLOCK_JOIN"));
+        public Collection<ChildScorer> getChildren() {
+            return Collections.singleton(new ChildScorer(childScorer, "BLOCK_JOIN"));
         }
 
         @Override
@@ -331,7 +332,7 @@ public class SafariBlockJoinQuery extends Query {
     public Query rewrite(IndexReader reader) throws IOException {
         final Query childRewrite = childQuery.rewrite(reader);
         if (childRewrite != childQuery) {
-            return new ToSafParentBlockJoinQuery(childRewrite,
+            return new SafariBlockJoinQuery(childRewrite,
                     parentsFilter,
                     scoreMode);
         } else {
