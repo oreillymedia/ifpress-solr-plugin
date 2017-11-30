@@ -61,10 +61,13 @@ public class SafariBlockJoinQuery extends Query {
         private final DocIdSetIterator childApproximation;
         private final BitSet parentBits;
         private int doc = -1;
+        private final Scorer childScorer;
+        //private int parentDoc = -1; Doc is the parent doc
 
-        ParentApproximation(DocIdSetIterator childApproximation, BitSet parentBits) {
+        ParentApproximation(DocIdSetIterator childApproximation, BitSet parentBits, Scorer childScorer, ScoreMode scoreMode) {
             this.childApproximation = childApproximation;
             this.parentBits = parentBits;
+            this.childScorer = childScorer;
         }
 
         @Override
@@ -218,11 +221,11 @@ public class SafariBlockJoinQuery extends Query {
             childTwoPhase = childScorer.twoPhaseIterator();
             if (childTwoPhase == null) {
                 childApproximation = childScorer.iterator();
-                parentApproximation = new ParentApproximation(childApproximation, parentBits);
+                parentApproximation = new ParentApproximation(childApproximation, parentBits, childScorer, scoreMode);
                 parentTwoPhase = null;
             } else {
                 childApproximation = childTwoPhase.approximation();
-                parentApproximation = new ParentApproximation(childTwoPhase.approximation(), parentBits);
+                parentApproximation = new ParentApproximation(childTwoPhase.approximation(), parentBits, childScorer, scoreMode);
                 parentTwoPhase = new ParentTwoPhase(parentApproximation, childTwoPhase);
             }
         }
