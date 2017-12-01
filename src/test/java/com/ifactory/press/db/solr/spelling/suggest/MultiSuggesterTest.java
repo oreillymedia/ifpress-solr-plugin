@@ -48,6 +48,7 @@ public class MultiSuggesterTest extends SolrTest {
         rebuildSuggester();
         
         insertTestDocuments(TITLE_VALUE_FIELD);
+        Thread.sleep(2500);
         assertSuggestions();
         assertSuggestionCount("a1", 1, "title");
         rebuildSuggester();
@@ -184,8 +185,7 @@ public class MultiSuggesterTest extends SolrTest {
         SolrQuery q = new SolrQuery("t");
         q.setRequestHandler("/suggest/title");
         q.set("spellcheck.build", "true");
-        q.set("suggester.build", "true");
-        q.set("suggester.buildAll", "true");
+        
         QueryResponse qr = null;  // rivey catch exception
         try {
             qr = solr.query(q);
@@ -196,6 +196,12 @@ public class MultiSuggesterTest extends SolrTest {
         
         q.setRequestHandler("/suggest/all");
         System.out.println("qr = " + qr.getSpellCheckResponse());
+        try {
+            qr = solr.query(q);
+        } catch (IOException ex) {
+            System.out.println("REBUILD: error may cause other ones: " + ex.getMessage());
+            Logger.getLogger(MultiSuggesterTest.class.getName()).log(Level.SEVERE, null, ex);
+        }
         return qr;
     }
 
