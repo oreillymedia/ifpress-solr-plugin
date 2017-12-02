@@ -16,13 +16,13 @@ import org.junit.BeforeClass;
 public class SolrTest {
 
     static CoreContainer coreContainer;
-    protected org.apache.solr.client.solrj.embedded.EmbeddedSolrServer solr;   // rivey
+    protected EmbeddedSolrServer solr;   // rivey
+    protected static String indexName = "collection1";
+    
 
     @BeforeClass
-    public static void startup() throws Exception {
-        FileUtils.cleanDirectory(new File("solr/collection1/data/"));
-        FileUtils.cleanDirectory(new File("solr/collection1/suggestIndex/"));
-        FileUtils.cleanDirectory(new File("solr/heron/data/"));
+    public static void startup() throws Exception {    
+        deleteIndexDirectories();
         // start an embedded solr instance
         coreContainer = new CoreContainer("solr");
         coreContainer.load();
@@ -35,15 +35,13 @@ public class SolrTest {
             core.close();
         }
         coreContainer.shutdown();
-        FileUtils.cleanDirectory(new File("solr/collection1/data/"));
-        FileUtils.cleanDirectory(new File("solr/collection1/suggestIndex/"));
-        FileUtils.cleanDirectory(new File("solr/heron/data/"));
+        deleteIndexDirectories();
         coreContainer = null;
     }
 
     @Before
     public void init() throws Exception {
-        solr = new EmbeddedSolrServer(coreContainer, "collection1");
+        solr = new EmbeddedSolrServer(coreContainer, indexName);
         clearIndex();
     }
 
@@ -53,11 +51,17 @@ public class SolrTest {
     }
 
     protected static SolrCore getDefaultCore() {
-        return coreContainer.getCore("collection1");
+        return coreContainer.getCore(indexName);
     }
 
     @After
     public void cleanup() throws Exception {
+      clearIndex();
+    }
+
+    protected static void deleteIndexDirectories() throws IOException {
+        FileUtils.cleanDirectory(new File(String.format("solr/%s/data/", indexName)));
+        FileUtils.cleanDirectory(new File(String.format("solr/%s/suggestIndex/", indexName)));
     }
 
 }

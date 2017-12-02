@@ -20,12 +20,6 @@ import java.util.logging.Logger;
 
 public class SolrPostingsHighlighterTest extends HeronSolrTest {
 
-    @Before
-    public void setup() throws SolrServerException, IOException {
-        solr.deleteByQuery("*:*");
-        solr.commit();
-    }
-
     @Test
     public void testHighlightChapter5() throws SolrServerException, IOException {
         // searching for "gas" didn't work on the Safari site

@@ -138,7 +138,7 @@ import org.apache.lucene.util.BytesRefBuilder;
 @SuppressWarnings("rawtypes")
 public class MultiSuggester extends Suggester {
 
-  // weights are stored internally as longs, but externally as small
+    // weights are stored internally as longs, but externally as small
     // floating point numbers. The floating point weights are multiplied by
     // this factor to convert them to longs with a sufficient
     // range. WEIGHT_SCALE should be greater than the number of documents
@@ -150,7 +150,7 @@ public class MultiSuggester extends Suggester {
 
     private int maxSuggestionLength;
 
-  // use a synchronized Multimap - there may be one with the same name for each
+    // use a synchronized Multimap - there may be one with the same name for each
     // core
     private static final ListMultimap<Object, Object> registry = Multimaps.synchronizedListMultimap(ArrayListMultimap.create());
 
@@ -160,29 +160,8 @@ public class MultiSuggester extends Suggester {
     public String init(NamedList config, SolrCore coreParam) {
         String myname = (String) config.get(DICTIONARY_NAME);
         this.core = coreParam;
-
-    // Workaround for SOLR-6246 (lock exception on core reload): close
-        // any suggester registered with the same name.
-        if (registry.containsKey(myname)) {
-            MultiSuggester suggesterToClose = null;
-            for (Object o : registry.get(myname)) {
-                MultiSuggester suggester = (MultiSuggester) o;
-                if (suggester.core.getName().equals(coreParam.getName())) {
-                    suggesterToClose = suggester;
-                    break;
-                }
-            }
-            if (suggesterToClose != null) {
-                registry.remove(myname, suggesterToClose);
-                try {
-                    suggesterToClose.close();
-                } catch (IOException e) {
-                    LOG.error("An exception occurred while closing the spellchecker", e);
-                }
-            }
-        }
         super.init(config, coreParam);
-    // effectively disable analysis *by the SpellChecker/Suggester component*
+        // effectively disable analysis *by the SpellChecker/Suggester component*
         // because this leads
         // to independent suggestions for each token; we want AIS to perform
         // analysis and consider the tokens together
@@ -293,7 +272,7 @@ public class MultiSuggester extends Suggester {
     @Override
     public void reload(SolrCore coreParam, SolrIndexSearcher searcher) throws IOException {
         if (lookup instanceof AnalyzingInfixSuggester) {
-      // AnalyzingInfixSuggester maintains its own index and sees updates, so we
+            // AnalyzingInfixSuggester maintains its own index and sees updates, so we
             // don't need to
             // build it every time the core starts or is reloaded
             AnalyzingInfixSuggester ais = (AnalyzingInfixSuggester) lookup;
@@ -408,7 +387,7 @@ public class MultiSuggester extends Suggester {
             // get the number of documents having this field
             long docCount = searcher.getIndexReader().getDocCount(fld.fieldName) + fld.pendingDocCount;
             fld.pendingDocCount = 0;
-      // swap in a new pending map so we can accept new suggestions while we
+            // swap in a new pending map so we can accept new suggestions while we
             // commit
             ConcurrentHashMap<String, Integer> batch = fld.pending;
             fld.pending = new ConcurrentHashMap<String, Integer>(batch.size());
