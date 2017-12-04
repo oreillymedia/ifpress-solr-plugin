@@ -36,7 +36,7 @@ public class MultiSuggesterTest extends SolrTest {
         rebuildSuggester();
  //       assertNoSuggestions();
         insertTestDocuments(TITLE_FIELD);
-//        assertSuggestions();
+        assertSuggestions();
         // Rebuilding the index leaves everything the same 
         rebuildSuggester();
         //assertSuggestions();
@@ -49,6 +49,7 @@ public class MultiSuggesterTest extends SolrTest {
         
         insertTestDocuments(TITLE_VALUE_FIELD);
         Thread.sleep(2500);
+        solr.commit();
         assertSuggestions();
         assertSuggestionCount("a1", 1, "title");
         rebuildSuggester();
@@ -88,7 +89,8 @@ public class MultiSuggesterTest extends SolrTest {
         long t0 = System.nanoTime();
         insertTestDocuments(TITLE_VALUE_FIELD, 100);
         long t1 = System.nanoTime();
-        assertSuggestionCount("a2", 11, "all");   
+        assertSuggestionCount("a2", 11, "all"); 
+        assertSuggestions();
         System.out.println("testDocFreqWeight: " + (t1 - t0) + " ns");
     }
 
@@ -112,6 +114,7 @@ public class MultiSuggesterTest extends SolrTest {
 
     private Suggestion assertSuggestionCount(String prefix, int count, String suggester) throws SolrServerException {
         SolrQuery q = new SolrQuery(prefix);
+        System.out.println("suggester = " + suggester);
         q.setRequestHandler("/suggest/" + suggester);
         q.set("spellcheck.count", 100);
         QueryResponse resp = null;  
@@ -167,6 +170,8 @@ public class MultiSuggesterTest extends SolrTest {
         doc.addField(titleField, TITLE);
         doc.addField(TEXT_FIELD, TEXT);
         solr.add(doc);
+        System.out.println("doc = " + doc.toString());
+        solr.commit();
         for (int i = 2; i <= numDocs; i++) {
             doc = new SolrInputDocument();
             doc.addField("uri", "/doc/" + i);
@@ -177,8 +182,9 @@ public class MultiSuggesterTest extends SolrTest {
             solr.add(doc);
         }
         if (commit) {
-            solr.commit(false, true, true);
+            solr.commit();
         }
+        
     }
 
     private QueryResponse rebuildSuggester() throws SolrServerException {
