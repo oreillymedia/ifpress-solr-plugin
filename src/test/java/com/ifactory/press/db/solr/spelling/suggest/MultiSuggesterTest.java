@@ -19,7 +19,6 @@ import org.apache.solr.common.params.CoreAdminParams.CoreAdminAction;
 import org.junit.Test;
 
 import com.ifactory.press.db.solr.SolrTest;
-import org.junit.Ignore;
 
 public class MultiSuggesterTest extends SolrTest {
 
@@ -302,7 +301,6 @@ public class MultiSuggesterTest extends SolrTest {
         assertSuggestionCount("a2", 0, "all");
     }
 
-    @Ignore
     @Test
     public void testEliminateDuplicates() throws Exception {
         rebuildSuggester();

@@ -41,6 +41,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.junit.Ignore;
 
+// This component being tested are not used in our configs. They will be ignored for now.
+@Ignore
 public class FieldMergingProcessorTest extends SolrTest {
 
     private static final String TEXT_FIELD = "text_mt";
@@ -50,7 +52,6 @@ public class FieldMergingProcessorTest extends SolrTest {
 
     // insert text_t and title_t and expect to get titles as phrase tokens and text as word tokens
     // in catchall
-    @Ignore
     @Test
     public void testMergeFields() throws Exception {
         SolrInputDocument doc = new SolrInputDocument();
@@ -128,7 +129,6 @@ public class FieldMergingProcessorTest extends SolrTest {
         return resp.getTermsResponse().getTermMap().get(field);
     }
 
-    @Ignore
     @Test
     public void testInsertMultiple() throws Exception {
         // test committing batches of documents to see if we can successfully re-use the analysis
