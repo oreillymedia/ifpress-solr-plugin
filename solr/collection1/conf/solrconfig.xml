@@ -883,9 +883,7 @@
 
        http://wiki.apache.org/solr/SpellCheckComponent
     -->
-  <searchComponent name="spellcheck" class="solr.SpellCheckComponent">
-
-    <str name="queryAnalyzerFieldType">text_general</str>
+  <searchComponent name="suggest-component" class="solr.SpellCheckComponent">
 
     <!-- Multiple "Spell Checkers" can be declared and used by this
          component
@@ -893,39 +891,69 @@
 
     <!-- a spellchecker built from a field of the main index -->
     <lst name="spellchecker">
-      <str name="name">default</str>
-      <str name="field">_text_</str>
-      <str name="classname">solr.DirectSolrSpellChecker</str>
-      <!-- the spellcheck distance measure used, the default is the internal levenshtein -->
-      <str name="distanceMeasure">internal</str>
-      <!-- minimum accuracy needed to be considered a valid spellcheck suggestion -->
-      <float name="accuracy">0.5</float>
-      <!-- the maximum #edits we consider when enumerating terms: can be 1 or 2 -->
-      <int name="maxEdits">2</int>
-      <!-- the minimum shared prefix when enumerating terms -->
+      <str name="name">suggest-infix-all</str>
+      <str name="classname">com.ifactory.press.db.solr.spelling.suggest.MultiSuggester</str>
+      <str name="lookupImpl">com.ifactory.press.db.solr.spelling.suggest.SafeInfixLookupFactory</str>
+      <str name="suggestAnalyzerFieldType">text</str>
+      <int name="minPrefixChars">1</int>
       <int name="minPrefix">1</int>
-      <!-- maximum number of inspections per result. -->
-      <int name="maxInspections">5</int>
-      <!-- minimum length of a query term to be considered for correction -->
-      <int name="minQueryLength">4</int>
-      <!-- maximum threshold of documents a query term can appear to be considered for correction -->
-      <float name="maxQueryFrequency">0.01</float>
-      <!-- uncomment this to require suggestions to occur in 1% of the documents
-        <float name="thresholdTokenFrequency">.01</float>
-      -->
+      <int name="maxSuggestionLength">100</int>
+      <str name="indexPath">solr/${solr.core.name}/suggestIndex</str>
+      <float name="threshold">0.01</float>
+      <!-- true => NPE now that we have NRT support??.  For production, schedule a rebuild nightly instead -->
+      <str name="buildOnCommit">false</str>
+      <bool name="highlight">false</bool>
+      <lst name="fields">
+        <lst name="field">
+          <str name="name">fulltext_t</str>
+          <float name="weight">1.0</float>
+          <float name="minfreq">0.005</float>
+          <float name="maxfreq">0.3</float>
+        </lst>
+        <lst name="field">
+          <str name="name">title_t</str>
+          <!-- override the analyzer -->
+          <str name="analyzerFieldType">string</str>
+          <float name="weight">11.0</float>
+        </lst>
+        <lst name="field">
+          <str name="name">keyword</str>
+          <float name="weight">3.0</float>
+          <bool name="filterDuplicates">true</bool>
+        </lst>
+        <lst name="field">
+          <str name="name">duplicate_title_t</str>
+          <str name="analyzerFieldType">string</str>
+          <float name="weight">3.0</float>
+          <bool name="filterDuplicates">true</bool>
+        </lst>
+        <lst name="field">
+          <str name="name">title_ms</str>
+          <!-- use the field's analyzer -->
+          <float name="weight">11.0</float>
+        </lst>
+      </lst>
+    </lst>
+    
+    <lst name="spellchecker">
+      <str name="name">suggest-infix-title</str>
+      <lst name="fields">
+        <lst name="field">
+          <str name="name">title_t</str>
+          <str name="analyzerFieldType">string</str>
+          <float name="weight">2.0</float>
+        </lst>
+      </lst>
+      <str name="classname">com.ifactory.press.db.solr.spelling.suggest.MultiSuggester</str>
+      <str name="lookupImpl">com.ifactory.press.db.solr.spelling.suggest.SafeInfixLookupFactory</str>
+      <str name="indexPath">${solr.core.instanceDir}/${solr.core.dataDir}/suggest-title</str>
+      <str name="suggestAnalyzerFieldType">text</str>
+      <float name="threshold">0.0</float>
+      <int name="minPrefixChars">1</int>
+      <str name="buildOnCommit">false</str>
     </lst>
 
-    <!-- a spellchecker that can break or combine words.  See "/spell" handler below for usage -->
-    <!--
-    <lst name="spellchecker">
-      <str name="name">wordbreak</str>
-      <str name="classname">solr.WordBreakSolrSpellChecker</str>
-      <str name="field">name</str>
-      <str name="combineWords">true</str>
-      <str name="breakWords">true</str>
-      <int name="maxChanges">10</int>
-    </lst>
-    -->
+
   </searchComponent>
 
   <!-- A request handler for demonstrating the spellcheck component.  
@@ -1137,7 +1165,62 @@
       </boundaryScanner>
     </highlighting>
   </searchComponent>
+  
+  <!-- A request handler for the Suggester -->
+  <requestHandler name="/suggest/all" class="solr.SearchHandler" startup="lazy">
+    <lst name="defaults">
+      <str name="spellcheck">true</str>
+      <!-- order by frequency (otherwise alphabetically) -->
+      <str name="spellcheck.onlyMorePopular">true</str>
+      <str name="spellcheck.dictionary">suggest-infix-all</str>
+      <str name="spellcheck.count">10</str>
+      <!-- include a query incorporating the suggested term? -->
+      <!-- <str name="spellcheck.collate">true</str> -->
+    </lst>
+    <arr name="components">
+      <str>suggest-component</str>
+    </arr>
+  </requestHandler>
 
+  <requestHandler name="/suggest/title" class="solr.SearchHandler" startup="lazy">
+    <lst name="defaults">
+      <str name="spellcheck">true</str>
+      <str name="spellcheck.dictionary">suggest-infix-title</str>
+      <str name="spellcheck.count">10</str>
+    </lst>
+    <arr name="components">
+      <str>suggest-component</str>
+    </arr>
+  </requestHandler>
+
+  <requestHandler name="/update" class="solr.UpdateRequestHandler">
+    <lst name="defaults">
+      <str name="update.chain">field-merging-update-chain</str>
+    </lst>
+  </requestHandler>
+
+  <requestHandler name="/update/docvalues" class="solr.UpdateRequestHandler">
+    <lst name="defaults">
+      <str name="update.chain">docvalues-update-chain</str>
+    </lst>
+  </requestHandler>
+  
+  <requestHandler name="/update/extract" 
+                  startup="lazy"
+                  class="solr.extraction.ExtractingRequestHandler" >
+    <lst name="defaults">
+      <!-- All the main content goes into "text"... if you need to return
+           the extracted text or do highlighting, use a stored field. -->
+      <str name="fmap.content">text</str>
+      <str name="lowernames">true</str>
+      <str name="uprefix">ignored_</str>
+
+      <!-- capture link hrefs but ignore div attributes -->
+      <str name="captureAttr">true</str>
+      <str name="fmap.a">links</str>
+      <str name="fmap.div">ignored_</str>
+    </lst>
+  </requestHandler>
   <!-- Update Processors
 
        Chains of Update Processor Factories for dealing with Update
@@ -1161,6 +1244,28 @@
        
        See http://wiki.apache.org/solr/GuessingFieldTypes
     -->
+    
+    <updateRequestProcessorChain name="field-merging-update-chain" default="true">
+     <processor class="com.ifactory.press.db.solr.processor.FieldMergingProcessorFactory">
+       <str name="destinationField">catchall</str>
+       <lst name="sourceField">
+         <str name="title_mt">keyword</str>
+         <str name="text_mt" />
+       </lst>
+     </processor>
+     <processor class="com.ifactory.press.db.solr.processor.MultiSuggesterProcessorFactory">
+       <str name="suggester-component">suggest-component</str>
+     </processor>
+     <processor class="solr.LogUpdateProcessorFactory" />
+     <processor class="solr.RunUpdateProcessorFactory" />
+   </updateRequestProcessorChain>
+
+   <updateRequestProcessorChain name="docvalues-update-chain" default="false">
+     <processor class="com.ifactory.press.db.solr.processor.UpdateDocValuesProcessorFactory" />
+     <processor class="solr.LogUpdateProcessorFactory" />
+     <processor class="solr.RunUpdateProcessorFactory" />
+   </updateRequestProcessorChain>
+    
   <!-- <updateRequestProcessorChain name="add-unknown-fields-to-the-schema">
      UUIDUpdateProcessorFactory will generate an id if none is present in the incoming document 
     <processor class="solr.UUIDUpdateProcessorFactory" />
