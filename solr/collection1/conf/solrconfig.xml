@@ -897,6 +897,7 @@
       <str name="suggestAnalyzerFieldType">text</str>
       <int name="minPrefixChars">1</int>
       <int name="minPrefix">1</int>
+      <int name="minQueryLength">1</int>
       <int name="maxSuggestionLength">100</int>
       <str name="indexPath">solr/${solr.core.name}/suggestIndex</str>
       <float name="threshold">0.01</float>
@@ -950,6 +951,7 @@
       <str name="suggestAnalyzerFieldType">text</str>
       <float name="threshold">0.0</float>
       <int name="minPrefixChars">1</int>
+      <int name="minQueryLength">1</int>
       <str name="buildOnCommit">false</str>
     </lst>
 
