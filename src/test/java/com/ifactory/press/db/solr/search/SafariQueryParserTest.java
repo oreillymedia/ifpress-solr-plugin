@@ -95,7 +95,7 @@ public class SafariQueryParserTest extends SolrTest {
             SolrQueryRequest req = new LocalSolrQueryRequest(core, localParams);
             SafariQueryParser parser = new SafariQueryParser(query, localParams, params, req);
             Query parsed = parser.parse(); 
-            assertEquals(expected.toString(), parsed.toString());
+            assertEquals(expected, parsed);
         } finally {
             core.close();
         }
