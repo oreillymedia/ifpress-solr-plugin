@@ -35,7 +35,7 @@
        that you fully re-index after changing this setting as it can
        affect both how text is indexed and queried.
   -->
-  <luceneMatchVersion>4.8</luceneMatchVersion>
+  <luceneMatchVersion>5.5.0</luceneMatchVersion>
 
   <!-- lib directives can be used to instruct Solr to load an Jars identified
        and use them to resolve any "plugins" specified in your solrconfig.xml or
@@ -1038,6 +1038,9 @@
       <int name="maxSuggestionLength">100</int>
       <str name="indexPath">solr/${solr.core.name}/suggestIndex</str>
       <float name="threshold">0.0</float>
+      <int name="minPrefix">1</int>
+      <int name="maxInspections">5</int>
+      <int name="minQueryLength">0</int>
       <!-- true => NPE now that we have NRT support??.  For production, schedule a rebuild nightly instead -->
       <str name="buildOnCommit">false</str>
       <bool name="highlight">false</bool>
@@ -1086,6 +1089,7 @@
       <str name="lookupImpl">com.ifactory.press.db.solr.spelling.suggest.SafeInfixLookupFactory</str>
       <str name="indexPath">${solr.core.instanceDir}/${solr.core.dataDir}/suggest-title</str>
       <str name="suggestAnalyzerFieldType">text</str>
+      <int name="minQueryLength">1</int>
       <float name="threshold">0.0</float>
       <str name="buildOnCommit">false</str>
     </lst>
