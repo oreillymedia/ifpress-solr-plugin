@@ -30,6 +30,22 @@ public class MultiSuggesterTest extends SolrTest {
     private static final String TITLE_VALUE_FIELD = "title_t";
     private static final String TEXT = "Now is the time time for all good people to come to the aid of their dawning intentional community";
     private static final String TITLE = "The Dawning of a New Era";
+    
+    @Test
+    public void testRegularSpellcheck() throws Exception {
+      SolrQuery q = new SolrQuery("th");
+      q.setRequestHandler("/spell");
+      q.set("spellcheck.build", "true");
+      
+      QueryResponse qr = null;  // rivey catch exception
+      try {
+          qr = solr.query(q);
+      } catch (IOException ex) {
+          System.out.println("REBUILD: error may cause other ones: " + ex.getMessage());
+          Logger.getLogger(MultiSuggesterTest.class.getName()).log(Level.SEVERE, null, ex);
+      }
+      assertNotNull(qr.getSpellCheckResponse());
+    }
 
     @Test
     public void testMultiSuggest() throws Exception {
