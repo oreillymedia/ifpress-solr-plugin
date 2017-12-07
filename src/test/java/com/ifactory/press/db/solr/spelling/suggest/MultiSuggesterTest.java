@@ -50,7 +50,7 @@ public class MultiSuggesterTest extends SolrTest {
     @Test
     public void testMultiSuggest() throws Exception {
         rebuildSuggester();
- //       assertNoSuggestions();
+        assertNoSuggestions();
         insertTestDocuments(TITLE_FIELD);
         assertSuggestions();
         // Rebuilding the index leaves everything the same 
@@ -66,7 +66,7 @@ public class MultiSuggesterTest extends SolrTest {
         insertTestDocuments(TITLE_VALUE_FIELD);
         Thread.sleep(2500);
         solr.commit();
-//        assertSuggestions();
+        assertSuggestions();
         assertSuggestionCount("a1", 1, "title");
         rebuildSuggester();
         //assertSuggestions();
@@ -140,8 +140,13 @@ public class MultiSuggesterTest extends SolrTest {
             Logger.getLogger(MultiSuggesterTest.class.getName()).log(Level.SEVERE, null, ex);
         }
         SpellCheckResponse scr = resp.getSpellCheckResponse();
-        assertNotNull("no spell check reponse found", scr); // null happens for empty assertions test
-        Suggestion suggestion = scr.getSuggestion(prefix);
+        
+        Suggestion suggestion = null;
+        // Assumption: Either null is a case for no results or a bug in Solr after 5.0
+        if (scr != null) {
+            suggestion = scr.getSuggestion(prefix);
+        }
+        
         if (count == 0) {
             assertNull("Unexpected suggestion found for " + prefix, suggestion);
             return null;
