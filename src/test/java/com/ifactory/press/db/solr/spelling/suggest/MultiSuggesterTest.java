@@ -27,7 +27,7 @@ public class MultiSuggesterTest extends SolrTest {
     private static final String TEXT_FIELD = "fulltext_t";
     private static final String TITLE_FIELD = "title_ms";
     private static final String TITLE_VALUE_FIELD = "title_t";
-    private static final String TEXT = "Now is the time time for all good people to come to the aid of their dawning intentional community";
+    private static final String TEXT = "Now is the thime time for all good people to come to the aid of their dawning intentional community";
     private static final String TITLE = "The Dawning of a New Era";
     
     @Test
@@ -166,7 +166,7 @@ public class MultiSuggesterTest extends SolrTest {
             String sugg = suggestion.getAlternatives().get(i);
             assertTrue(sugg + " does not match t[1-5]", sugg.matches("t1[1-5]"));
         }
-        suggestion = assertSuggestionCount("th", 2, "all");
+        suggestion = assertSuggestionCount("th", 3, "all");
         assertTrue(suggestion.getAlternatives().get(1).matches("their"));
         /*assertTrue(suggestion.getAlternatives().get(7).matches("their|time"));
         assertNotEquals(suggestion.getAlternatives().get(6), suggestion.getAlternatives().get(7)); */
@@ -304,9 +304,9 @@ public class MultiSuggesterTest extends SolrTest {
         // The title field is analyzed, so the weight is computed as
         // #occurrences/#docs(w/title) * field-weight
         // = 1 / 10 * 11 * 10000000 = 11000000
-        assertEquals(110000000, suggestion.getAlternativeFrequencies().get(0).intValue());
+        assertEquals(11000000, suggestion.getAlternativeFrequencies().get(0).intValue());
         int last = suggestion.getNumFound() - 1;
-        assertTrue(suggestion.getAlternatives().get(last).matches("their"));
+        assertTrue(suggestion.getAlternatives().get(last).matches("their|thime"));
         assertTrue(suggestion.getAlternativeFrequencies().get(last) > 0); 
     }
 
