@@ -170,8 +170,9 @@ public class MultiSuggesterTest extends SolrTest {
             String sugg = suggestion.getAlternatives().get(i);
             assertTrue(sugg + " does not match t[1-5]", sugg.matches("t1[1-5]"));
         }
-        /* assertTrue(suggestion.getAlternatives().get(6).matches("their|time"));
-        assertTrue(suggestion.getAlternatives().get(7).matches("their|time"));
+        suggestion = assertSuggestionCount("th", 2, "all");
+        assertTrue(suggestion.getAlternatives().get(1).matches("their"));
+        /*assertTrue(suggestion.getAlternatives().get(7).matches("their|time"));
         assertNotEquals(suggestion.getAlternatives().get(6), suggestion.getAlternatives().get(7)); */
     }
 
