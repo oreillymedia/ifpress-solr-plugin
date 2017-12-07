@@ -21,7 +21,6 @@ import org.junit.Test;
 import com.ifactory.press.db.solr.SolrTest;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.junit.Ignore;
 
 public class MultiSuggesterTest extends SolrTest {
 
@@ -90,7 +89,7 @@ public class MultiSuggesterTest extends SolrTest {
     @Test
     public void testDocFreqWeight() throws Exception {
         rebuildSuggester();
-        //assertNoSuggestions();
+        assertNoSuggestions();
         long t0 = System.nanoTime();
         insertTestDocuments(TITLE_FIELD, 100);
         long t1 = System.nanoTime();
@@ -101,7 +100,7 @@ public class MultiSuggesterTest extends SolrTest {
     @Test
     public void testConstantWeight() throws Exception {
         rebuildSuggester();
-        //assertNoSuggestions();
+        assertNoSuggestions();
         long t0 = System.nanoTime();
         insertTestDocuments(TITLE_VALUE_FIELD, 100);
         long t1 = System.nanoTime();
