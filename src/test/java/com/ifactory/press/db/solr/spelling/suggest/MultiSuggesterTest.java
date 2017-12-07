@@ -36,7 +36,7 @@ public class MultiSuggesterTest extends SolrTest {
       q.setRequestHandler("/spell");
       q.set("spellcheck.build", "true");
       
-      QueryResponse qr = null;  // rivey catch exception
+      QueryResponse qr = null;  
       try {
           qr = solr.query(q);
       } catch (IOException ex) {
@@ -211,7 +211,7 @@ public class MultiSuggesterTest extends SolrTest {
         q.setRequestHandler("/suggest/title");
         q.set("spellcheck.build", "true");
         
-        QueryResponse qr = null;  // rivey catch exception
+        QueryResponse qr = null;  
         try {
             qr = solr.query(q);
         } catch (IOException ex) {
