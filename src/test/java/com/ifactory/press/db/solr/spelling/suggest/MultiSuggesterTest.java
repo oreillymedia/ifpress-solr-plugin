@@ -165,12 +165,12 @@ public class MultiSuggesterTest extends SolrTest {
         Suggestion suggestion = assertSuggestionCount("t1", 5, "all");
         // TITLE occurs once in a high-weighted field; t1-t4, etc each occur twice, t5 once, their/time occur once
         // 'the' and 'to' occur too many times and get excluded
-        /* assertEquals(TITLE, suggestion.getAlternatives().get(0));
-        for (int i = 1; i <= 5; i++) {
+        // assertEquals(TITLE, suggestion.getAlternatives().get(0));
+        for (int i = 1; i <= 4; i++) {
             String sugg = suggestion.getAlternatives().get(i);
-            assertTrue(sugg + " does not match t[1-5]", sugg.matches("t[1-5]"));
+            assertTrue(sugg + " does not match t[1-5]", sugg.matches("t1[1-5]"));
         }
-        assertTrue(suggestion.getAlternatives().get(6).matches("their|time"));
+        /* assertTrue(suggestion.getAlternatives().get(6).matches("their|time"));
         assertTrue(suggestion.getAlternatives().get(7).matches("their|time"));
         assertNotEquals(suggestion.getAlternatives().get(6), suggestion.getAlternatives().get(7)); */
     }
@@ -190,7 +190,6 @@ public class MultiSuggesterTest extends SolrTest {
         doc.addField(titleField, TITLE);
         doc.addField(TEXT_FIELD, TEXT);
         solr.add(doc);
-        System.out.println("doc = " + doc.toString());
         solr.commit();
         for (int i = 2; i <= numDocs; i++) {
             doc = new SolrInputDocument();
