@@ -187,7 +187,7 @@ public class MultiSuggesterTest extends SolrTest {
         doc.addField(titleField, TITLE);
         doc.addField(TEXT_FIELD, TEXT);
         solr.add(doc);
-        solr.commit();
+        
         for (int i = 2; i <= numDocs; i++) {
             doc = new SolrInputDocument();
             doc.addField("uri", "/doc/" + i);
