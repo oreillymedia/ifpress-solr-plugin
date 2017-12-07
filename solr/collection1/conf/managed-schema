@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Solr managed schema - automatically generated - DO NOT EDIT -->
+<schema name="ifpress-solr" version="1.6">
+  <uniqueKey>uri</uniqueKey>
+  <fieldType name="binary" class="solr.BinaryField"/>
+  <fieldType name="boolean" class="solr.BoolField" omitNorms="true" sortMissingLast="true"/>
+  <fieldType name="date" class="solr.TrieDateField" omitNorms="true" positionIncrementGap="0" precisionStep="0"/>
+  <fieldType name="double" class="solr.TrieDoubleField" omitNorms="true" positionIncrementGap="0" precisionStep="0"/>
+  <fieldType name="float" class="solr.TrieFloatField" omitNorms="true" positionIncrementGap="0" precisionStep="0"/>
+  <fieldType name="ignored" class="solr.StrField" indexed="false" stored="false" multiValued="true"/>
+  <fieldType name="int" class="solr.TrieIntField" omitNorms="true" positionIncrementGap="0" precisionStep="0"/>
+  <fieldType name="keyword" class="solr.TextField" indexed="true" stored="false">
+    <analyzer>
+      <tokenizer class="solr.KeywordTokenizerFactory"/>
+    </analyzer>
+  </fieldType>
+  <fieldType name="long" class="solr.TrieLongField" omitNorms="true" positionIncrementGap="0" precisionStep="0"/>
+  <fieldType name="payloads" class="solr.TextField" indexed="true" stored="false">
+    <analyzer>
+      <tokenizer class="solr.WhitespaceTokenizerFactory"/>
+      <filter class="solr.DelimitedPayloadTokenFilterFactory" encoder="float"/>
+    </analyzer>
+  </fieldType>
+  <fieldType name="random" class="solr.RandomSortField" indexed="true"/>
+  <fieldType name="sortkey" class="solr.TextField" omitNorms="true" omitTermFreqAndPositions="true" indexed="true" stored="false" positionIncrementGap="100">
+    <analyzer>
+      <tokenizer class="solr.KeywordTokenizerFactory"/>
+      <filter class="solr.LowerCaseFilterFactory"/>
+      <filter class="solr.TrimFilterFactory"/>
+      <filter class="solr.ASCIIFoldingFilterFactory"/>
+    </analyzer>
+  </fieldType>
+  <fieldType name="string" class="solr.StrField" omitNorms="true" omitTermFreqAndPositions="true" sortMissingLast="true"/>
+  <fieldType name="tdate" class="solr.TrieDateField" omitNorms="true" positionIncrementGap="0" precisionStep="6"/>
+  <fieldType name="tdouble" class="solr.TrieDoubleField" omitNorms="true" positionIncrementGap="0" precisionStep="8"/>
+  <fieldType name="text" class="solr.TextField" positionIncrementGap="0" storeOffsetsWithPositions="true">
+    <analyzer>
+      <tokenizer class="solr.StandardTokenizerFactory"/>
+      <filter class="solr.StandardFilterFactory"/>
+      <filter class="solr.EnglishPossessiveFilterFactory"/>
+      <filter class="solr.ASCIIFoldingFilterFactory"/>
+      <filter class="solr.LowerCaseFilterFactory"/>
+    </analyzer>
+  </fieldType>
+  <fieldType name="text_case_sensitive" class="solr.TextField" positionIncrementGap="100" storeOffsetsWithPositions="true">
+    <analyzer type="index">
+      <tokenizer class="solr.StandardTokenizerFactory"/>
+      <filter class="solr.StandardFilterFactory"/>
+      <filter class="solr.EnglishPossessiveFilterFactory"/>
+      <filter class="solr.KStemFilterFactory"/>
+    </analyzer>
+    <analyzer type="query">
+      <tokenizer class="solr.StandardTokenizerFactory"/>
+      <filter class="solr.StandardFilterFactory"/>
+      <filter class="solr.EnglishPossessiveFilterFactory"/>
+      <filter class="solr.KStemFilterFactory"/>
+    </analyzer>
+  </fieldType>
+  <fieldType name="text_unstemmed" class="solr.TextField" positionIncrementGap="0">
+    <analyzer type="index">
+      <tokenizer class="solr.StandardTokenizerFactory"/>
+      <filter class="solr.StandardFilterFactory"/>
+      <filter class="solr.EnglishPossessiveFilterFactory"/>
+      <filter class="solr.ASCIIFoldingFilterFactory"/>
+    </analyzer>
+    <analyzer type="query">
+      <tokenizer class="solr.StandardTokenizerFactory"/>
+      <filter class="solr.StandardFilterFactory"/>
+      <filter class="solr.ASCIIFoldingFilterFactory"/>
+    </analyzer>
+  </fieldType>
+  <fieldType name="text_ws" class="solr.TextField" positionIncrementGap="100">
+    <analyzer>
+      <tokenizer class="solr.WhitespaceTokenizerFactory"/>
+    </analyzer>
+  </fieldType>
+  <fieldType name="tfloat" class="solr.TrieFloatField" omitNorms="true" positionIncrementGap="0" precisionStep="8"/>
+  <fieldType name="tint" class="solr.TrieIntField" omitNorms="true" positionIncrementGap="0" precisionStep="8"/>
+  <fieldType name="tlong" class="solr.TrieLongField" omitNorms="true" positionIncrementGap="0" precisionStep="8"/>
+  <fieldType name="xml_text_case_type" class="solr.TextField" storeOffsetsWithPositions="true">
+    <analyzer type="index">
+      <charFilter class="solr.HTMLStripCharFilterFactory"/>
+      <tokenizer class="solr.StandardTokenizerFactory"/>
+      <filter class="solr.StandardFilterFactory"/>
+      <filter class="solr.KStemFilterFactory"/>
+    </analyzer>
+    <analyzer type="query">
+      <tokenizer class="solr.StandardTokenizerFactory"/>
+      <filter class="solr.StandardFilterFactory"/>
+      <filter class="solr.KStemFilterFactory"/>
+    </analyzer>
+  </fieldType>
+  <fieldType name="xml_text_type" class="solr.TextField" storeOffsetsWithPositions="true">
+    <analyzer type="index">
+      <charFilter class="solr.HTMLStripCharFilterFactory"/>
+      <tokenizer class="solr.StandardTokenizerFactory"/>
+      <filter class="solr.StandardFilterFactory"/>
+      <filter class="solr.ASCIIFoldingFilterFactory"/>
+      <filter class="solr.KStemFilterFactory"/>
+    </analyzer>
+    <analyzer type="query">
+      <tokenizer class="solr.StandardTokenizerFactory"/>
+      <filter class="solr.StandardFilterFactory"/>
+      <filter class="solr.ASCIIFoldingFilterFactory"/>
+      <filter class="solr.KStemFilterFactory"/>
+    </analyzer>
+  </fieldType>
+  <field name="_root_" type="string" indexed="true" stored="false"/>
+  <field name="_version_" type="long" indexed="true" stored="true"/>
+  <field name="active" type="boolean" multiValued="false" indexed="true" stored="false"/>
+  <field name="binary" type="binary" indexed="false" stored="true"/>
+  <field name="catchall" type="keyword" multiValued="true" indexed="true" stored="false"/>
+  <field name="dc_source_uri_s" type="string" omitNorms="false" multiValued="false" indexed="true" stored="true"/>
+  <field name="directory_b" type="boolean" indexed="true" stored="true"/>
+  <field name="fulltext_t" type="text" multiValued="true" indexed="true" stored="true"/>
+  <field name="fulltext_t_case" type="text_case_sensitive" multiValued="true" indexed="true" stored="false"/>
+  <field name="fulltext_t_unstemmed" type="text_unstemmed" multiValued="true" indexed="true" stored="false"/>
+  <field name="keyword" type="keyword" multiValued="true" indexed="true" stored="false"/>
+  <field name="payloads" type="payloads" indexed="true" stored="true"/>
+  <field name="size_i" type="int" indexed="false" stored="true"/>
+  <field name="text_t" type="text" omitNorms="true" indexed="true" stored="true"/>
+  <field name="timestamp" type="date" default="NOW" multiValued="false" indexed="true" stored="true"/>
+  <field name="title_t" type="text" indexed="true" stored="true"/>
+  <field name="uri" type="string" indexed="true" required="true" stored="true"/>
+  <field name="weight_dv" type="int" docValues="true" indexed="false" stored="false"/>
+  <field name="xml_text" type="xml_text_type" multiValued="false" indexed="true" stored="true"/>
+  <field name="xml_text_case" type="xml_text_case_type" multiValued="false" indexed="true" stored="false"/>
+  <dynamicField name="*_mt_stored" type="text" multiValued="true" indexed="true" stored="true"/>
+  <dynamicField name="*_mt_case" type="text_case_sensitive" multiValued="true" indexed="true" stored="false"/>
+  <dynamicField name="ignored_*" type="ignored" multiValued="true"/>
+  <dynamicField name="random_*" type="random"/>
+  <dynamicField name="*_tdt" type="tdate" indexed="true" stored="false"/>
+  <dynamicField name="*_mtu" type="text_unstemmed" multiValued="true" indexed="true" stored="false"/>
+  <dynamicField name="*_tu" type="text_unstemmed" indexed="true" stored="false"/>
+  <dynamicField name="*_dt" type="date" indexed="true" stored="false"/>
+  <dynamicField name="*_ti" type="tint" indexed="true" stored="false"/>
+  <dynamicField name="*_tl" type="tlong" indexed="true" stored="false"/>
+  <dynamicField name="*_tf" type="tfloat" indexed="true" stored="false"/>
+  <dynamicField name="*_td" type="tdouble" indexed="true" stored="false"/>
+  <dynamicField name="*_ms" type="string" multiValued="true" indexed="true" stored="false"/>
+  <dynamicField name="*_ss" type="string" indexed="false" stored="true"/>
+  <dynamicField name="*_ls" type="sortkey"/>
+  <dynamicField name="*_mt" type="text" multiValued="true" indexed="true" stored="false"/>
+  <dynamicField name="*_i" type="int" indexed="true" stored="false"/>
+  <dynamicField name="*_s" type="string" indexed="true" stored="true"/>
+  <dynamicField name="*_l" type="long" indexed="true" stored="false"/>
+  <dynamicField name="*_t" type="text" indexed="true" stored="true"/>
+  <dynamicField name="*_b" type="boolean" indexed="true" stored="false"/>
+  <dynamicField name="*_f" type="float" indexed="true" stored="false"/>
+  <dynamicField name="*_d" type="double" indexed="true" stored="false"/>
+  <copyField source="fulltext_t" dest="fulltext_t_case"/>
+  <copyField source="fulltext_t" dest="fulltext_t_unstemmed"/>
+  <copyField source="xml_text" dest="xml_text_case"/>
+</schema>

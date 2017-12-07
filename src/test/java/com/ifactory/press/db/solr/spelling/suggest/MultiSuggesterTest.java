@@ -61,10 +61,7 @@ public class MultiSuggesterTest extends SolrTest {
     @Test
     public void testOverrideAnalyzer() throws Exception {
         rebuildSuggester();
-        
         insertTestDocuments(TITLE_VALUE_FIELD);
-        Thread.sleep(2500);
-        solr.commit();
         assertSuggestions();
         assertSuggestionCount("a1", 1, "title");
         rebuildSuggester();
