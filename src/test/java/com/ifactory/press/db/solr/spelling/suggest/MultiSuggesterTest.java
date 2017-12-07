@@ -105,7 +105,6 @@ public class MultiSuggesterTest extends SolrTest {
         insertTestDocuments(TITLE_VALUE_FIELD, 100);
         long t1 = System.nanoTime();
         assertSuggestionCount("a2", 11, "all"); 
-//        assertSuggestions();
         System.out.println("testDocFreqWeight: " + (t1 - t0) + " ns");
     }
 
@@ -287,26 +286,31 @@ public class MultiSuggesterTest extends SolrTest {
         q.setRequestHandler("/suggest/all");
         QueryResponse resp = solr.query(q);
         SpellCheckResponse scr = resp.getSpellCheckResponse();
-        //Suggestion suggestion = scr.getSuggestion("t");
+        
 
         // no extended results
         assertNull(scr);
-
+        q = new SolrQuery("th");
+        q.setRequestHandler("/suggest/all");
+        resp = solr.query(q);
+        scr = resp.getSpellCheckResponse();
+        Suggestion suggestion = scr.getSuggestion("th");
+        //q = new SolrQuery("th");
         // extended results
-        /* q.set("spellcheck.extendedResults", true);
+        q.set("spellcheck.extendedResults", true);
         resp = solr.query(q);
         scr = resp.getSpellCheckResponse();
         assertNotNull("no spell check reponse found", scr);
-        suggestion = scr.getSuggestion("t");
+        suggestion = scr.getSuggestion("th");
         assertNotNull(suggestion.getAlternativeFrequencies());
-        assertEquals("The Dawning of a New Era", suggestion.getAlternatives().get(0)); */
+        assertEquals("The Dawning of a New Era", suggestion.getAlternatives().get(0)); 
         // The title field is analyzed, so the weight is computed as
         // #occurrences/#docs(w/title) * field-weight
         // = 1 / 10 * 11 * 10000000 = 11000000
-        /* assertEquals(11000000, suggestion.getAlternativeFrequencies().get(0).intValue());
+        assertEquals(110000000, suggestion.getAlternativeFrequencies().get(0).intValue());
         int last = suggestion.getNumFound() - 1;
-        assertTrue(suggestion.getAlternatives().get(last).matches("their|time"));
-        assertTrue(suggestion.getAlternativeFrequencies().get(last) > 0); */
+        assertTrue(suggestion.getAlternatives().get(last).matches("their"));
+        assertTrue(suggestion.getAlternativeFrequencies().get(last) > 0); 
     }
 
     @Test
