@@ -54,7 +54,7 @@ public class MultiSuggesterTest extends SolrTest {
         assertSuggestions();
         // Rebuilding the index leaves everything the same 
         rebuildSuggester();
-        //assertSuggestions();
+        assertSuggestions();
         
     }
 
@@ -68,7 +68,7 @@ public class MultiSuggesterTest extends SolrTest {
         assertSuggestions();
         assertSuggestionCount("a1", 1, "title");
         rebuildSuggester();
-        //assertSuggestions();
+        assertSuggestions();
         assertSuggestionCount("a1", 1, "title");
     }
 
@@ -82,7 +82,7 @@ public class MultiSuggesterTest extends SolrTest {
         solr.commit();
         long numFound = solr.query(new SolrQuery("*:*")).getResults().getNumFound();
         assertEquals(numDocs, numFound);
-        //assertSuggestions();
+        assertSuggestions();
         assertSuggestionCount("a1", 1, "title");
     }
 
