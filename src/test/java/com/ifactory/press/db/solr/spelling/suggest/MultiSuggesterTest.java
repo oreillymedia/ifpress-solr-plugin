@@ -101,12 +101,12 @@ public class MultiSuggesterTest extends SolrTest {
     @Test
     public void testConstantWeight() throws Exception {
         rebuildSuggester();
-//        assertNoSuggestions();
+        //assertNoSuggestions();
         long t0 = System.nanoTime();
         insertTestDocuments(TITLE_VALUE_FIELD, 100);
         long t1 = System.nanoTime();
         assertSuggestionCount("a2", 11, "all"); 
-        assertSuggestions();
+//        assertSuggestions();
         System.out.println("testDocFreqWeight: " + (t1 - t0) + " ns");
     }
 
