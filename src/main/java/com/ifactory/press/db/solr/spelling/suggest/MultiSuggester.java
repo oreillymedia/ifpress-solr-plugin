@@ -161,28 +161,8 @@ public class MultiSuggester extends Suggester {
         String myname = (String) config.get(DICTIONARY_NAME);
         this.core = coreParam;
 
-    // Workaround for SOLR-6246 (lock exception on core reload): close
-        // any suggester registered with the same name.
-        if (registry.containsKey(myname)) {
-            MultiSuggester suggesterToClose = null;
-            for (Object o : registry.get(myname)) {
-                MultiSuggester suggester = (MultiSuggester) o;
-                if (suggester.core.getName().equals(coreParam.getName())) {
-                    suggesterToClose = suggester;
-                    break;
-                }
-            }
-            if (suggesterToClose != null) {
-                registry.remove(myname, suggesterToClose);
-                try {
-                    suggesterToClose.close();
-                } catch (IOException e) {
-                    LOG.error("An exception occurred while closing the spellchecker", e);
-                }
-            }
-        }
         super.init(config, coreParam);
-    // effectively disable analysis *by the SpellChecker/Suggester component*
+        // effectively disable analysis *by the SpellChecker/Suggester component*
         // because this leads
         // to independent suggestions for each token; we want AIS to perform
         // analysis and consider the tokens together

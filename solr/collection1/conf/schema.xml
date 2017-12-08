@@ -443,10 +443,10 @@
   <uniqueKey>uri</uniqueKey>
 
   <!-- field for the QueryParser to use when an explicit fieldname is absent -->
-  <defaultSearchField>xml_text</defaultSearchField>
+  <!-- <defaultSearchField>xml_text</defaultSearchField> -->
 
   <!-- SolrQueryParser configuration: defaultOperator="AND|OR" -->
-  <solrQueryParser defaultOperator="AND" />
+  <!-- <solrQueryParser defaultOperator="AND" /> -->
 
   <!-- Lazy field loading will attempt to read only parts of documents on 
     disk that are requested. Enabling should be faster if you aren't retrieving 

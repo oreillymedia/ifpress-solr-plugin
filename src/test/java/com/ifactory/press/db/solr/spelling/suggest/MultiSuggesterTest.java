@@ -21,37 +21,69 @@ import org.junit.Test;
 import com.ifactory.press.db.solr.SolrTest;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.junit.Ignore;
 
 public class MultiSuggesterTest extends SolrTest {
 
     private static final String TEXT_FIELD = "fulltext_t";
     private static final String TITLE_FIELD = "title_ms";
     private static final String TITLE_VALUE_FIELD = "title_t";
-    private static final String TEXT = "Now is the time time for all good people to come to the aid of their dawning intentional community";
+    private static final String TEXT = "Now is the thime time for all good people to come to the aid of their dawning intentional community";
     private static final String TITLE = "The Dawning of a New Era";
+
+    /*
+     * Test to demonstrate SOLR-11732 bug
+     * Despite setting minPrefix and minQueryLength,
+     * spellcheck responses are null for single character queries
+     * Both scenerios are tested with nothing in the index.
+     */
+    @Test
+    public void testRegularSpellcheck() throws Exception {
+        SolrQuery q = new SolrQuery("A");
+        q.setRequestHandler("/spell");
+        q.set("spellcheck.build", "true");
+      
+        QueryResponse qr = null;  
+        try {
+            qr = solr.query(q);
+        } catch (IOException ex) {
+            System.out.println("REBUILD: error may cause other ones: " + ex.getMessage());
+            Logger.getLogger(MultiSuggesterTest.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        assertNull(qr.getSpellCheckResponse());
+        
+        q = new SolrQuery("AB");
+        q.setRequestHandler("/spell");
+      
+        qr = null;  
+        try {
+            qr = solr.query(q);
+        } catch (IOException ex) {
+            System.out.println("REBUILD: error may cause other ones: " + ex.getMessage());
+            Logger.getLogger(MultiSuggesterTest.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        assertNotNull(qr.getSpellCheckResponse());
+    }
 
     @Test
     public void testMultiSuggest() throws Exception {
         rebuildSuggester();
- //       assertNoSuggestions();
+        assertNoSuggestions();
         insertTestDocuments(TITLE_FIELD);
-//        assertSuggestions();
+        assertSuggestions();
         // Rebuilding the index leaves everything the same 
         rebuildSuggester();
-        //assertSuggestions();
+        assertSuggestions();
         
     }
 
     @Test
     public void testOverrideAnalyzer() throws Exception {
         rebuildSuggester();
-        
         insertTestDocuments(TITLE_VALUE_FIELD);
         assertSuggestions();
         assertSuggestionCount("a1", 1, "title");
         rebuildSuggester();
-        //assertSuggestions();
+        assertSuggestions();
         assertSuggestionCount("a1", 1, "title");
     }
 
@@ -62,17 +94,17 @@ public class MultiSuggesterTest extends SolrTest {
         int numDocs = 10;
         insertTestDocuments(TITLE_VALUE_FIELD, numDocs, false);
         Thread.sleep(500); // wait for autocommit
-        solr.commit();
+
         long numFound = solr.query(new SolrQuery("*:*")).getResults().getNumFound();
         assertEquals(numDocs, numFound);
-        //assertSuggestions();
+        assertSuggestions();
         assertSuggestionCount("a1", 1, "title");
     }
 
     @Test
     public void testDocFreqWeight() throws Exception {
         rebuildSuggester();
-        //assertNoSuggestions();
+        assertNoSuggestions();
         long t0 = System.nanoTime();
         insertTestDocuments(TITLE_FIELD, 100);
         long t1 = System.nanoTime();
@@ -83,16 +115,16 @@ public class MultiSuggesterTest extends SolrTest {
     @Test
     public void testConstantWeight() throws Exception {
         rebuildSuggester();
-        //assertNoSuggestions();
+        assertNoSuggestions();
         long t0 = System.nanoTime();
         insertTestDocuments(TITLE_VALUE_FIELD, 100);
         long t1 = System.nanoTime();
-        assertSuggestionCount("a2", 11, "all");   
+        assertSuggestionCount("a2", 11, "all"); 
         System.out.println("testDocFreqWeight: " + (t1 - t0) + " ns");
     }
 
     /*
-     * test workaround for LUCENE-5477/SOLR-6246
+     * Regression test for LUCENE-5477/SOLR-6246
      */
     @Test
     public void testReloadCore() throws Exception {
@@ -109,103 +141,12 @@ public class MultiSuggesterTest extends SolrTest {
         reload.process(solr);
     }
 
-    private Suggestion assertSuggestionCount(String prefix, int count, String suggester) throws SolrServerException {
-        SolrQuery q = new SolrQuery(prefix);
-        q.setRequestHandler("/suggest/" + suggester);
-        q.set("spellcheck.count", 100);
-        QueryResponse resp = null;  
-        try {
-            resp = solr.query(q);
-        } catch (IOException ex) {
-            Logger.getLogger(MultiSuggesterTest.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        SpellCheckResponse scr = resp.getSpellCheckResponse();
-        assertNotNull("no spell check reponse found", scr); // null happens for empty assertions test
-        Suggestion suggestion = scr.getSuggestion(prefix);
-        if (count == 0) {
-            assertNull("Unexpected suggestion found for " + prefix, suggestion);
-            return null;
-        } else {
-            assertNotNull("No suggestion found for " + prefix, suggestion);
-        }
-        assertEquals(suggestion.getAlternatives().toString(), count, suggestion.getNumFound());
-        return suggestion;
-    }
-
-    private void assertNoSuggestions() throws SolrServerException {
-        assertSuggestionCount("t", 0, "all");
-        assertSuggestionCount("a", 0, "title");
-    }
-
-    private void assertSuggestions() throws SolrServerException {
-        Suggestion suggestion = assertSuggestionCount("t", 8, "all");
-        // TITLE occurs once in a high-weighted field; t1-t4, etc each occur twice, t5 once, their/time occur once
-        // 'the' and 'to' occur too many times and get excluded
-        assertEquals(TITLE, suggestion.getAlternatives().get(0));
-        for (int i = 1; i <= 5; i++) {
-            String sugg = suggestion.getAlternatives().get(i);
-            assertTrue(sugg + " does not match t[1-5]", sugg.matches("t[1-5]"));
-        }
-        assertTrue(suggestion.getAlternatives().get(6).matches("their|time"));
-        assertTrue(suggestion.getAlternatives().get(7).matches("their|time"));
-        assertNotEquals(suggestion.getAlternatives().get(6), suggestion.getAlternatives().get(7));
-    }
-
-    private void insertTestDocuments(String titleField) throws SolrServerException, IOException {
-        insertTestDocuments(titleField, 10, true);
-    }
-
-    private void insertTestDocuments(String titleField, int numDocs) throws SolrServerException, IOException {
-        insertTestDocuments(titleField, numDocs, true);
-    }
-
-    private void insertTestDocuments(String titleField, int numDocs, boolean commit) throws SolrServerException, IOException {
-        // insert ten documents; one of them has the title TITLE
-        SolrInputDocument doc = new SolrInputDocument();
-        doc.addField("uri", "/doc/1");
-        doc.addField(titleField, TITLE);
-        doc.addField(TEXT_FIELD, TEXT);
-        solr.add(doc);
-        for (int i = 2; i <= numDocs; i++) {
-            doc = new SolrInputDocument();
-            doc.addField("uri", "/doc/" + i);
-            doc.addField(titleField, String.format("a%d document ", i));
-            // 'the' 'to' should get excluded from suggestions by maxWeight configured
-            // to 0.3
-            doc.addField(TEXT_FIELD, "the the to t" + i / 2);
-            solr.add(doc);
-        }
-        if (commit) {
-            solr.commit(false, true, true);
-        }
-    }
-
-    private QueryResponse rebuildSuggester() throws SolrServerException {
-        SolrQuery q = new SolrQuery("t");
-        q.setRequestHandler("/suggest/title");
-        q.set("spellcheck.build", "true");
-        q.set("suggester.build", "true");
-        q.set("suggester.buildAll", "true");
-        QueryResponse qr = null;  // rivey catch exception
-        try {
-            qr = solr.query(q);
-        } catch (IOException ex) {
-            System.out.println("REBUILD: error may cause other ones: " + ex.getMessage());
-            Logger.getLogger(MultiSuggesterTest.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        
-        q.setRequestHandler("/suggest/all");
-        System.out.println("qr = " + qr.getSpellCheckResponse());
-        return qr;
-    }
-
     /*
      * HERO-2705
      */
     @Test
     public void testSegmentLongSuggestion() throws Exception {
-        // erase any lingering data
-        //rebuildSuggester();
+        rebuildSuggester();
 
         SolrInputDocument doc = new SolrInputDocument();
         doc.addField("uri", "/doc/1");
@@ -231,7 +172,7 @@ public class MultiSuggesterTest extends SolrTest {
         // suggester is configured to segment at 100 char bounds
         SolrQuery q = new SolrQuery("AAAA");
         q.setRequestHandler("/suggest/all");
-        //rebuildSuggester();
+        rebuildSuggester();
         solr.commit();
         QueryResponse resp = solr.query(q);
         SpellCheckResponse scr = resp.getSpellCheckResponse();
@@ -255,26 +196,32 @@ public class MultiSuggesterTest extends SolrTest {
         q.setRequestHandler("/suggest/all");
         QueryResponse resp = solr.query(q);
         SpellCheckResponse scr = resp.getSpellCheckResponse();
-        //Suggestion suggestion = scr.getSuggestion("t");
+        
 
         // no extended results
         assertNull(scr);
+        q = new SolrQuery("th");
+        q.setRequestHandler("/suggest/all");
+        resp = solr.query(q);
+        scr = resp.getSpellCheckResponse();
+        Suggestion suggestion = scr.getSuggestion("th");
 
         // extended results
-        /* q.set("spellcheck.extendedResults", true);
+        q.set("spellcheck.extendedResults", true);
         resp = solr.query(q);
         scr = resp.getSpellCheckResponse();
         assertNotNull("no spell check reponse found", scr);
-        suggestion = scr.getSuggestion("t");
+        suggestion = scr.getSuggestion("th");
         assertNotNull(suggestion.getAlternativeFrequencies());
-        assertEquals("The Dawning of a New Era", suggestion.getAlternatives().get(0)); */
+        assertEquals("The Dawning of a New Era", suggestion.getAlternatives().get(0)); 
+
         // The title field is analyzed, so the weight is computed as
         // #occurrences/#docs(w/title) * field-weight
         // = 1 / 10 * 11 * 10000000 = 11000000
-        /* assertEquals(11000000, suggestion.getAlternativeFrequencies().get(0).intValue());
+        assertEquals(11000000, suggestion.getAlternativeFrequencies().get(0).intValue());
         int last = suggestion.getNumFound() - 1;
-        assertTrue(suggestion.getAlternatives().get(last).matches("their|time"));
-        assertTrue(suggestion.getAlternativeFrequencies().get(last) > 0); */
+        assertTrue(suggestion.getAlternatives().get(last).matches("their|thime"));
+        assertTrue(suggestion.getAlternativeFrequencies().get(last) > 0); 
     }
 
     @Test
@@ -312,14 +259,13 @@ public class MultiSuggesterTest extends SolrTest {
         insertTestDocuments(TITLE_FIELD);
         Suggestion suggestion = assertSuggestionCount("a2", 1, "all"); //change back to 1
         assertEquals("a2 document", suggestion.getAlternatives().get(0));
-        // solr.deleteById("/doc/2");
+
         solr.deleteByQuery("*:*");
         solr.commit();
         rebuildSuggester();
         assertSuggestionCount("a2", 0, "all");
     }
 
-    @Ignore
     @Test
     public void testEliminateDuplicates() throws Exception {
         rebuildSuggester();
@@ -334,7 +280,7 @@ public class MultiSuggesterTest extends SolrTest {
         // different code path 
         doc.addField("keyword", TITLE.toLowerCase());
         solr.add(doc);
-        //solr.commit();
+        solr.commit();
         Suggestion suggestion = assertSuggestionCount("dawn", 2, "all");
         assertEquals("The Dawning of a New Era", suggestion.getAlternatives().get(0));
         assertEquals("dawning", suggestion.getAlternatives().get(1));
@@ -342,6 +288,108 @@ public class MultiSuggesterTest extends SolrTest {
         rebuildSuggester();
         assertEquals("The Dawning of a New Era", suggestion.getAlternatives().get(0));
         assertEquals("dawning", suggestion.getAlternatives().get(1));
+    }
+
+    // Helper functions
+    
+    private Suggestion assertSuggestionCount(String prefix, int count, String suggester) throws SolrServerException {
+      SolrQuery q = new SolrQuery(prefix);
+      System.out.println("suggester = " + suggester);
+      q.setRequestHandler("/suggest/" + suggester);
+      q.set("spellcheck.count", 100);
+      QueryResponse resp = null;  
+      try {
+          resp = solr.query(q);
+      } catch (IOException ex) {
+          Logger.getLogger(MultiSuggesterTest.class.getName()).log(Level.SEVERE, null, ex);
+      }
+
+      SpellCheckResponse scr = resp.getSpellCheckResponse();
+      assertNotNull("no spell check reponse found. Make sure query is > 1 character. SOLR-11732", scr);
+      Suggestion suggestion = scr.getSuggestion(prefix);
+    
+      if (count == 0) {
+          assertNull("Unexpected suggestion found for " + prefix, suggestion);
+          return null;
+      } else {
+          assertNotNull("No suggestion found for " + prefix, suggestion);
+      }
+      assertEquals(suggestion.getAlternatives().toString(), count, suggestion.getNumFound());
+      return suggestion;
+    }
+    
+    private void assertNoSuggestions() throws SolrServerException {
+        assertSuggestionCount("th", 0, "all");
+        assertSuggestionCount("ne", 0, "title");
+    }
+  
+    private void assertSuggestions() throws SolrServerException {
+        Suggestion suggestion = assertSuggestionCount("t1", 5, "all");
+        // TITLE occurs once in a high-weighted field; t1-t4, etc each occur twice, t5 once, their/time occur once
+        // 'the' and 'to' occur too many times and get excluded
+        //assertEquals("t12", suggestion.getAlternatives().get(0));
+        for (int i = 1; i <= 4; i++) {
+            String sugg = suggestion.getAlternatives().get(i);
+            assertTrue(sugg + " does not match t1[1-5]", sugg.matches("t1[1-5]"));
+        }
+        suggestion = assertSuggestionCount("th", 3, "all");
+        assertTrue(suggestion.getAlternatives().get(1).matches("their"));
+        assertTrue(suggestion.getAlternatives().get(2).matches("their|thime"));
+        assertNotEquals(suggestion.getAlternatives().get(1), suggestion.getAlternatives().get(2)); 
+    }
+  
+    private void insertTestDocuments(String titleField) throws SolrServerException, IOException {
+       insertTestDocuments(titleField, 10, true);
+    }
+  
+    private void insertTestDocuments(String titleField, int numDocs) throws SolrServerException, IOException {
+       insertTestDocuments(titleField, numDocs, true);
+    }
+  
+    private void insertTestDocuments(String titleField, int numDocs, boolean commit) throws SolrServerException, IOException {
+        // insert ten documents; one of them has the title TITLE
+        SolrInputDocument doc = new SolrInputDocument();
+        doc.addField("uri", "/doc/1");
+        doc.addField(titleField, TITLE);
+        doc.addField(TEXT_FIELD, TEXT);
+        solr.add(doc);
+  
+        for (int i = 2; i <= numDocs; i++) {
+           doc = new SolrInputDocument();
+           doc.addField("uri", "/doc/" + i);
+           doc.addField(titleField, String.format("a%d document ", i));
+           // 'the' 'to' should get excluded from suggestions by maxWeight configured
+           // to 0.3
+           doc.addField(TEXT_FIELD, "the the to t1" + i / 2);
+           solr.add(doc);
+        }
+        if (commit) {
+            solr.commit();
+        }    
+    }
+  
+    private QueryResponse rebuildSuggester() throws SolrServerException {
+        SolrQuery q = new SolrQuery("th");
+        q.setRequestHandler("/suggest/title");
+        q.set("spellcheck.build", "true");
+  
+        QueryResponse qr = null;  
+        try {
+            qr = solr.query(q);
+        } catch (IOException ex) {
+            System.out.println("REBUILD: error may cause other ones: " + ex.getMessage());
+            Logger.getLogger(MultiSuggesterTest.class.getName()).log(Level.SEVERE, null, ex);
+        }
+  
+        q.setRequestHandler("/suggest/all");
+        System.out.println("qr = " + qr.getSpellCheckResponse());
+        try {
+            qr = solr.query(q);
+        } catch (IOException ex) {
+            System.out.println("REBUILD: error may cause other ones: " + ex.getMessage());
+            Logger.getLogger(MultiSuggesterTest.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return qr;
     }
 
 }
