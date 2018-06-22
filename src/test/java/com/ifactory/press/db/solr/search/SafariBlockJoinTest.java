@@ -5,6 +5,7 @@ import static org.junit.Assert.assertEquals;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.Map;
 
 import org.apache.lucene.search.Explanation;
@@ -63,14 +64,13 @@ public class SafariBlockJoinTest extends SolrTest {
     Map<String, String> explainMap = resp.getExplainMap();
 
     // expect to get back docs 14, 28, 42, 56, 70, 84, 98
-    HashSet<String> expectedKeys = new HashSet<String>(
+    Set<String> expectedKeys = new HashSet<String>(
       Arrays.asList("/doc/84", "/doc/56", "/doc/98", "/doc/42", "/doc/14", "/doc/70", "/doc/28")
     );
     assertEquals (expectedKeys, explainMap.keySet());
 
     ArrayList<String> explanations = new ArrayList(explainMap.values());
-    for (int i = 0; i < explanations.size(); i++) {
-      String explanation = explanations.get(i);
+    for (String explanation : explainMap.values()) {
       String[] lines = explanation.split("\n");
       assert (lines.length > 1);
     }
