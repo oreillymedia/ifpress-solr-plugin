@@ -1,5 +1,7 @@
 *~
 *.class
+.idea
+*.swp
 
 # Package Files #
 *.jar

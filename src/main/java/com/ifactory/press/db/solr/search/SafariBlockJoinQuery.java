@@ -25,13 +25,13 @@ import org.apache.lucene.util.FixedBitSet;
 
 /**
  * Derived from the standard Lucene (parent) block join ((by copy-paste, because the class structure doesn't
- * allow for easy overriding), allowing the parent to be its own child, and 
+ * allow for easy overriding), allowing the parent to be its own child, and
  * returning the top-scoring child (or the parent, if it is top-scorer) as the representative of the
  * group formed by the join, rather than always returning the parent.
- * 
+ *
  * The other main difference to Lucene's TPBJQ is that externally-applied filters (like Solr's fq) filter
  * both child *and* parent docs.  In Lucene's version of this query, filters apply only to the parent docs.
-  *
+ *
  * @see ToParentBlockJoinQuery
  */
 
@@ -48,7 +48,7 @@ public class SafariBlockJoinQuery extends Query {
   private final Query origChildQuery;
 
   /** Create a ToParentBlockJoinQuery.
-   * 
+   *
    * @param childQuery Query matching child documents.
    * @param parentsFilter Filter (must produce FixedBitSet
    * per-segment, like {@link FixedBitSetCachingWrapperFilter})
@@ -138,11 +138,16 @@ public class SafariBlockJoinQuery extends Query {
 
     @Override
     public Explanation explain(AtomicReaderContext context, int doc) throws IOException {
+      Explanation childExplanation;
+      Explanation baseExplanation = childWeight.explain(context, doc);
       BlockJoinScorer scorer = (BlockJoinScorer) scorer(context, context.reader().getLiveDocs());
       if (scorer != null && scorer.advance(doc) == doc) {
-        return scorer.explain(context.docBase);
+        childExplanation = scorer.explain(context.docBase);
+      } else {
+        childExplanation = new ComplexExplanation(false, 0.0f, "Not a match");
       }
-      return new ComplexExplanation(false, 0.0f, "Not a match");
+      childExplanation.addDetail(baseExplanation);
+      return childExplanation;
     }
 
     @Override
@@ -196,13 +201,19 @@ public class SafariBlockJoinQuery extends Query {
         parentDoc = parentBits.nextSetBit(nextChildDoc);
 
         //System.out.println("  parentDoc=" + parentDoc);
-        assert parentDoc != -1;
+        // NOTE (JN, 2018-06-22):
+        // Disabled this assert as it is clear, below, that we sometimes expect
+        // parentDoc == -1 and take action to address the case. Further, this
+        // broke the testOrphanedDocs test.
+        // assert parentDoc != -1;
 
         //System.out.println("  nextChildDoc=" + nextChildDoc);
         if ((acceptDocs != null && !acceptDocs.get(parentDoc))
-            // shouldn't happen, but it did.  I'm not sure if this is a consequence of our allowing 
-            // parents to be a child -- I don't think so -- it seems more likely the index can just get in 
-            // a state where there are children with no parent, and that could cause this?
+            // shouldn't happen, but it did.  I'm not sure if this is a
+            // consequence of our allowing parents to be a child -- I don't
+            // think so -- it seems more likely the index can just get in a
+            // state where there are children with no parent, and that could
+            // cause this?
             || parentDoc == -1
             ) {
           // Parent doc not accepted; skip child docs until
@@ -241,7 +252,7 @@ public class SafariBlockJoinQuery extends Query {
     public float score() throws IOException {
       return maxScore;
     }
-    
+
     @Override
     public int freq() {
       return totalFreq;
@@ -285,7 +296,7 @@ public class SafariBlockJoinQuery extends Query {
       int start = docBase + prevParentDoc + 1; // +1 b/c prevParentDoc is previous parent doc
       int end = docBase + parentDoc - 1; // -1 b/c parentDoc is parent doc
       return new ComplexExplanation(
-          true, score(), String.format(Locale.ROOT, "Score based on child doc range from %d to %d", start, end)
+        true, score(), String.format(Locale.ROOT, "Score based on child doc range from %d to %d:", start, end)
       );
     }
 

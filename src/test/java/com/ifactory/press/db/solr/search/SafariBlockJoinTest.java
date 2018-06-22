@@ -3,7 +3,12 @@ package com.ifactory.press.db.solr.search;
 import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.Map;
 
+import org.apache.lucene.search.Explanation;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
@@ -13,17 +18,17 @@ import org.junit.Test;
 
 import com.ifactory.press.db.solr.SolrTest;
 
-public class SafariBlockJointest extends SolrTest {
+public class SafariBlockJoinTest extends SolrTest {
   /*
    * This test sets up 100 documents in groups of 10; each decade (0-9, 10-19, etc)
    * has the same parent, which is the highest numbered doc in that group (the one ending with 9).
-   * 
-   * Then it creates texts based on the factors of the document number so we have a rich set of 
+   *
+   * Then it creates texts based on the factors of the document number so we have a rich set of
    * multiply-occurring tokens to use for tests.
-   * 
+   *
    * The Idea of the SafariBlockJoin is to return the highest-scoring member of each group.
    */
-  
+
   @Test
   public void testDocumentSetup () throws Exception {
     SolrQuery query = new SolrQuery("*:*");
@@ -40,7 +45,7 @@ public class SafariBlockJointest extends SolrTest {
     assertEquals ("F F ", doc.get("text_t").toString());
     assertEquals ("parent", doc.get("type_s").toString());
   }
-  
+
   @Test
   public void testChildMatch () throws Exception {
     SolrQuery query = new SolrQuery("{!scoring_parent which=type_s:parent} text_t:M");
@@ -50,7 +55,27 @@ public class SafariBlockJointest extends SolrTest {
     SolrDocument doc = solr.query(query).getResults().get(0);
     assertEquals ("/doc/14", doc.get("uri").toString());
   }
-  
+
+  @Test
+  public void testChildMatchExplanation () throws Exception {
+    SolrQuery query = new SolrQuery("{!scoring_parent which=type_s:parent} text_t:M");
+    query.setShowDebugInfo(true);
+    QueryResponse resp = solr.query(query);
+    Map<String, String> explainMap = resp.getExplainMap();
+
+    // expect to get back docs 14, 28, 42, 56, 70, 84, 98
+    Set<String> expectedKeys = new HashSet<String>(
+      Arrays.asList("/doc/84", "/doc/56", "/doc/98", "/doc/42", "/doc/14", "/doc/70", "/doc/28")
+    );
+    assertEquals (expectedKeys, explainMap.keySet());
+
+    ArrayList<String> explanations = new ArrayList(explainMap.values());
+    for (String explanation : explainMap.values()) {
+      String[] lines = explanation.split("\n");
+      assert (lines.length > 1);
+    }
+  }
+
   @Test
   public void testFilterQueryInteraction() throws Exception {
     SolrQuery query = new SolrQuery("{!scoring_parent which=type_s:parent} text_t:M");
@@ -68,7 +93,7 @@ public class SafariBlockJointest extends SolrTest {
     SolrDocument doc = solr.query(query).getResults().get(2);
     assertEquals ("/doc/56", doc.get("uri").toString());
   }
-  
+
   @Test
   public void testParentMatch () throws Exception {
     SolrQuery query = new SolrQuery("{!scoring_parent which=type_s:parent} text_t:R");
@@ -78,7 +103,7 @@ public class SafariBlockJointest extends SolrTest {
     SolrDocument doc = solr.query(query).getResults().get(0);
     assertEquals ("/doc/19", doc.get("uri").toString());
   }
-  
+
   @Test
   public void testGroupMatch () throws Exception {
     SolrQuery query = new SolrQuery("{!scoring_parent which=type_s:parent} text_t:A");
@@ -92,7 +117,7 @@ public class SafariBlockJointest extends SolrTest {
     assertEquals ("/doc/96", solr.query(query).getResults().get(2).get("uri").toString());
     assertEquals ("/doc/16", solr.query(query).getResults().get(3).get("uri").toString());
   }
-  
+
   @Test
   public void testParentGroupMatch () throws Exception {
     SolrQuery query = new SolrQuery("{!scoring_parent which=type_s:parent} text_t:F");
@@ -109,7 +134,7 @@ public class SafariBlockJointest extends SolrTest {
     assertEquals ("/doc/21", solr.query(query).getResults().get(4).get("uri").toString());
     assertEquals ("/doc/35", solr.query(query).getResults().get(5).get("uri").toString());
   }
-  
+
   @Test
   public void testOrphanedDocs () throws Exception {
     // create some orphans (children with no parents) and see what happens
@@ -122,24 +147,24 @@ public class SafariBlockJointest extends SolrTest {
     SolrQuery query = new SolrQuery("*:*");
     QueryResponse resp = solr.query(query);
     assertEquals (97, resp.getResults().getNumFound());
-    
+
     query = new SolrQuery("{!scoring_parent which=type_s:parent} text_t:F");
-    // expect not to get any docs back corresponding to the deleted parents 
+    // expect not to get any docs back corresponding to the deleted parents
     // since they don't satisfy the parent/child relation
     resp = solr.query(query);
     assertEquals (7, resp.getResults().getNumFound());
-    
+
     // now flush the deleted docs
     solr.optimize();
     resp = solr.query(query);
     assertEquals (7, resp.getResults().getNumFound());
   }
-  
-  @Before 
+
+  @Before
   public void setup () throws Exception {
     insertTestDocuments ();
   }
-  
+
   private void insertTestDocuments () throws Exception {
     ArrayList<SolrInputDocument> docs = new ArrayList<SolrInputDocument>();
     for (int i = 0; i < 10; i++) {
