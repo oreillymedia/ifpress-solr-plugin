@@ -6,8 +6,8 @@ import java.util.Collections;
 import java.util.Locale;
 import java.util.Set;
 
-import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.ComplexExplanation;
 import org.apache.lucene.search.DocIdSet;
@@ -104,7 +104,7 @@ public class SafariBlockJoinQuery extends Query {
 
     // NOTE: unlike Lucene's TPBJQ, acceptDocs applies to *both* child and parent documents
     @Override
-    public Scorer scorer(AtomicReaderContext readerContext, Bits acceptDocs) throws IOException {
+    public Scorer scorer(LeafReaderContext readerContext, Bits acceptDocs) throws IOException {
 
       final Scorer childScorer = childWeight.scorer(readerContext, acceptDocs);
       if (childScorer == null) {
@@ -137,7 +137,7 @@ public class SafariBlockJoinQuery extends Query {
     }
 
     @Override
-    public Explanation explain(AtomicReaderContext context, int doc) throws IOException {
+    public Explanation explain(LeafReaderContext context, int doc) throws IOException {
       Explanation childExplanation;
       Explanation baseExplanation = childWeight.explain(context, doc);
       BlockJoinScorer scorer = (BlockJoinScorer) scorer(context, context.reader().getLiveDocs());
