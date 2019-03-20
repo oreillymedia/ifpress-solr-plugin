@@ -25,9 +25,15 @@ public class SafariInfixSuggester extends AnalyzingInfixSuggester {
 
   private Set<BytesRef> showContext, hideContext;
 
-  public SafariInfixSuggester(Version matchVersion, Directory dir, Analyzer indexAnalyzer, Analyzer queryAnalyzer,
-      int minPrefixChars, boolean highlight) throws IOException {
-    super(matchVersion, dir, indexAnalyzer, queryAnalyzer, minPrefixChars);
+  public SafariInfixSuggester(
+          Version matchVersion,
+          Directory dir,
+          Analyzer indexAnalyzer,
+          Analyzer queryAnalyzer,
+          int minPrefixChars,
+          boolean highlight
+  ) throws IOException {
+    super(matchVersion, dir, indexAnalyzer, queryAnalyzer, minPrefixChars, false);
     this.highlight = highlight;
 
     showContext = Collections.singleton(new BytesRef(new byte[] { (byte) Context.SHOW.ordinal() }));
@@ -82,11 +88,6 @@ public class SafariInfixSuggester extends AnalyzingInfixSuggester {
 
     @Override
     public BytesRef next() throws IOException {
-      return null;
-    }
-
-    @Override
-    public Comparator<BytesRef> getComparator() {
       return null;
     }
 
