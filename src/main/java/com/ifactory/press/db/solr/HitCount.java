@@ -16,14 +16,18 @@
 
 package com.ifactory.press.db.solr;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.MultiReader;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queries.function.ValueSource;
 import org.apache.lucene.queries.function.valuesource.DoubleConstValueSource;
 import org.apache.lucene.queries.function.valuesource.SumFloatFunction;
 import org.apache.lucene.queries.function.valuesource.TermFreqValueSource;
+import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.solr.search.FunctionQParser;
 import org.apache.solr.search.SyntaxError;
@@ -48,8 +52,17 @@ public class HitCount extends ValueSourceParser {
         Query q = fp.subQuery(fp.getParams().get("q"), "lucene").getQuery();
         HashSet<Term> terms = new HashSet<Term>(); 
         try {
-            q.extractTerms(terms);
+            /*
+                Lucene 5.1.0 -> 5.2.0 replaced Query.extractTerms with Weight.extractTerms
+                to enforce the requirement that Query.rewrite is supposed to be ran before calling this method.
+                This change's author suggested the following code for Query obj not relying on a specific IndexReader:
+                https://issues.apache.org/jira/browse/LUCENE-6425
+             */
+            IndexReader emptyReader = new MultiReader();
+            new IndexSearcher(emptyReader).createNormalizedWeight(q, false).extractTerms(terms);
         } catch (UnsupportedOperationException e) {
+            return new DoubleConstValueSource (1);
+        } catch (IOException e) {
             return new DoubleConstValueSource (1);
         }
         ArrayList<ValueSource> termcounts = new ArrayList<ValueSource>();
