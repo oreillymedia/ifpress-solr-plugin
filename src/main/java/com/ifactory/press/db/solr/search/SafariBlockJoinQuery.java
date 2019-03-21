@@ -9,7 +9,6 @@ import java.util.Set;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.search.ComplexExplanation;
 import org.apache.lucene.search.DocIdSet;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.Explanation;
@@ -142,11 +141,11 @@ public class SafariBlockJoinQuery extends Query {
       Explanation baseExplanation = childWeight.explain(context, doc);
       BlockJoinScorer scorer = (BlockJoinScorer) scorer(context, context.reader().getLiveDocs());
       if (scorer != null && scorer.advance(doc) == doc) {
-        childExplanation = scorer.explain(context.docBase);
+        Explanation matchExplanation = scorer.explain(context.docBase);
+        childExplanation = Explanation.match(matchExplanation.getValue(), matchExplanation.getDescription(), baseExplanation);
       } else {
-        childExplanation = new ComplexExplanation(false, 0.0f, "Not a match");
+        childExplanation = Explanation.noMatch("Not a match", baseExplanation);
       }
-      childExplanation.addDetail(baseExplanation);
       return childExplanation;
     }
 
@@ -295,8 +294,9 @@ public class SafariBlockJoinQuery extends Query {
     public Explanation explain(int docBase) throws IOException {
       int start = docBase + prevParentDoc + 1; // +1 b/c prevParentDoc is previous parent doc
       int end = docBase + parentDoc - 1; // -1 b/c parentDoc is parent doc
-      return new ComplexExplanation(
-        true, score(), String.format(Locale.ROOT, "Score based on child doc range from %d to %d:", start, end)
+      return Explanation.match(
+              score(),
+              String.format(Locale.ROOT, "Score based on child doc range from %d to %d:", start, end)
       );
     }
 
