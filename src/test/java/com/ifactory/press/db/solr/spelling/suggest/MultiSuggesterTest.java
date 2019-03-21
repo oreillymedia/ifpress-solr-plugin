@@ -105,7 +105,7 @@ public class MultiSuggesterTest extends SolrTest {
     reload.process(solr);
   }
 
-  private Suggestion assertSuggestionCount(String prefix, int count, String suggester) throws SolrServerException {
+  private Suggestion assertSuggestionCount(String prefix, int count, String suggester) throws SolrServerException, IOException {
     SolrQuery q = new SolrQuery(prefix);
     q.setRequestHandler("/suggest/" + suggester);
     q.set("spellcheck.count", 100);
@@ -123,12 +123,12 @@ public class MultiSuggesterTest extends SolrTest {
     return suggestion;
   }
 
-  private void assertNoSuggestions() throws SolrServerException {
+  private void assertNoSuggestions() throws SolrServerException, IOException {
     assertSuggestionCount("t", 0, "all");   
     assertSuggestionCount("a", 0, "title");   
   }
   
-  private void assertSuggestions() throws SolrServerException {
+  private void assertSuggestions() throws SolrServerException, IOException {
     Suggestion suggestion = assertSuggestionCount("t", 8, "all");   
     // TITLE occurs once in a high-weighted field; t1-t4, etc each occur twice, t5 once, their/time occur once
     // 'the' and 'to' occur too many times and get excluded
@@ -171,7 +171,7 @@ public class MultiSuggesterTest extends SolrTest {
     }
   }
 
-  private QueryResponse rebuildSuggester() throws SolrServerException {
+  private QueryResponse rebuildSuggester() throws SolrServerException, IOException {
     SolrQuery q = new SolrQuery("t");
     q.setRequestHandler("/suggest/title");
     q.set("spellcheck.build", "true");
