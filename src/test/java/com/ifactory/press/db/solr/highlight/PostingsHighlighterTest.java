@@ -31,7 +31,7 @@ import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.FieldInfo.IndexOptions;
+import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.Term;
@@ -41,21 +41,18 @@ import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.postingshighlight.PostingsHighlighter;
 import org.apache.lucene.store.RAMDirectory;
-import org.apache.lucene.util.Version;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 public class PostingsHighlighterTest {
-  
-  private static final Version VERSION = Version.LATEST;
 
   private IndexWriter iw;
   
   @Before
   public void startup() throws IOException {
     RAMDirectory dir = new RAMDirectory();
-    IndexWriterConfig iwc = new IndexWriterConfig(VERSION, new SafariAnalyzer(true));
+    IndexWriterConfig iwc = new IndexWriterConfig(new SafariAnalyzer(true));
     iw = new IndexWriter(dir, iwc);
   }
   
@@ -99,8 +96,8 @@ public class PostingsHighlighterTest {
   class SynonymAnalyzer extends Analyzer {
 
     @Override
-    protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
-      Tokenizer tokenizer = new WhitespaceTokenizer(reader);
+    protected TokenStreamComponents createComponents(String fieldName) {
+      Tokenizer tokenizer = new WhitespaceTokenizer();
       TokenFilter filter = new LowerCaseFilter(tokenizer);
       return new TokenStreamComponents(tokenizer, filter);
     }
@@ -115,12 +112,8 @@ public class PostingsHighlighterTest {
     }
 
     @Override
-    protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
-      CharFilter charFilter = new HTMLStripCharFilter(reader);
-      Pattern pat1 = Pattern.compile("([A-Za-z])\\+\\+");
-      charFilter = new PatternReplaceCharFilter(pat1, "$1plusplus", charFilter);
-      charFilter = new PatternReplaceCharFilter(Pattern.compile("([A-Za-z])\\#"), "$1sharp", charFilter);
-      Tokenizer tokenizer = new WhitespaceTokenizer(charFilter);
+    protected TokenStreamComponents createComponents(String fieldName) {
+      Tokenizer tokenizer = new WhitespaceTokenizer();
       // TODO protwords.txt
       TokenFilter filter = new WordDelimiterFilter(tokenizer, 
           GENERATE_WORD_PARTS |
@@ -151,7 +144,6 @@ public class PostingsHighlighterTest {
         throw new RuntimeException ("failed to read synonyms", e);
       }
     }
-    
   }
 
 }
