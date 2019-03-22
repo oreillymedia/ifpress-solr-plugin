@@ -316,10 +316,26 @@
          uncommitted changes to the index, so use of a hard autoCommit
          is recommended (see below).
          "dir" - the target directory for transaction logs, defaults to the
-                solr data directory.  --> 
+                solr data directory.  -->
+    <!-- Not using transaction log due to issue upgrading from Solr v4_10_2 to v5_5_5:
+        https://issues.apache.org/jira/browse/SOLR-8866
+
+        TransactionLog's resolver now throws an exception (it used to just return the object) for Lucene's TextField:
+
+        org.apache.solr.common.SolrException: TransactionLog doesn't know how to
+        serialize class org.apache.lucene.document.TextField; try implementing ObjectResolver?
+
+        The ONLY way around this is to make TextField implement ObjectResolver, but TextField is a Lucene internal class.
+
+        AND we cannot create a custom class that Extends TextField (and Implements ObjectResolver)
+        because TextField is marked final (cannot create subclasses of final classes).
+
+        Hopefully more recent Solr versions fix this.
+
     <updateLog>
       <str name="dir">${solr.ulog.dir:}</str>
     </updateLog>
+    -->
  
     <!-- AutoCommit
 

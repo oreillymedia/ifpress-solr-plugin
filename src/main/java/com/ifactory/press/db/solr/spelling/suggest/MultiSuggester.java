@@ -18,6 +18,7 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.spell.HighFrequencyDictionary;
 import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
+import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefBuilder;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.util.NamedList;
@@ -412,7 +413,9 @@ public class MultiSuggester extends Suggester {
       // commit
       ConcurrentHashMap<String, Integer> batch = fld.pending;
       fld.pending = new ConcurrentHashMap<String, Integer>(batch.size());
+      BytesRef bytes = new BytesRef(maxSuggestionLength);
       BytesRefBuilder bytesRefBuilder = new BytesRefBuilder();  // From Lucene docs: BytesRef should not be used as a buffer, use BytesRefBuilder instead
+      bytesRefBuilder.append(bytes);
       Term t = new Term(fld.fieldName, bytesRefBuilder);
       long minCount = (long) (fld.minFreq * docCount);
       long maxCount = (long) (docCount <= 1 ? Long.MAX_VALUE : (fld.maxFreq * docCount + 1));
@@ -443,8 +446,8 @@ public class MultiSuggester extends Suggester {
           }
         }
         bytesRefBuilder.copyChars(term);
-        // LOG.debug("add " + bytes.utf8ToString());
-        ais.update(bytesRefBuilder.toBytesRef(), weight);
+        bytes = bytesRefBuilder.get();
+        ais.update(bytes, weight);
       }
     }
     // refresh after each field so the counts will accumulate across fields?
