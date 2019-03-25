@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>ifpress</groupId>
   <artifactId>ifpress-solr-plugin</artifactId>
-  <version>1.3.10</version>
+  <version>1.3.11-SNAPSHOT</version>
   <name>ifpress solr plugin</name>
   <description>Contains plugins to be installed in the solr server</description>
   <dependencies>
