@@ -5,12 +5,8 @@ import static org.junit.Assert.assertEquals;
 import java.util.Arrays;
 
 import org.apache.lucene.index.Term;
+import org.apache.lucene.search.*;
 import org.apache.lucene.search.BooleanClause.Occur;
-import org.apache.lucene.search.BooleanQuery;
-import org.apache.lucene.search.DisjunctionMaxQuery;
-import org.apache.lucene.search.PhraseQuery;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.TermQuery;
 import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.core.SolrCore;
 import org.apache.solr.request.LocalSolrQueryRequest;
@@ -49,16 +45,15 @@ public class SafariQueryParserTest extends SolrTest {
   }
   
   private Query B(Query q, float boost) {
-    q.setBoost(boost);
-    return q;
+    return new BoostQuery(q, boost);
   }
   
   private PhraseQuery PQ(String f, String... vals) {
-    PhraseQuery pq = new PhraseQuery();
+    PhraseQuery.Builder pqBuilder = new PhraseQuery.Builder();
     for (String v : vals) {
-      pq.add(T(f, v));
+      pqBuilder.add(T(f, v));
     }
-    return pq;
+    return pqBuilder.build();
   }
   
   private BooleanQuery BQ(Query ... clauses) {
@@ -66,12 +61,13 @@ public class SafariQueryParserTest extends SolrTest {
   }
   
   private BooleanQuery BQ(float b, Query ... clauses) {
-    BooleanQuery bq = new BooleanQuery(clauses.length <= 1);
+    BooleanQuery.Builder bqBuilder = new BooleanQuery.Builder();
+    bqBuilder.setDisableCoord(clauses.length <= 1).setMinimumNumberShouldMatch(0);
+
     for (Query q : clauses) {
-      bq.add(q, Occur.MUST);
+      bqBuilder.add(q, Occur.MUST);
     }
-    bq.setBoost(b);
-    return bq;
+    return bqBuilder.build();
   }
   
   private DisjunctionMaxQuery DMQ(Query ... clauses) {
@@ -90,7 +86,7 @@ public class SafariQueryParserTest extends SolrTest {
     
       SafariQueryParser parser = new SafariQueryParser(query, localParams, params, req);
       Query parsed = parser.parse();
-      assertEquals (expected, parsed);
+      assertEquals(expected, parsed);
     } finally {
       core.close();
     }

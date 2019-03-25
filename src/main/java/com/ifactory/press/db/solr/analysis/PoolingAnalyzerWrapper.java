@@ -105,8 +105,8 @@ public final class PoolingAnalyzerWrapper extends AnalyzerWrapper {
     }
 
     protected static class TokenStreamComponentsPool {
-        private final HashMap<String, ArrayList<TokenStreamComponents>> available;
-        private final HashMap<String, ArrayList<TokenStreamComponents>> reserved;
+        private final Map<String, ArrayList<TokenStreamComponents>> available;
+        private final Map<String, ArrayList<TokenStreamComponents>> reserved;
 
         protected TokenStreamComponentsPool() {
             available = new HashMap<String, ArrayList<TokenStreamComponents>>();

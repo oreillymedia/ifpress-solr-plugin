@@ -30,6 +30,8 @@ import org.junit.Test;
 
 import com.ifactory.press.db.solr.SolrTest;
 
+import java.io.IOException;
+
 
 public class UpdateDocValuesTest extends SolrTest {
     
@@ -102,7 +104,7 @@ public class UpdateDocValuesTest extends SolrTest {
       assertEquals (0, docs.get(0).getFirstValue(dvFieldFunction));
     }
 
-    private void assertDocValues(int n) throws SolrServerException {
+    private void assertDocValues(int n) throws SolrServerException, IOException {
       SolrQuery query = new SolrQuery ("*:*");
       
       query.setSort(WEIGHT_DV, ORDER.desc);
@@ -112,7 +114,7 @@ public class UpdateDocValuesTest extends SolrTest {
       assertEquals (uri(n), getFirstUri(query));
     }
 
-    private void assertDocValue(String uri, Integer dv) throws SolrServerException {
+    private void assertDocValue(String uri, Integer dv) throws SolrServerException, IOException {
       final SolrQuery query = new SolrQuery (String.format("%s:\"%s\"", URI, uri));
       final String weightField = String.format("field(%s)", WEIGHT_DV);
       query.setFields(URI, weightField);
@@ -130,7 +132,7 @@ public class UpdateDocValuesTest extends SolrTest {
       return "/doc:" + n + ":x/" + k;
     }
     
-    private void assertNoDocValues() throws SolrServerException {
+    private void assertNoDocValues() throws SolrServerException, IOException {
       SolrQuery query = new SolrQuery ("*:*");
 
       String firstUri = getFirstUri(query);      
@@ -144,7 +146,7 @@ public class UpdateDocValuesTest extends SolrTest {
       assertEquals (firstUri, getFirstUri(query));
     }
 
-    private String getFirstUri (SolrQuery query) throws SolrServerException {
+    private String getFirstUri (SolrQuery query) throws SolrServerException, IOException {
       QueryResponse resp = solr.query(query);
       SolrDocumentList docs = resp.getResults();
       return (String) docs.get(0).getFirstValue(URI);

@@ -40,7 +40,7 @@ public class SolrPostingsHighlighterTest extends HeronSolrTest {
   // TODO - randomized testing -- search for phrases and/or words drawn from sentences and
   // expect those same sentences to be returned.
   
-  private void assertSnippet (String q, String expectedSnippet) throws SolrServerException {
+  private void assertSnippet (String q, String expectedSnippet) throws SolrServerException, IOException {
     SolrQuery query = new SolrQuery(q);
     query.setHighlight(true);
     query.set("hl.tag.pre", "<b>");

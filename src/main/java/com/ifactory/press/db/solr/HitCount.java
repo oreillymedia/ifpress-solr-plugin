@@ -16,14 +16,20 @@
 
 package com.ifactory.press.db.solr;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.MultiReader;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queries.function.ValueSource;
 import org.apache.lucene.queries.function.valuesource.DoubleConstValueSource;
 import org.apache.lucene.queries.function.valuesource.SumFloatFunction;
 import org.apache.lucene.queries.function.valuesource.TermFreqValueSource;
+import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.solr.search.FunctionQParser;
 import org.apache.solr.search.SyntaxError;
@@ -41,18 +47,27 @@ public class HitCount extends ValueSourceParser {
     public ValueSource parse(FunctionQParser fp) throws SyntaxError {
         // hitcount() takes no arguments.  If we wanted to pass a query
         // we could call fp.parseNestedQuery()
-        HashSet<String> fields = new HashSet<String>(); 
+        Set<String> fields = new HashSet<String>();
         while (fp.hasMoreArguments()) {
             fields.add(fp.parseArg());
         }
         Query q = fp.subQuery(fp.getParams().get("q"), "lucene").getQuery();
-        HashSet<Term> terms = new HashSet<Term>(); 
+        Set<Term> terms = new HashSet<Term>();
         try {
-            q.extractTerms(terms);
+            /*
+                Lucene 5.1.0 -> 5.2.0 replaced Query.extractTerms with Weight.extractTerms
+                to enforce the requirement that Query.rewrite is supposed to be ran before calling this method.
+                This change's author suggested the following code for Query obj not relying on a specific IndexReader:
+                https://issues.apache.org/jira/browse/LUCENE-6425
+             */
+            IndexReader emptyReader = new MultiReader();
+            new IndexSearcher(emptyReader).createNormalizedWeight(q, true).extractTerms(terms);
         } catch (UnsupportedOperationException e) {
             return new DoubleConstValueSource (1);
+        } catch (IOException e) {
+            return new DoubleConstValueSource (1);
         }
-        ArrayList<ValueSource> termcounts = new ArrayList<ValueSource>();
+        List<ValueSource> termcounts = new ArrayList<ValueSource>(terms.size());
         for (Term t : terms) {
             if (fields.isEmpty() || fields.contains (t.field())) {
                 termcounts.add (new TermFreqValueSource(t.field(), t.text(), t.field(), t.bytes()));

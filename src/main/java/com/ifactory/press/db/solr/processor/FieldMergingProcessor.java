@@ -93,14 +93,16 @@ public class FieldMergingProcessor extends UpdateRequestProcessor {
                 Collection<Object> fieldValues = doc.getFieldValues(sourceFieldName);
                 if (fieldValues != null) {
                     for (Object value : fieldValues) {
-                        IndexableField fieldValue = new TextField (destinationField, fieldAnalyzer.tokenStream(sourceFieldName, value.toString()));
+                        IndexableField fieldValue = new TextField(destinationField, fieldAnalyzer.tokenStream(sourceFieldName, value.toString()));
                         doc.addField(destinationField, fieldValue);
                     }
                 }
             }
         }
         
-        if (next != null) next.processAdd(cmd);
+        if (next != null) {
+            next.processAdd(cmd);
+        }
         
         // and then release all the analyzers, readying them for re-use
         for (Map.Entry<String, PoolingAnalyzerWrapper> entry : sourceAnalyzers.entrySet()) {

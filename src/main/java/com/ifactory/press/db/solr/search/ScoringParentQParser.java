@@ -17,10 +17,12 @@
 
 package com.ifactory.press.db.solr.search;
 
-import org.apache.lucene.search.Filter;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.QueryWrapperFilter;
-import org.apache.lucene.search.join.FixedBitSetCachingWrapperFilter;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.search.*;
+import org.apache.lucene.search.join.QueryBitSetProducer;
+import org.apache.lucene.util.BitDocIdSet;
+import org.apache.lucene.util.BitSet;
+import org.apache.lucene.util.Bits;
 import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.request.SolrQueryRequest;
 import org.apache.solr.search.QParser;
@@ -28,9 +30,12 @@ import org.apache.solr.search.QueryParsing;
 import org.apache.solr.search.SolrCache;
 import org.apache.solr.search.SolrConstantScoreQuery;
 import org.apache.solr.search.SyntaxError;
+import java.io.IOException;
 
 class ScoringParentQParser extends QParser {
-  /** implementation detail subject to change */
+  /**
+   * implementation detail subject to change
+   */
   public String CACHE_NAME="perSegFilter";
 
   protected String getParentFilterLocalParamName() {
@@ -63,31 +68,60 @@ class ScoringParentQParser extends QParser {
   }
 
   protected Query createQuery(Query parentList, Query q) {
-    return new SafariBlockJoinQuery(q, getFilter(parentList));
+    return new SafariBlockJoinQuery(q, getFilter(parentList).filter);
   }
 
   @SuppressWarnings({ "rawtypes", "unchecked" })
-  protected Filter getFilter(Query parentList) {
+  protected BitDocIdSetFilterWrapper getFilter(Query parentList) {
     SolrCache parentCache = req.getSearcher().getCache(CACHE_NAME);
     // lazily retrieve from solr cache
     Filter filter = null;
     if (parentCache != null) {
       filter = (Filter) parentCache.get(parentList);
     }
-    Filter result;
-    if (filter == null) {
-      result = createParentFilter(parentList);
+    BitDocIdSetFilterWrapper result;
+    if (filter instanceof BitDocIdSetFilterWrapper) {
+      result = (BitDocIdSetFilterWrapper)filter;
+    } else {
+      result = new BitDocIdSetFilterWrapper(createParentFilter(parentList));
       if (parentCache != null) {
         parentCache.put(parentList, result);
       }
-    } else {
-      result = filter;
     }
     return result;
   }
 
-  protected Filter createParentFilter(Query parentQ) {
-    return new FixedBitSetCachingWrapperFilter(new QueryWrapperFilter(parentQ));
+  protected QueryBitSetProducer createParentFilter(Query parentQ) {
+    return new QueryBitSetProducer(parentQ);
+  }
+
+  static class BitDocIdSetFilterWrapper extends Filter {
+    final QueryBitSetProducer filter;
+
+    BitDocIdSetFilterWrapper(QueryBitSetProducer filter) {
+      this.filter = filter;
+    }
+
+    @Override
+    public DocIdSet getDocIdSet(LeafReaderContext context, Bits acceptDocs) throws IOException {
+      BitSet set = this.filter.getBitSet(context);
+      return set == null ? null : new BitDocIdSet(set);
+    }
+
+    @Override
+    public String toString(String field) {
+      return this.getClass().getSimpleName() + "(" + this.filter + ")";
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      return !super.equals(obj) ? false : this.filter.equals(((BitDocIdSetFilterWrapper)obj).filter);
+    }
+
+    @Override
+    public int hashCode() {
+      return 31 * super.hashCode() + this.filter.hashCode();
+    }
   }
 }
 

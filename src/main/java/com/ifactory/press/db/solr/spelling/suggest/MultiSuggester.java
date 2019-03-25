@@ -3,10 +3,7 @@ package com.ifactory.press.db.solr.spelling.suggest;
 import java.io.Closeable;
 import java.io.IOException;
 import java.text.BreakIterator;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.lucene.analysis.Analyzer;
@@ -19,6 +16,7 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.spell.HighFrequencyDictionary;
 import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.BytesRefBuilder;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.util.NamedList;
 import org.apache.solr.core.CloseHook;
@@ -261,7 +259,7 @@ public class MultiSuggester extends Suggester {
       throw new IllegalStateException("not supported: analyzing stored fields");
     }
     LOG.info(String.format("build suggestions from values for: %s (%d)", fld.fieldName, fld.weight));
-    HashSet<String> fieldsToLoad = new HashSet<String>();
+    Set<String> fieldsToLoad = new HashSet<String>();
     fieldsToLoad.add(fld.fieldName);
     int maxDoc = searcher.maxDoc();
     for (int idoc = 0; idoc < maxDoc; ++idoc) {
@@ -371,7 +369,7 @@ public class MultiSuggester extends Suggester {
     TokenStream tokens = fld.fieldAnalyzer.tokenStream(fld.fieldName, value);
     tokens.reset();
     CharTermAttribute termAtt = tokens.addAttribute(CharTermAttribute.class);
-    HashSet<String> once = new HashSet<String>();
+    Set<String> once = new HashSet<String>();
     try {
       while (tokens.incrementToken()) {
         String token = termAtt.toString();
@@ -413,7 +411,9 @@ public class MultiSuggester extends Suggester {
       ConcurrentHashMap<String, Integer> batch = fld.pending;
       fld.pending = new ConcurrentHashMap<String, Integer>(batch.size());
       BytesRef bytes = new BytesRef(maxSuggestionLength);
-      Term t = new Term(fld.fieldName, bytes);
+      BytesRefBuilder bytesRefBuilder = new BytesRefBuilder();  // From Lucene docs: BytesRef should not be used as a buffer, use BytesRefBuilder instead
+      bytesRefBuilder.append(bytes);
+      Term t = new Term(fld.fieldName, bytesRefBuilder);
       long minCount = (long) (fld.minFreq * docCount);
       long maxCount = (long) (docCount <= 1 ? Long.MAX_VALUE : (fld.maxFreq * docCount + 1));
       updated = updated || !batch.isEmpty();
@@ -442,8 +442,8 @@ public class MultiSuggester extends Suggester {
             weight = (fld.weight * count) / docCount;
           }
         }
-        bytes.copyChars(term);
-        // LOG.debug("add " + bytes.utf8ToString());
+        bytesRefBuilder.copyChars(term);
+        bytes = bytesRefBuilder.get();
         ais.update(bytes, weight);
       }
     }
