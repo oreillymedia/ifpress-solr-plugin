@@ -19,6 +19,8 @@ package com.ifactory.press.db.solr;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.MultiReader;
@@ -45,12 +47,12 @@ public class HitCount extends ValueSourceParser {
     public ValueSource parse(FunctionQParser fp) throws SyntaxError {
         // hitcount() takes no arguments.  If we wanted to pass a query
         // we could call fp.parseNestedQuery()
-        HashSet<String> fields = new HashSet<String>(); 
+        Set<String> fields = new HashSet<String>();
         while (fp.hasMoreArguments()) {
             fields.add(fp.parseArg());
         }
         Query q = fp.subQuery(fp.getParams().get("q"), "lucene").getQuery();
-        HashSet<Term> terms = new HashSet<Term>(); 
+        Set<Term> terms = new HashSet<Term>();
         try {
             /*
                 Lucene 5.1.0 -> 5.2.0 replaced Query.extractTerms with Weight.extractTerms
@@ -65,7 +67,7 @@ public class HitCount extends ValueSourceParser {
         } catch (IOException e) {
             return new DoubleConstValueSource (1);
         }
-        ArrayList<ValueSource> termcounts = new ArrayList<ValueSource>();
+        List<ValueSource> termcounts = new ArrayList<ValueSource>(terms.size());
         for (Term t : terms) {
             if (fields.isEmpty() || fields.contains (t.field())) {
                 termcounts.add (new TermFreqValueSource(t.field(), t.text(), t.field(), t.bytes()));

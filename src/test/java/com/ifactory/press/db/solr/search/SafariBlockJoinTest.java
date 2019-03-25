@@ -2,11 +2,7 @@ package com.ifactory.press.db.solr.search;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.Map;
+import java.util.*;
 
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.response.QueryResponse;
@@ -174,7 +170,7 @@ public class SafariBlockJoinTest extends SolrTest {
   }
 
   private void insertTestDocuments () throws Exception {
-    ArrayList<SolrInputDocument> docs = new ArrayList<SolrInputDocument>();
+    List<SolrInputDocument> docs = new ArrayList<SolrInputDocument>();
     for (int i = 0; i < 10; i++) {
       for (int j = 0; j < 10; j++) {
           SolrInputDocument doc = new SolrInputDocument();

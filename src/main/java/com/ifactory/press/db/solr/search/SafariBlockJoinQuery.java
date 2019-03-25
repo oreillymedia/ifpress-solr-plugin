@@ -229,7 +229,7 @@ public class SafariBlockJoinQuery extends Query {
       return new TwoPhaseIterator(iterator()) {
         @Override
         public boolean matches() throws IOException {
-          return parentBits.get(parentDoc);
+          return parentDoc == -1 ? false : parentBits.get(parentDoc);
         }
 
         @Override
