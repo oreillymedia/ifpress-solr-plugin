@@ -7,7 +7,6 @@ import java.io.IOException;
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.RAMDirectory;
-import org.apache.lucene.util.Version;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.request.CoreAdminRequest;
@@ -28,86 +27,10 @@ public class MultiSuggesterTest extends SolrTest {
   private static final String TEXT = "Now is the time time for all good people to come to the aid of their dawning intentional community";
   private static final String TITLE = "The Dawning of a New Era";
 
-  @Test
-  public void testMultiSuggest() throws Exception {
-    rebuildSuggester();
-    assertNoSuggestions();
-    insertTestDocuments(TITLE_FIELD);
-    assertSuggestions();
-    // Rebuilding the index leaves everything the same 
-    rebuildSuggester();
-    assertSuggestions();
-  }
-
-  @Test
-  public void testOverrideAnalyzer() throws Exception {
-    rebuildSuggester();
-    assertNoSuggestions();
-    insertTestDocuments(TITLE_VALUE_FIELD);
-    assertSuggestions();
-    assertSuggestionCount("a1", 1, "title");
-    rebuildSuggester();
-    assertSuggestions();
-    assertSuggestionCount("a1", 1, "title");
-  }
-  
-  @Test
-  public void testAutocommit() throws Exception {
-    rebuildSuggester();
-    assertNoSuggestions();
-    int numDocs = 10;
-    insertTestDocuments(TITLE_VALUE_FIELD, numDocs, false);
-    Thread.sleep (500); // wait for autocommit
-    //solr.commit();
-    long numFound = solr.query(new SolrQuery("*:*")).getResults().getNumFound();
-    assertEquals (numDocs, numFound);
-    assertSuggestions();
-    assertSuggestionCount("a1", 1, "title");
-  }
-
-  @Test
-  public void testDocFreqWeight() throws Exception {
-    rebuildSuggester();
-    assertNoSuggestions();
-    long t0 = System.nanoTime();
-    insertTestDocuments(TITLE_FIELD, 100);
-    long t1 = System.nanoTime();
-    assertSuggestionCount("a2", 11, "all");
-    System.out.println("testDocFreqWeight: " + (t1 - t0) + " ns");
-  }
-
-  @Test
-  public void testConstantWeight() throws Exception {
-    rebuildSuggester();
-    assertNoSuggestions();
-    long t0 = System.nanoTime();
-    insertTestDocuments(TITLE_VALUE_FIELD, 100);
-    long t1 = System.nanoTime();
-    assertSuggestionCount("a2", 11, "all");
-    System.out.println("testDocFreqWeight: " + (t1 - t0) + " ns");
-  }
-
-  /*
-   * test workaround for LUCENE-5477/SOLR-6246
-   */
-  @Test
-  public void testReloadCore() throws Exception {
-    SolrInputDocument doc = new SolrInputDocument();
-    doc.addField("uri", "/doc/1");
-    doc.addField(TITLE_FIELD, TITLE);
-    doc.addField(TEXT_FIELD, TEXT);
-    solr.add(doc);
-    solr.commit(false, true, true);
-
-    CoreAdminRequest reload = new CoreAdminRequest();
-    reload.setAction(CoreAdminAction.RELOAD);
-    reload.setCoreName("collection1");
-    reload.process(solr);
-  }
-
   private Suggestion assertSuggestionCount(String prefix, int count, String suggester) throws SolrServerException, IOException {
     SolrQuery q = new SolrQuery(prefix);
     q.setRequestHandler("/suggest/" + suggester);
+    q.set("spellcheck.q", prefix);
     q.set("spellcheck.count", 100);
     QueryResponse resp = solr.query(q);
     SpellCheckResponse scr = resp.getSpellCheckResponse();
@@ -229,12 +152,15 @@ public class MultiSuggesterTest extends SolrTest {
   public void testExtendedResultFormat() throws Exception {
     rebuildSuggester();
     insertTestDocuments(TITLE_FIELD);
+    String suggestQueryString = "t";
 
-    SolrQuery q = new SolrQuery("t");
+    SolrQuery q = new SolrQuery();
+    q.set("spellcheck.q", suggestQueryString);
     q.setRequestHandler("/suggest/all");
     QueryResponse resp = solr.query(q);
     SpellCheckResponse scr = resp.getSpellCheckResponse();
-    Suggestion suggestion = scr.getSuggestion("t");
+    assertNotNull("no spell check reponse found", scr);
+    Suggestion suggestion = scr.getSuggestion(suggestQueryString);
 
     // no extended results
     assertNull(suggestion.getAlternativeFrequencies());
@@ -244,7 +170,7 @@ public class MultiSuggesterTest extends SolrTest {
     resp = solr.query(q);
     scr = resp.getSpellCheckResponse();
     assertNotNull("no spell check reponse found", scr);
-    suggestion = scr.getSuggestion("t");
+    suggestion = scr.getSuggestion(suggestQueryString);
     assertNotNull(suggestion.getAlternativeFrequencies());
     assertEquals("The Dawning of a New Era", suggestion.getAlternatives().get(0));
     // The title field is analyzed, so the weight is computed as
@@ -261,11 +187,12 @@ public class MultiSuggesterTest extends SolrTest {
     rebuildSuggester();
     insertTestDocuments(TITLE_VALUE_FIELD);
     SolrQuery q = new SolrQuery();
-    q.set("spellcheck.q", "the da");
+    String suggestQueryString = "the da";
+    q.set("spellcheck.q", suggestQueryString);
     q.setRequestHandler("/suggest/all");
     QueryResponse resp = solr.query(q);
     SpellCheckResponse scr = resp.getSpellCheckResponse();
-    Suggestion suggestion = scr.getSuggestion("the da");
+    Suggestion suggestion = scr.getSuggestion(suggestQueryString);
     assertNotNull("no suggestion found for 'the da'", suggestion);
     assertEquals(1, suggestion.getNumFound());
     assertEquals(TITLE, suggestion.getAlternatives().get(0));
@@ -276,7 +203,7 @@ public class MultiSuggesterTest extends SolrTest {
     MultiDictionary dict = new MultiDictionary();
     WhitespaceAnalyzer analyzer = new WhitespaceAnalyzer();
     Directory dir = new RAMDirectory();
-    SafariInfixSuggester s = new SafariInfixSuggester(Version.LATEST, dir, analyzer, analyzer, 1, true);
+    SafariInfixSuggester s = new SafariInfixSuggester(dir, analyzer, analyzer, 1, true);
     try {
       s.build(dict);
       assertTrue(s.lookup("", false, 1).isEmpty());
@@ -320,6 +247,86 @@ public class MultiSuggesterTest extends SolrTest {
     rebuildSuggester();
     assertEquals ("The Dawning of a New Era", suggestion.getAlternatives().get(0));
     assertEquals ("dawning", suggestion.getAlternatives().get(1));
+  }
+
+  @Test
+  public void testMultiSuggest() throws Exception {
+    rebuildSuggester();
+    assertNoSuggestions();
+    insertTestDocuments(TITLE_FIELD);
+    assertSuggestions();
+    // Rebuilding the index leaves everything the same
+    rebuildSuggester();
+    assertSuggestions();
+  }
+
+  @Test
+  public void testOverrideAnalyzer() throws Exception {
+    rebuildSuggester();
+    assertNoSuggestions();
+    insertTestDocuments(TITLE_VALUE_FIELD);
+    assertSuggestions();
+    assertSuggestionCount("a1", 1, "title");
+    rebuildSuggester();
+    assertSuggestions();
+    assertSuggestionCount("a1", 1, "title");
+  }
+
+  @Test
+  public void testAutocommit() throws Exception {
+    // TITLE
+    rebuildSuggester();
+    assertNoSuggestions();
+    int numDocs = 10;
+    insertTestDocuments(TITLE_VALUE_FIELD, numDocs, false);
+    Thread.sleep (500); // wait for autocommit
+    //solr.commit();
+    long numFound = solr.query(new SolrQuery("*:*")).getResults().getNumFound();
+    assertEquals (numDocs, numFound);
+    assertSuggestions();
+    assertSuggestionCount("a1", 1, "title");
+  }
+
+  @Test
+  public void testDocFreqWeight() throws Exception {
+    // ALL
+    rebuildSuggester();
+    assertNoSuggestions();
+    long t0 = System.nanoTime();
+    insertTestDocuments(TITLE_FIELD, 100);
+    long t1 = System.nanoTime();
+    assertSuggestionCount("a2", 11, "all");
+    System.out.println("testDocFreqWeight: " + (t1 - t0) + " ns");
+  }
+
+  @Test
+  public void testConstantWeight() throws Exception {
+    // ALL
+    rebuildSuggester();
+    assertNoSuggestions();
+    long t0 = System.nanoTime();
+    insertTestDocuments(TITLE_VALUE_FIELD, 100);
+    long t1 = System.nanoTime();
+    assertSuggestionCount("a2", 11, "all");
+    System.out.println("testDocFreqWeight: " + (t1 - t0) + " ns");
+  }
+
+  /*
+   * test workaround for LUCENE-5477/SOLR-6246
+   */
+  @Test
+  public void testReloadCore() throws Exception {
+    SolrInputDocument doc = new SolrInputDocument();
+    doc.addField("uri", "/doc/1");
+    doc.addField(TITLE_FIELD, TITLE);
+    doc.addField(TEXT_FIELD, TEXT);
+    solr.add(doc);
+    solr.commit(false, true, true);
+
+    CoreAdminRequest reload = new CoreAdminRequest();
+    reload.setAction(CoreAdminAction.RELOAD);
+    reload.setCoreName("collection1");
+    reload.process(solr);
   }
 
 }

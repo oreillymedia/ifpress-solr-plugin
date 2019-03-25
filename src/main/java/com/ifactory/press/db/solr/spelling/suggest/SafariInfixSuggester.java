@@ -26,14 +26,13 @@ public class SafariInfixSuggester extends AnalyzingInfixSuggester {
   private Set<BytesRef> showContext, hideContext;
 
   public SafariInfixSuggester(
-          Version matchVersion,
           Directory dir,
           Analyzer indexAnalyzer,
           Analyzer queryAnalyzer,
           int minPrefixChars,
           boolean highlight
   ) throws IOException {
-    super(matchVersion, dir, indexAnalyzer, queryAnalyzer, minPrefixChars, false);
+    super(dir, indexAnalyzer, queryAnalyzer, minPrefixChars, true);
     this.highlight = highlight;
 
     showContext = Collections.singleton(new BytesRef(new byte[] { (byte) Context.SHOW.ordinal() }));
