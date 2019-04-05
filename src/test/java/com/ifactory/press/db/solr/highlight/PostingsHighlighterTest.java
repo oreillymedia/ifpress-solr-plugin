@@ -80,7 +80,7 @@ public class PostingsHighlighterTest {
     iw.addDocument(doc);
     iw.commit();
     
-    DirectoryReader reader = DirectoryReader.open(iw, true);
+    DirectoryReader reader = DirectoryReader.open(iw, true, true);
     IndexSearcher searcher = new IndexSearcher(reader);
 
     // retrieve highlights at query time 
