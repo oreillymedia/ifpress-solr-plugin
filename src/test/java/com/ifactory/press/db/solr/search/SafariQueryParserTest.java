@@ -24,16 +24,16 @@ public class SafariQueryParserTest extends SolrTest {
 
   @Test
   public void testPhraseFields () throws Exception {
-    assertParse (BQ(DMQ(TQ(A_T, "hey"))), "hey", B_T2);
-    assertParse (BQ(DMQ(B(PQ(B_T, "one", "two"), 2.0f))), "\"one two\"", B_T2);
-    assertParse (BQ(BQ(DMQ(TQ(A_T, "hey")), DMQ(B(PQ(B_T, "one", "two"), 2.0f)), TQ("c_t", "ho"))), "+hey +\"one two\" +c_t:ho", B_T2);
+    assertParse (BQW(BQ(DMQ(TQ(A_T, "hey")))), "hey", B_T2);
+    assertParse (BQW(BQ(DMQ(B(PQ(B_T, "one", "two"), 2.0f)))), "\"one two\"", B_T2);
+    assertParse (BQW(BQ(DMQ(TQ(A_T, "hey")), DMQ(B(PQ(B_T, "one", "two"), 2.0f)), TQ("c_t", "ho"))), "+hey +\"one two\" +c_t:ho", B_T2);
   }
   
   @Test
   public void testNoPhraseFields () throws Exception {
-    assertParse (BQ(DMQ(TQ(A_T, "hey"))), "hey", "");
-    assertParse (BQ(BQ(DMQ(TQ(A_T, "one")),DMQ(TQ(A_T, "two")))), "+one +two", "");
-    assertParse (BQ(DMQ(PQ(A_T, "one", "two"))), "\"one two\"", "");
+    assertParse (BQW(BQ(DMQ(TQ(A_T, "hey")))), "hey", "");
+    assertParse (BQW(BQ(DMQ(TQ(A_T, "one")),DMQ(TQ(A_T, "two")))), "+one +two", "");
+    assertParse (BQW(BQ(DMQ(PQ(A_T, "one", "two")))), "\"one two\"", "");
   }
   
   private TermQuery TQ(String f, String v) {
@@ -57,16 +57,24 @@ public class SafariQueryParserTest extends SolrTest {
   }
   
   private BooleanQuery BQ(Query ... clauses) {
-    return BQ(1.0f, clauses);
-  }
-  
-  private BooleanQuery BQ(float b, Query ... clauses) {
     BooleanQuery.Builder bqBuilder = new BooleanQuery.Builder();
-    bqBuilder.setDisableCoord(clauses.length <= 1).setMinimumNumberShouldMatch(0);
+    bqBuilder.setDisableCoord(false).setMinimumNumberShouldMatch(0);
 
     for (Query q : clauses) {
       bqBuilder.add(q, Occur.MUST);
     }
+    return bqBuilder.build();
+  }
+
+  /*
+    BooleanQuery Wrapper - wraps BooleanQuery with an extra Occur.MUST boolean clause
+    due to a change in Lucene's QueryParser.java for SOLR-9185
+    that makes ExtendedDismaxQParser's parsed queries be wrapped in this extra clause.
+   */
+  private BooleanQuery BQW(BooleanQuery bq) {
+    BooleanQuery.Builder bqBuilder = new BooleanQuery.Builder();
+    bqBuilder.setDisableCoord(true).setMinimumNumberShouldMatch(0);
+    bqBuilder.add(bq, Occur.MUST);
     return bqBuilder.build();
   }
   
