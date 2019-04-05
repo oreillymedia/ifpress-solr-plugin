@@ -3,9 +3,7 @@ package com.ifactory.press.db.solr.processor;
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.NumericDocValues;
-import org.apache.lucene.index.Term;
+import org.apache.lucene.index.*;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
 import org.apache.solr.common.SolrException;
@@ -127,13 +125,16 @@ public class UpdateDocValuesProcessor extends UpdateRequestProcessor {
     Term idTerm = new Term(idField, id);
     TermQuery query = new TermQuery (idTerm);
     TopDocs docs = searcher.search(query, 1);
+    // getSlowAtomicReader is slower, so try to get LeafReader from LeafReaderContext first
+    List<LeafReaderContext> leaves = searcher.getTopReaderContext().leaves();
+    LeafReader leafReader = leaves.isEmpty() ? searcher.getSlowAtomicReader() : leaves.get(0).reader();
     if (docs.totalHits == 1) {
       // get the value
       // LOG.debug(String.format("found %s", id));
       int docID = docs.scoreDocs[0].doc;
       for (String valueField : valueFields) {
         if (doc.get(valueField) == null) {
-          NumericDocValues ndv = searcher.getLeafReader().getNumericDocValues(valueField);
+          NumericDocValues ndv = leafReader.getNumericDocValues(valueField);
           if (ndv!= null) {
             long lvalue = ndv.get(docID);
             doc.addField(valueField, lvalue);
