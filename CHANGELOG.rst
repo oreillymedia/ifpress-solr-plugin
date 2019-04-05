@@ -1,6 +1,7 @@
 ifpress-solr-plugin CHANGELOG
 ==================
 * 1.5.0
+
   - Upgrade to Solr v6.6.5
   - **Removed SafariBlockJoinQuery and ScoringParentQParser.** They were replaced with field collapsing for SPIDR-962
   - Update to UpdateDocValuesProcessor:
@@ -21,6 +22,7 @@ ifpress-solr-plugin CHANGELOG
 
 
 * 1.4.0
+
   - Upgrade to Solr v5.5.5. All changes in this version were necessary for Solr v5.5.5 compatibility.
   - solrconfig.xml:
     - Disabled updateLog because of issue introduced with TransactionLog.
@@ -55,9 +57,11 @@ ifpress-solr-plugin CHANGELOG
 
 
 * 1.3.10
+
   - Provides more meaningful query explanations to SafariBlockJoinQuery
 
 
 * 1.3.9
+
   - Was the latest version used 2015 - June 2018
   - Adds checks for ArrayIndexOutOfBoundsException in SBJQ
