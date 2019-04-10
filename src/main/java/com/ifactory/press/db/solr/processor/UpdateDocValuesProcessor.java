@@ -135,8 +135,10 @@ public class UpdateDocValuesProcessor extends UpdateRequestProcessor {
       for (String valueField : valueFields) {
         if (doc.get(valueField) == null) {
           NumericDocValues ndv = leafReader.getNumericDocValues(valueField);
-          if (ndv!= null) {
-            long lvalue = ndv.get(docID);
+          if (ndv !=  null) {
+            // LUCENE-7404 made major change forcing doc values to be retrieved through an iterator
+            ndv.advanceExact(docID);
+            long lvalue = ndv.longValue();
             doc.addField(valueField, lvalue);
             // LOG.debug("retrieved doc value %d", lvalue);
           } else {
