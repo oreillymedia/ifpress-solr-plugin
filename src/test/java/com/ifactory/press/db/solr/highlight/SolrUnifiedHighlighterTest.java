@@ -16,7 +16,7 @@ import org.junit.Test;
 
 import com.ifactory.press.db.solr.HeronSolrTest;
 
-public class SolrPostingsHighlighterTest extends HeronSolrTest {
+public class SolrUnifiedHighlighterTest extends HeronSolrTest {
   
   @Before
   public void setup () throws SolrServerException, IOException {
