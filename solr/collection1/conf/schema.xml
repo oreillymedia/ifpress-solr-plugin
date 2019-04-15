@@ -442,9 +442,6 @@
     field is marked with required="false", it will be a required field -->
   <uniqueKey>uri</uniqueKey>
 
-  <!-- SolrQueryParser configuration: defaultOperator="AND|OR" -->
-  <solrQueryParser defaultOperator="AND" />
-
   <!-- Lazy field loading will attempt to read only parts of documents on 
     disk that are requested. Enabling should be faster if you aren't retrieving 
     all stored fields. -->
