@@ -1,11 +1,13 @@
 ifpress-solr-plugin CHANGELOG
 =============================
 * 1.6.0
+
   - Upgrade to Solr v7.6.0
   - SOLR-10700: PostingsHighlighter and its related classes (deprecated) replaced with the suggested UnifiedHighlighter.
-    - UnifiedHighlighterTest: UnifiedHighlighter object creation requires an IndexAnalyzer, using SafariAnalyzer.
-    - SolrUnifiedHighlighterTest: Unlike Postings, UnifiedHighlighter unifies matching sentences near each other, despite
-    the SENTENCE break type. It relies on 'fragsize' to determine to return multiple sentences of just the highest matching sentence.
+      - UnifiedHighlighter has options to work almost exactly like PostingsHighlighter did, as Unified was a more performant extension of Postings.
+      - UnifiedHighlighterTest: UnifiedHighlighter object creation requires an IndexAnalyzer, using SafariAnalyzer.
+      - SolrUnifiedHighlighterTest: Unlike Postings, UnifiedHighlighter unifies matching sentences near each other, despite
+        the SENTENCE break type. It relies on 'fragsize' to determine to return multiple sentences of just the highest matching sentence.
   - LUCENE-7867: analysis.Token (deprecated in Solr 2) moved to solr.spelling as that should be the only place it is used.
   - UpdateDocValuesProcessor: LUCENE-7407, NumericDocValues uses an iterator, must call iterator method advanceExact to iterate to desired doc value.
   - SafariQueryParserTest:
@@ -62,12 +64,15 @@ ifpress-solr-plugin CHANGELOG
     - A custom TwoPhaseIterator needed for filtering
     - Uses getLiveDocs() to check for deleted docs since acceptDocs can no longer be used.
   - SafariBlockJoinTest.java: Small issue with filter query on block join, not sure if even possible to resolve.
-  SBJQ used to check 'acceptDocs' to make sure parent doc was not deleted or filtered out.
-  Lucene v5.3.0 includes a huge rework on 'acceptDocs' for LUCENE-6553, removing 'acceptDocs' from Weight class.
-  SBJQ no longer has access to 'acceptDocs'. It was forced to use reader.getLiveDocs() instead to make sure the parent
-  docs were not deleted.
-  Because of this, SBJQ can filter out children of deleted parent docs (see testOrphanedDocs) but does not filter out
-  children of parents who do not meet filter query criteria.
+    SBJQ used to check 'acceptDocs' to make sure parent doc was not deleted or filtered out.
+
+    Lucene v5.3.0 includes a huge rework on 'acceptDocs' for LUCENE-6553, removing 'acceptDocs' from Weight class.
+
+    SBJQ no longer has access to 'acceptDocs'. It was forced to use reader.getLiveDocs() instead to make sure the parent
+    docs were not deleted.
+
+    Because of this, SBJQ can filter out children of deleted parent docs (see testOrphanedDocs) but does not filter out
+    children of parents who do not meet filter query criteria.
 
 
 * 1.3.10
