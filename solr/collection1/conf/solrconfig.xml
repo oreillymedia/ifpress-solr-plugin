@@ -712,6 +712,7 @@
       -->
      <lst name="defaults">
        <str name="echoParams">explicit</str>
+       <str name="df">xml_text</str>
        <int name="rows">10</int>
        <!--<str name="df">text</str>-->
      </lst>
@@ -1187,8 +1188,8 @@
 
        http://wiki.apache.org/solr/HighlightingParameters
     -->
-  <searchComponent class="solr.HighlightComponent" name="highlight-postings">
-    <highlighting class="org.apache.solr.highlight.PostingsSolrHighlighter"/>
+  <searchComponent class="solr.HighlightComponent" name="highlight-unified">
+    <highlighting class="org.apache.solr.highlight.UnifiedSolrHighlighter"/>
   </searchComponent>
 
   <searchComponent class="solr.HighlightComponent" name="highlight">
