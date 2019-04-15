@@ -28,21 +28,44 @@ public class SolrUnifiedHighlighterTest extends HeronSolrTest {
   public void testHighlightChapter5() throws SolrServerException, IOException {
     // searching for "gas" didn't work on the Safari site
     indexDocument ("ch5.txt");
-    assertSnippet ("gas", "Chapter 5\n Prospects and Evolutions of Electric-Powered Vehicles:<b>gas</b> What Technologies &lt; &amp; by 2015?");
+    assertSnippet (
+            "gas",
+            "450",
+            "Chapter 5\n Prospects and Evolutions of Electric-Powered Vehicles:<b>gas</b> What Technologies &lt; &amp; by 2015?"
+    );
   }
   
   @Test
-  public void testSnippetScoring() throws Exception {
+  public void testSnippetsSortedByScore() throws Exception {
     indexDocument ("daly-web-framework.txt");
-    assertSnippet ("who had fond memories", "Ruby's status as a next-generation scripting language inspired programmers <b>who</b> <b>had</b> <b>fond</b> <b>memories</b> of quick Perl projects but did not want to trade flexibility for readability.");
+    assertSnippet (
+            "who had fond memories",
+            "300",
+            "Ruby's status as a next-generation scripting language inspired programmers <b>who</b> <b>had</b> " +
+                    "<b>fond</b> <b>memories</b> of quick Perl projects but did not want to trade flexibility for readability."
+    );
+  }
+
+  @Test
+  public void testSnippetWithLargerFragSize() throws Exception {
+    indexDocument ("daly-web-framework.txt");
+    assertSnippet (
+            "who had fond memories",
+            "450",
+            "Its emphasis on \"convention over configuration\" was a breath of fresh air to developers " +
+                    "<b>who</b> <b>had</b> struggled with configuration-heavy Java frameworks such as Struts. " +
+                    "Ruby's status as a next-generation scripting language inspired programmers <b>who</b> <b>had</b> " +
+                    "<b>fond</b> <b>memories</b> of quick Perl projects but did not want to trade flexibility for readability."
+    );
   }
 
   // TODO - randomized testing -- search for phrases and/or words drawn from sentences and
   // expect those same sentences to be returned.
   
-  private void assertSnippet (String q, String expectedSnippet) throws SolrServerException, IOException {
+  private void assertSnippet (String q, String fragSize, String expectedSnippet) throws SolrServerException, IOException {
     SolrQuery query = new SolrQuery(q);
     query.setHighlight(true);
+    query.set("hl.fragsize", fragSize);
     query.set("hl.tag.pre", "<b>");
     query.set("hl.tag.ellipsis", "¦");
     query.set("f.text.hl.snippets", 3); // override value of 3 specified in solrconfig.xml

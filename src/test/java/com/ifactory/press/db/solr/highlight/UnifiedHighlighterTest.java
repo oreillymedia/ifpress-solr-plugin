@@ -79,7 +79,7 @@ public class UnifiedHighlighterTest {
     IndexSearcher searcher = new IndexSearcher(reader);
 
     // retrieve highlights at query time 
-    UnifiedHighlighter highlighter = new UnifiedHighlighter(searcher, null);  // TODO (AG): pass in an IndexAnalyzer here, not null
+    UnifiedHighlighter highlighter = new UnifiedHighlighter(searcher, new SafariAnalyzer(true));
     Query query = new TermQuery(new Term("text", "gas"));
     TopDocs topDocs = searcher.search(query, 1);
     String highlights[] = highlighter.highlight("text", query, topDocs);
