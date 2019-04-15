@@ -1,5 +1,19 @@
 ifpress-solr-plugin CHANGELOG
-==================
+=============================
+* 1.6.0
+  - Upgrade to Solr v7.6.0
+  - SOLR-10700: PostingsHighlighter and its related classes (deprecated) replaced with the suggested UnifiedHighlighter.
+    - UnifiedHighlighterTest: UnifiedHighlighter object creation requires an IndexAnalyzer, using SafariAnalyzer.
+    - SolrUnifiedHighlighterTest: Unlike Postings, UnifiedHighlighter unifies matching sentences near each other, despite
+    the SENTENCE break type. It relies on 'fragsize' to determine to return multiple sentences of just the highest matching sentence.
+  - LUCENE-7867: analysis.Token (deprecated in Solr 2) moved to solr.spelling as that should be the only place it is used.
+  - UpdateDocValuesProcessor: LUCENE-7407, NumericDocValues uses an iterator, must call iterator method advanceExact to iterate to desired doc value.
+  - SafariQueryParserTest:
+    - Single clause BooleanQueries no longer wrapped with an additional Occur.MUST
+    - LUCENE-7369: BooleanQuery's disableCoords field was removed
+  - SOLR-10585: defaultSearchField (deprecated in Solr 3) removed from schema use, using 'df' instead.
+  - SOLR-10584: Setting <solrQueryParser defaultOperator="..."/> in schema now causes an exception, must use suggested "q.op" parameter on the request instead
+
 * 1.5.0
 
   - Upgrade to Solr v6.6.5
