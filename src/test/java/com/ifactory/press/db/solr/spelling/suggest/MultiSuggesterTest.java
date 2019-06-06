@@ -27,6 +27,15 @@ public class MultiSuggesterTest extends SolrTest {
   private static final String TEXT = "Now is the time time for all good people to come to the aid of their dawning intentional community";
   private static final String TITLE = "The Dawning of a New Era";
 
+  /*
+    This test suite uses highlighted suggestions by default to ensure that suggestion highlighting regression is caught.
+    To get non-highlighted suggestions, must add <bool name="highlight">false</bool> to the spellchecker block in solrconfig.xml.
+   */
+
+  private String unhighlight(String highlightedString) {
+    return highlightedString.replaceAll("</?b>", "");
+  }
+
   private Suggestion assertSuggestionCount(String prefix, int count, String suggester) throws SolrServerException, IOException {
     SolrQuery q = new SolrQuery(prefix);
     q.setRequestHandler("/suggest/" + suggester);
@@ -55,13 +64,13 @@ public class MultiSuggesterTest extends SolrTest {
     Suggestion suggestion = assertSuggestionCount("t", 8, "all");   
     // TITLE occurs once in a high-weighted field; t1-t4, etc each occur twice, t5 once, their/time occur once
     // 'the' and 'to' occur too many times and get excluded
-    assertEquals (TITLE, suggestion.getAlternatives().get(0));
+    assertEquals ("<b>T</b>he Dawning of a New Era", suggestion.getAlternatives().get(0));
     for (int i = 1; i <=5; i++) {
-      String sugg = suggestion.getAlternatives().get(i);
+      String sugg = unhighlight(suggestion.getAlternatives().get(i));
       assertTrue (sugg + " does not match t[1-5]", sugg.matches("t[1-5]"));
     }
-    assertTrue (suggestion.getAlternatives().get(6).matches("their|time"));
-    assertTrue (suggestion.getAlternatives().get(7).matches("their|time"));
+    assertTrue (unhighlight(suggestion.getAlternatives().get(6)).matches("their|time"));
+    assertTrue (unhighlight(suggestion.getAlternatives().get(7)).matches("their|time"));
     assertNotEquals(suggestion.getAlternatives().get(6), suggestion.getAlternatives().get(7));
   }
 
@@ -145,7 +154,7 @@ public class MultiSuggesterTest extends SolrTest {
     // them
     assertEquals(1, suggestion.getNumFound());
 
-    assertEquals(AAAA, suggestion.getAlternatives().get(0));
+    assertEquals(AAAA, unhighlight(suggestion.getAlternatives().get(0)));
   }
 
   @Test
@@ -172,13 +181,13 @@ public class MultiSuggesterTest extends SolrTest {
     assertNotNull("no spell check reponse found", scr);
     suggestion = scr.getSuggestion(suggestQueryString);
     assertNotNull(suggestion.getAlternativeFrequencies());
-    assertEquals("The Dawning of a New Era", suggestion.getAlternatives().get(0));
+    assertEquals("<b>T</b>he Dawning of a New Era", suggestion.getAlternatives().get(0));
     // The title field is analyzed, so the weight is computed as
     // #occurrences/#docs(w/title) * field-weight
     // = 1 / 10 * 11 * 10000000 = 11000000
     assertEquals(11000000, suggestion.getAlternativeFrequencies().get(0).intValue());
     int last = suggestion.getNumFound() - 1;
-    assertTrue(suggestion.getAlternatives().get(last).matches("their|time"));
+    assertTrue(unhighlight(suggestion.getAlternatives().get(last)).matches("their|time"));
     assertTrue(suggestion.getAlternativeFrequencies().get(last) > 0);
   }
 
@@ -195,7 +204,7 @@ public class MultiSuggesterTest extends SolrTest {
     Suggestion suggestion = scr.getSuggestion(suggestQueryString);
     assertNotNull("no suggestion found for 'the da'", suggestion);
     assertEquals(1, suggestion.getNumFound());
-    assertEquals(TITLE, suggestion.getAlternatives().get(0));
+    assertEquals("<b>The</b> <b>Da</b>wning of a New Era", suggestion.getAlternatives().get(0));
   }
 
   @Test
@@ -217,7 +226,7 @@ public class MultiSuggesterTest extends SolrTest {
     rebuildSuggester();
     insertTestDocuments(TITLE_FIELD);
     Suggestion suggestion = assertSuggestionCount("a2", 1, "all");
-    assertEquals("a2 document", suggestion.getAlternatives().get(0));
+    assertEquals("<b>a2</b> document", suggestion.getAlternatives().get(0));
     // solr.deleteById("/doc/2");
     solr.deleteByQuery("*:*");
     solr.commit();
@@ -241,12 +250,12 @@ public class MultiSuggesterTest extends SolrTest {
     solr.add(doc);
     solr.commit();
     Suggestion suggestion = assertSuggestionCount("dawn", 2, "all");
-    assertEquals ("The Dawning of a New Era", suggestion.getAlternatives().get(0));
-    assertEquals ("dawning", suggestion.getAlternatives().get(1));
+    assertEquals ("The <b>Dawn</b>ing of a New Era", suggestion.getAlternatives().get(0));
+    assertEquals ("<b>dawn</b>ing", suggestion.getAlternatives().get(1));
     // test rebuilding using a dictionary:
     rebuildSuggester();
-    assertEquals ("The Dawning of a New Era", suggestion.getAlternatives().get(0));
-    assertEquals ("dawning", suggestion.getAlternatives().get(1));
+    assertEquals ("The <b>Dawn</b>ing of a New Era", suggestion.getAlternatives().get(0));
+    assertEquals ("<b>dawn</b>ing", suggestion.getAlternatives().get(1));
   }
 
   @Test
