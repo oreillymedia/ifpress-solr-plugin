@@ -1049,7 +1049,6 @@
       <float name="threshold">0.0</float>
       <!-- true => NPE now that we have NRT support??.  For production, schedule a rebuild nightly instead -->
       <str name="buildOnCommit">false</str>
-      <bool name="highlight">false</bool>
       <lst name="fields">
         <lst name="field">
           <str name="name">fulltext_t</str>
