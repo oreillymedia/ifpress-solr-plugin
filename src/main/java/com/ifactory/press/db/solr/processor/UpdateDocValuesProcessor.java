@@ -125,9 +125,7 @@ public class UpdateDocValuesProcessor extends UpdateRequestProcessor {
     Term idTerm = new Term(idField, id);
     TermQuery query = new TermQuery (idTerm);
     TopDocs docs = searcher.search(query, 1);
-    // getSlowAtomicReader is slower, so try to get LeafReader from LeafReaderContext first
-    List<LeafReaderContext> leaves = searcher.getTopReaderContext().leaves();
-    LeafReader leafReader = leaves.isEmpty() ? searcher.getSlowAtomicReader() : leaves.get(0).reader();
+    LeafReader leafReader = searcher.getSlowAtomicReader();
     if (docs.totalHits == 1) {
       // get the value
       // LOG.debug(String.format("found %s", id));
