@@ -14,9 +14,14 @@ import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.spell.HighFrequencyDictionary;
+import org.apache.lucene.search.spell.SuggestMode;
+import org.apache.lucene.search.suggest.Lookup;
 import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
+import org.apache.lucene.search.suggest.analyzing.AnalyzingSuggester;
+import org.apache.lucene.search.suggest.fst.WFSTCompletionLookup;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefBuilder;
+import org.apache.lucene.util.CharsRef;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.util.NamedList;
 import org.apache.solr.core.CloseHook;
@@ -517,9 +522,51 @@ public class MultiSuggester extends Suggester {
 
   }
 
+  /*
+    A copy of the getSuggestions() method from Solr's Suggest class (org.apache.solr.spelling.suggest).
+    The only modification is the last 'for' loop, where the LookupResult's highlightedKey is used if it exists.
+    This overrides Suggest's use of only the non-highlighted key always being used, which does not respect the
+    highlights from the AnalyzingInfixSuggester class (or a relative class) as of Solr 4.10.3.
+
+    https://intranet.oreilly.com/jira/browse/SPIDR-1126
+   */
+  private SpellingResult getSuggestionsWithHighlights(SpellingOptions options) throws IOException {
+    SpellingResult res = new SpellingResult();
+    if (lookup == null) {
+      return res;
+    }
+
+    CharsRef scratch = new CharsRef();
+    for (Token t : options.tokens) {
+      scratch.chars = t.buffer();
+      scratch.offset = 0;
+      scratch.length = t.length();
+      boolean onlyMorePopular = (options.suggestMode == SuggestMode.SUGGEST_MORE_POPULAR) &&
+              !(lookup instanceof WFSTCompletionLookup) &&
+              !(lookup instanceof AnalyzingSuggester);
+      List<Lookup.LookupResult> suggestions = lookup.lookup(scratch, onlyMorePopular, options.count);
+
+      if (suggestions == null) {
+        continue;
+      }
+
+      if (options.suggestMode != SuggestMode.SUGGEST_MORE_POPULAR) {
+        Collections.sort(suggestions);
+      }
+
+      // Suggestions should use LookupResult's highlightedKey if not null, otherwise default to using LookupResult's key.
+      String lookupKey;
+      for (Lookup.LookupResult lr : suggestions) {
+        lookupKey = lr.highlightKey != null ? lr.highlightKey.toString() : lr.key.toString();
+        res.add(t, lookupKey, (int)lr.value);
+      }
+    }
+    return res;
+  }
+
   @Override
   public SpellingResult getSuggestions(SpellingOptions options) throws IOException {
-    SpellingResult result = super.getSuggestions(options);
+    SpellingResult result = getSuggestionsWithHighlights(options);
     if (options.extendedResults) {
       for (Map.Entry<?, LinkedHashMap<String, Integer>> suggestion : result.getSuggestions().entrySet()) {
         Object token = suggestion.getKey();
