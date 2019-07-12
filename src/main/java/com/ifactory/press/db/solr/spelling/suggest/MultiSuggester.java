@@ -169,7 +169,7 @@ public class MultiSuggester extends Suggester {
     this.shouldExcludeFormats = this.excludeFormats != null && !this.excludeFormats.isEmpty();
 
     if(this.shouldExcludeFormats) {
-      LOG.info(String.format("Excluding docs from suggestions that have the one of the formats: %s", excludeFormats.toString()));
+      LOG.info(String.format("Excluding docs from suggestions that have one of the formats: %s", excludeFormats.toString()));
     }
 
     // Workaround for SOLR-6246 (lock exception on core reload): close
@@ -291,7 +291,7 @@ public class MultiSuggester extends Suggester {
         if(this.shouldExcludeFormats) {
           IndexableField format = doc.getField("format");
           if (format != null && this.excludeFormats.contains(format.stringValue())) {
-            LOG.info(String.format("Skipping build suggestion for doc with a format of: %s", format.stringValue()));
+            LOG.info(String.format("Skipping BUILD suggestion for doc with a format of: %s", format.stringValue()));
           } else {
             addRaw(fld, value);
           }
@@ -352,7 +352,7 @@ public class MultiSuggester extends Suggester {
 
     SolrInputField format = doc.getField("format");
     if (format != null && this.excludeFormats.contains(format.getValue().toString())) {
-      LOG.info(String.format("Skipping add suggestion for doc with a format of: %s", format.getValue().toString()));
+      LOG.info(String.format("Skipping ADD suggestion for doc with a format of: %s", format.getValue().toString()));
       return;
     }
 
