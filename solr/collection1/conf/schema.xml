@@ -322,6 +322,7 @@
     <field name="directory_b" type="boolean" indexed="true" stored="true" />
     <field name="binary" type="binary" indexed="false" stored="true" />
     <field name="title_t" type="text" indexed="true" stored="true" />
+    <field name="format" type="text" indexed="true" stored="true"/>
 
     <!-- text content that is searched by default; we store it so solr can 
       do highlighting -->

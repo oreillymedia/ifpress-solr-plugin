@@ -24,6 +24,7 @@ public class MultiSuggesterTest extends SolrTest {
   private static final String TEXT_FIELD = "fulltext_t";
   private static final String TITLE_FIELD = "title_ms";
   private static final String TITLE_VALUE_FIELD = "title_t";
+  private static final String FORMAT_FIELD = "format";
   private static final String TEXT = "Now is the time time for all good people to come to the aid of their dawning intentional community";
   private static final String TITLE = "The Dawning of a New Era";
 
@@ -256,6 +257,43 @@ public class MultiSuggesterTest extends SolrTest {
     rebuildSuggester();
     assertEquals ("The <b>Dawn</b>ing of a New Era", suggestion.getAlternatives().get(0));
     assertEquals ("<b>dawn</b>ing", suggestion.getAlternatives().get(1));
+  }
+
+  @Test
+  public void testExcludeDocsWithSpecificFormats() throws Exception {
+    // Erase any lingering data
+    rebuildSuggester();
+    // Add a document with book format
+    SolrInputDocument doc = new SolrInputDocument();
+    doc.addField("uri", "/doc/1");
+    doc.addField(TITLE_FIELD, "A Nice Book");
+    doc.addField(TEXT_FIELD, "This is a very nice book.");
+    doc.addField(FORMAT_FIELD, "book");
+    solr.add(doc);
+
+    // Add 2 documents, both of which have formats that are excluded in the solrconfig's excludeFormat option.
+    SolrInputDocument excludedDoc = new SolrInputDocument();
+    excludedDoc.addField("uri", "/doc/2");
+    excludedDoc.addField(TITLE_FIELD, "A Nice Playlist");
+    excludedDoc.addField(TEXT_FIELD, "This is a nice playlist that should not show in suggestions.");
+    excludedDoc.addField(FORMAT_FIELD, "collection");
+    SolrInputDocument excludedDoc2 = new SolrInputDocument();
+    excludedDoc2.addField("uri", "/doc/3");
+    excludedDoc2.addField(TITLE_FIELD, "A Nice Test");
+    excludedDoc2.addField(TEXT_FIELD, "This nice test should also not show up.");
+    excludedDoc2.addField(FORMAT_FIELD, "test-format");
+
+    solr.add(doc);
+    solr.add(excludedDoc);
+    solr.add(excludedDoc2);
+    solr.commit();
+
+    // There should only be one suggestion: suggestion for the book.
+    // The doc with 'collection' format should not show in suggestions at all.
+    Suggestion suggestion = assertSuggestionCount("nice", 1, "all");
+    assertEquals ("A <b>Nice</b> Book", suggestion.getAlternatives().get(0));
+    assertSuggestionCount("Playlist", 0, "all");
+    assertSuggestionCount("Test", 0, "all");
   }
 
   @Test

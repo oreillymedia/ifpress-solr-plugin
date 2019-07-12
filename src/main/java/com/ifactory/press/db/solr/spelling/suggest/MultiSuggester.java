@@ -12,6 +12,7 @@ import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.document.Document;
+import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.spell.HighFrequencyDictionary;
 import org.apache.lucene.search.spell.SuggestMode;
@@ -23,6 +24,7 @@ import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefBuilder;
 import org.apache.lucene.util.CharsRef;
 import org.apache.solr.common.SolrInputDocument;
+import org.apache.solr.common.SolrInputField;
 import org.apache.solr.common.util.NamedList;
 import org.apache.solr.core.CloseHook;
 import org.apache.solr.core.SolrCore;
@@ -142,23 +144,33 @@ public class MultiSuggester extends Suggester {
   // this factor to convert them to longs with a sufficient
   // range. WEIGHT_SCALE should be greater than the number of documents
   private static final int WEIGHT_SCALE = 10000000;
+  private static final int DEFAULT_MAX_SUGGESTION_LENGTH = 80;
+  private static final String EXCLUDE_FORMAT_KEY = "excludeFormat";
 
   private static final Logger LOG = LoggerFactory.getLogger(MultiSuggester.class);
 
   private WeightedField[] fields;
-
   private int maxSuggestionLength;
+  private List<String> excludeFormats;
+  private boolean shouldExcludeFormats;
 
   // use a synchronized Multimap - there may be one with the same name for each
   // core
   private static final ListMultimap<Object, Object> registry = Multimaps.synchronizedListMultimap(ArrayListMultimap.create());
 
-  private static final int DEFAULT_MAX_SUGGESTION_LENGTH = 80;
-
   @Override
   public String init(NamedList config, SolrCore coreParam) {
     String myname = (String) config.get(DICTIONARY_NAME);
     this.core = coreParam;
+
+    // Get formats that determine if doc should be excluded from suggestion build.
+    // Use shouldExcludeFormats for faster future boolean checks.
+    this.excludeFormats = config.getAll(EXCLUDE_FORMAT_KEY);
+    this.shouldExcludeFormats = this.excludeFormats != null && !this.excludeFormats.isEmpty();
+
+    if(this.shouldExcludeFormats) {
+      LOG.info(String.format("Excluding docs from suggestions that have the one of the formats: %s", excludeFormats.toString()));
+    }
 
     // Workaround for SOLR-6246 (lock exception on core reload): close
     // any suggester registered with the same name.
@@ -266,13 +278,26 @@ public class MultiSuggester extends Suggester {
     LOG.info(String.format("build suggestions from values for: %s (%d)", fld.fieldName, fld.weight));
     Set<String> fieldsToLoad = new HashSet<String>();
     fieldsToLoad.add(fld.fieldName);
+    // Load the format field so we can filter out docs by specific formats
+    if(this.shouldExcludeFormats) {
+      fieldsToLoad.add("format");
+    }
     int maxDoc = searcher.maxDoc();
     for (int idoc = 0; idoc < maxDoc; ++idoc) {
       // TODO: exclude deleted documents
       Document doc = reader.document(idoc, fieldsToLoad);
       String value = doc.get(fld.fieldName);
       if (value != null) {
-        addRaw(fld, value);
+        if(this.shouldExcludeFormats) {
+          IndexableField format = doc.getField("format");
+          if (format != null && this.excludeFormats.contains(format.stringValue())) {
+            LOG.info(String.format("Skipping build suggestion for doc with a format of: %s", format.stringValue()));
+          } else {
+            addRaw(fld, value);
+          }
+        } else {
+          addRaw(fld, value);
+        }
       }
       if (idoc % 10000 == 9999) {
         commit(searcher);
@@ -324,6 +349,13 @@ public class MultiSuggester extends Suggester {
     if (!(lookup instanceof SafariInfixSuggester)) {
       return;
     }
+
+    SolrInputField format = doc.getField("format");
+    if (format != null && this.excludeFormats.contains(format.getValue().toString())) {
+      LOG.info(String.format("Skipping add suggestion for doc with a format of: %s", format.getValue().toString()));
+      return;
+    }
+
     for (WeightedField fld : fields) {
       if (!doc.containsKey(fld.fieldName)) {
         continue;
