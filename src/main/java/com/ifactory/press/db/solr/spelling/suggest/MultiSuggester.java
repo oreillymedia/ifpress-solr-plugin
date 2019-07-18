@@ -252,6 +252,7 @@ public class MultiSuggester extends Suggester {
   public void build(SolrCore coreParam, SolrIndexSearcher searcher) throws IOException {
     LOG.info("build suggestion index: " + name);
     reader = searcher.getIndexReader();
+    long startTime = System.currentTimeMillis();
 
     SafariInfixSuggester ais = (SafariInfixSuggester) lookup;
     ais.clear();
@@ -268,7 +269,10 @@ public class MultiSuggester extends Suggester {
         ais.refresh();
       }
     }
-    LOG.info(String.format("%s suggestion index built: %d suggestions", name, ais.getCount()));
+
+    long endTime = System.currentTimeMillis();
+    long totalBuildTime = (endTime - startTime) / 1000;
+    LOG.info(String.format("%s suggestion index built: %d suggestions. Total time: %d seconds.", name, ais.getCount(), totalBuildTime));
   }
 
   private void buildFromStoredField(WeightedField fld, SolrIndexSearcher searcher) throws IOException {
@@ -276,34 +280,56 @@ public class MultiSuggester extends Suggester {
       throw new IllegalStateException("not supported: analyzing stored fields");
     }
     LOG.info(String.format("build suggestions from values for: %s (%d)", fld.fieldName, fld.weight));
+    long startTime = System.currentTimeMillis();
+    long endTime;
+    long elapsedSeconds;
+    int lastCommitCount = 0;
     Set<String> fieldsToLoad = new HashSet<String>();
+    Set<String> addedValues = new HashSet<String>();
     fieldsToLoad.add(fld.fieldName);
     // Load the format field so we can filter out docs by specific formats
     if(this.shouldExcludeFormats) {
       fieldsToLoad.add("format");
     }
     int maxDoc = searcher.maxDoc();
+    int addCount = 0;
+    int excludedFormatDocCount = 0;
     for (int idoc = 0; idoc < maxDoc; ++idoc) {
       // TODO: exclude deleted documents
       Document doc = reader.document(idoc, fieldsToLoad);
       String value = doc.get(fld.fieldName);
-      if (value != null) {
+      if (value != null && !value.isEmpty()) {
         if(this.shouldExcludeFormats) {
           IndexableField format = doc.getField("format");
           if (format != null && this.excludeFormats.contains(format.stringValue())) {
-            LOG.info(String.format("Skipping BUILD suggestion for doc with a format of: %s", format.stringValue()));
-          } else {
+            excludedFormatDocCount++;
+          } else if (addedValues.add(value)) {
+            addCount++;
             addRaw(fld, value);
           }
-        } else {
+        } else if(addedValues.add(value)) {
+          addCount++;
           addRaw(fld, value);
         }
       }
-      if (idoc % 10000 == 9999) {
+      if (idoc % 50000 == 49999) {
+        endTime = System.currentTimeMillis();
+        elapsedSeconds = (endTime - startTime) / 1000;
+        LOG.info(String.format("%s Suggest BUILD for field %s - Docs added: %d", name, fld.fieldName, addCount));
+        LOG.info(String.format("Docs scanned: %d / %d. %d%% Completed. Time spent: %d seconds.\n", idoc, maxDoc, Math.round(((double)idoc/maxDoc)*100), elapsedSeconds));
+      }
+      if (addCount % 10000 == 9999 && addCount != lastCommitCount) {
+        LOG.info(String.format("%s Suggest BUILD COMMIT for field %s. Docs added: %d\n", name, fld.fieldName, addCount));
         commit(searcher);
+        lastCommitCount = addCount;
       }
     }
+    LOG.info(String.format("%s Suggest BUILD for field %s - Committing remaining docs. Docs added: %d\n", name, fld.fieldName, addCount));
     commit(searcher);
+    endTime = System.currentTimeMillis();
+    elapsedSeconds = (endTime-startTime) / 1000;
+    LOG.info(String.format("%s Suggest BUILD COMPLETED for field %s. Build time: %d seconds.", name, fld.fieldName, elapsedSeconds));
+    LOG.info(String.format("Total docs added: %d. Total docs excluded due to format: %d.\n\n\n", addCount, excludedFormatDocCount));
   }
 
   private void buildFromTerms(WeightedField fld) throws IOException {
@@ -375,10 +401,8 @@ public class MultiSuggester extends Suggester {
   /**
    * Add the value to the suggester, so it will be available as a suggestion.
    * 
-   * @param ais
-   *          the suggester
-   * @param weight
-   *          the weight of the suggestion
+   * @param fld
+   *          The WeightedField that value came from
    * @param value
    *          the value to add
    * @throws IOException
