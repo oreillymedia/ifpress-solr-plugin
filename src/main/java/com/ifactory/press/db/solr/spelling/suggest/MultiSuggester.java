@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.text.BreakIterator;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.Token;
@@ -145,14 +146,19 @@ public class MultiSuggester extends Suggester {
   // range. WEIGHT_SCALE should be greater than the number of documents
   private static final int WEIGHT_SCALE = 10000000;
   private static final int DEFAULT_MAX_SUGGESTION_LENGTH = 80;
+  private static final int BUILD_LOGGING_THRESHOLD = 100000;
+  private static final int BUILD_COMMIT_THRESHOLD = 10000;
   private static final String EXCLUDE_FORMAT_KEY = "excludeFormat";
 
   private static final Logger LOG = LoggerFactory.getLogger(MultiSuggester.class);
 
   private WeightedField[] fields;
+  private List<WeightedField> storedFields;
+  private List<WeightedField> termFields;
   private int maxSuggestionLength;
   private List<String> excludeFormats;
   private boolean shouldExcludeFormats;
+  private Set<String> addedStoredValues;
 
   // use a synchronized Multimap - there may be one with the same name for each
   // core
@@ -209,6 +215,8 @@ public class MultiSuggester extends Suggester {
 
   private void initWeights(NamedList fieldConfigs, SolrCore coreParam) {
     fields = new WeightedField[fieldConfigs.size()];
+    storedFields = new ArrayList<>();
+    termFields = new ArrayList<>();
     for (int ifield = 0; ifield < fieldConfigs.size(); ifield++) {
       NamedList fieldConfig = (NamedList) fieldConfigs.getVal(ifield);
       String fieldName = (String) fieldConfig.get("name");
@@ -230,6 +238,7 @@ public class MultiSuggester extends Suggester {
       }
       String analyzerFieldTypeName = (String) fieldConfig.get("analyzerFieldType");
       Analyzer fieldAnalyzer;
+      WeightedField field;
 
       boolean useStoredField = analyzerFieldTypeName != null;
       if (useStoredField) {
@@ -239,11 +248,15 @@ public class MultiSuggester extends Suggester {
         } else {
           fieldAnalyzer = coreParam.getLatestSchema().getFieldTypeByName(analyzerFieldTypeName).getIndexAnalyzer();
         }
+        field = new WeightedField(fieldName, weight, minFreq, maxFreq, fieldAnalyzer, useStoredField, filterDuplicates);
+        storedFields.add(field);
       } else {
         // Use the existing term values as analyzed by the field
         fieldAnalyzer = coreParam.getLatestSchema().getFieldType(fieldName).getIndexAnalyzer();
+        field = new WeightedField(fieldName, weight, minFreq, maxFreq, fieldAnalyzer, useStoredField, filterDuplicates);
+        termFields.add(field);
       }
-      fields[ifield] = new WeightedField(fieldName, weight, minFreq, maxFreq, fieldAnalyzer, useStoredField, filterDuplicates);
+      fields[ifield] = field;
     }
     Arrays.sort(fields);
   }
@@ -252,59 +265,91 @@ public class MultiSuggester extends Suggester {
   public void build(SolrCore coreParam, SolrIndexSearcher searcher) throws IOException {
     LOG.info("build suggestion index: " + name);
     reader = searcher.getIndexReader();
+    long startTime = System.currentTimeMillis();
 
     SafariInfixSuggester ais = (SafariInfixSuggester) lookup;
     ais.clear();
-    
+
+    // index all stored fields with one pass through the index
+    buildFromStoredFields(storedFields, searcher);
+
     // index all the terms-based fields using dictionaries
-    for (WeightedField fld : fields) {
-      if (fld.useStoredField) {
-        buildFromStoredField(fld, searcher);
-      } else {
-        // TODO: refactor b/c we're not really using the MultiDictionary's multiple dictionary capability any more
-        dictionary = new MultiDictionary();
-        buildFromTerms(fld);
-        ais.add(dictionary);
-        ais.refresh();
-      }
+    for (WeightedField termField : termFields) {
+      // TODO: refactor b/c we're not really using the MultiDictionary's multiple dictionary capability any more
+      dictionary = new MultiDictionary();
+      buildFromTerms(termField);
+      ais.add(dictionary);
+      ais.refresh();
     }
-    LOG.info(String.format("%s suggestion index built: %d suggestions", name, ais.getCount()));
+
+    long endTime = System.currentTimeMillis();
+    long totalBuildTime = (endTime - startTime) / 1000;
+    LOG.info(String.format("%s suggestion index built: %d suggestions. Total time: %d seconds.", name, ais.getCount(), totalBuildTime));
   }
 
-  private void buildFromStoredField(WeightedField fld, SolrIndexSearcher searcher) throws IOException {
-    if (fld.fieldAnalyzer != null) {
-      throw new IllegalStateException("not supported: analyzing stored fields");
-    }
-    LOG.info(String.format("build suggestions from values for: %s (%d)", fld.fieldName, fld.weight));
-    Set<String> fieldsToLoad = new HashSet<String>();
-    fieldsToLoad.add(fld.fieldName);
+  private void buildFromStoredFields(List<WeightedField> flds, SolrIndexSearcher searcher) throws IOException {
+    LOG.info(String.format("%s Suggest BUILD for stored fields: %s", name, flds));
+    long startTime = System.currentTimeMillis();
+    long endTime;
+    long elapsedSeconds;
+    int lastCommitCount = 0;
+    addedStoredValues = new HashSet<>();
+    Set<String> fieldsToLoad = flds.stream().map(fld -> fld.fieldName).collect(Collectors.toSet());
     // Load the format field so we can filter out docs by specific formats
     if(this.shouldExcludeFormats) {
       fieldsToLoad.add("format");
     }
     int maxDoc = searcher.maxDoc();
+    int addCount = 0;
+    int excludedFormatDocCount = 0;
     for (int idoc = 0; idoc < maxDoc; ++idoc) {
-      // TODO: exclude deleted documents
       Document doc = reader.document(idoc, fieldsToLoad);
-      String value = doc.get(fld.fieldName);
-      if (value != null) {
-        if(this.shouldExcludeFormats) {
-          IndexableField format = doc.getField("format");
-          if (format != null && this.excludeFormats.contains(format.stringValue())) {
-            LOG.info(String.format("Skipping BUILD suggestion for doc with a format of: %s", format.stringValue()));
-          } else {
-            addRaw(fld, value);
-          }
+      if(this.shouldExcludeFormats) {
+        IndexableField format = doc.getField("format");
+        if (format != null && this.excludeFormats.contains(format.stringValue())) {
+          excludedFormatDocCount++;
         } else {
-          addRaw(fld, value);
+          addCount += addSuggestionValues(doc, flds);
         }
+      } else {
+        addCount += addSuggestionValues(doc, flds);
       }
-      if (idoc % 10000 == 9999) {
+      // Progress logging
+      if (idoc % BUILD_LOGGING_THRESHOLD == BUILD_LOGGING_THRESHOLD - 1) {
+        endTime = System.currentTimeMillis();
+        elapsedSeconds = (endTime - startTime) / 1000;
+        LOG.info(String.format("%s BUILD for fields %s - Docs added: %d", name, flds, addCount));
+        LOG.info(String.format("Docs scanned: %d / %d. %d%% Completed. Time spent: %d seconds.\n", idoc, maxDoc, Math.round(((double)idoc/maxDoc)*100), elapsedSeconds));
+      }
+      // Commit if reached commit threshold and have added more docs since last commit
+      if (addCount % BUILD_COMMIT_THRESHOLD == BUILD_COMMIT_THRESHOLD - 1 && addCount != lastCommitCount) {
+        LOG.info(String.format("%s BUILD COMMIT - Docs added: %s\n", name, flds));
+        lastCommitCount = addCount;
         commit(searcher);
       }
     }
     commit(searcher);
+    endTime = System.currentTimeMillis();
+    elapsedSeconds = (endTime-startTime) / 1000;
+    LOG.info(String.format("%s BUILD COMPLETED for fields %s. Build time: %d seconds.", name, flds, elapsedSeconds));
+    LOG.info(String.format("Total docs added: %d. Total docs excluded due to format: %d.\n\n\n", addCount, excludedFormatDocCount));
   }
+
+    // Iterates through all storedFields in the doc, adding their values if they are not empty and not already added.
+    // Returns the number of values added.
+    private int addSuggestionValues(Document doc, List<WeightedField> storedFields) throws IOException {
+      int valuesAdded = 0;
+      for(WeightedField fld : storedFields) {
+        String fldName = fld.fieldName;
+        String value = doc.get(fldName);
+        // Only add if value is not null, empty, or already added to suggestions.
+        if (value != null && !value.isEmpty() && addedStoredValues.add(value)) {
+          valuesAdded++;
+          addRaw(fld, value);
+        }
+      }
+      return valuesAdded;
+    }
 
   private void buildFromTerms(WeightedField fld) throws IOException {
     HighFrequencyDictionary hfd = new HighFrequencyDictionary(reader, fld.fieldName, fld.minFreq);
@@ -375,10 +420,8 @@ public class MultiSuggester extends Suggester {
   /**
    * Add the value to the suggester, so it will be available as a suggestion.
    * 
-   * @param ais
-   *          the suggester
-   * @param weight
-   *          the weight of the suggestion
+   * @param fld
+   *          The WeightedField that value came from
    * @param value
    *          the value to add
    * @throws IOException

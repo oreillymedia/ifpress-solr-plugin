@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>ifpress</groupId>
   <artifactId>ifpress-solr-plugin</artifactId>
-  <version>1.5.3</version>
+  <version>1.5.4</version>
   <name>ifpress solr plugin</name>
   <description>Contains plugins to be installed in the solr server</description>
   <dependencies>
@@ -74,8 +74,8 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <version>2.0.2</version>
         <configuration>
-          <source>1.7</source>
-          <target>1.7</target>
+          <source>1.8</source>
+          <target>1.8</target>
           <encoding>UTF-8</encoding>
         </configuration>
       </plugin>
