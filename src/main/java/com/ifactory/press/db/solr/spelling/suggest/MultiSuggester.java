@@ -149,6 +149,8 @@ public class MultiSuggester extends Suggester {
   private static final int BUILD_LOGGING_THRESHOLD = 100000;
   private static final int BUILD_COMMIT_THRESHOLD = 10000;
   private static final String EXCLUDE_FORMAT_KEY = "excludeFormat";
+  private static final String MAX_SUGGESTION_LENGTH = "maxSuggestionLength";
+  private static final String BUILD_ON_STARTUP = "buildOnStartup";
 
   private static final Logger LOG = LoggerFactory.getLogger(MultiSuggester.class);
 
@@ -158,6 +160,7 @@ public class MultiSuggester extends Suggester {
   private int maxSuggestionLength;
   private List<String> excludeFormats;
   private boolean shouldExcludeFormats;
+  private boolean buildOnStartup;
   private Set<String> addedStoredValues;
 
   // use a synchronized Multimap - there may be one with the same name for each
@@ -172,6 +175,9 @@ public class MultiSuggester extends Suggester {
     // Get formats that determine if doc should be excluded from suggestion build.
     // Use shouldExcludeFormats for faster future boolean checks.
     this.excludeFormats = config.getAll(EXCLUDE_FORMAT_KEY);
+
+    // Grab Solr's buildOnStartup config, which is a string
+    this.buildOnStartup = Boolean.valueOf((String) config.get(BUILD_ON_STARTUP));
     this.shouldExcludeFormats = this.excludeFormats != null && !this.excludeFormats.isEmpty();
 
     if(this.shouldExcludeFormats) {
@@ -206,7 +212,7 @@ public class MultiSuggester extends Suggester {
     // analysis and consider the tokens together
     analyzer = new KeywordAnalyzer();
     initWeights((NamedList) config.get("fields"), coreParam);
-    Integer maxLengthConfig = (Integer) config.get("maxSuggestionLength");
+    Integer maxLengthConfig = (Integer) config.get(MAX_SUGGESTION_LENGTH);
     maxSuggestionLength = maxLengthConfig != null ? maxLengthConfig : DEFAULT_MAX_SUGGESTION_LENGTH;
     registry.put(myname, this);
     core.addCloseHook(new CloseHandler());
@@ -371,6 +377,12 @@ public class MultiSuggester extends Suggester {
         LOG.info("load existing suggestion index");
         return;
       }
+    }
+
+    // Do not start building if SpellChecker's buildOnStartup is set to false.
+    if (!this.buildOnStartup) {
+      LOG.info(String.format("%s reload: buildOnStartup is false. Skipping build.", name));
+      return;
     }
     build(core, searcher);
   }
