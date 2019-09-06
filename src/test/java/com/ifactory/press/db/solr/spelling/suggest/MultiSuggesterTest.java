@@ -113,6 +113,9 @@ public class MultiSuggesterTest extends SolrTest {
     return solr.query(q);
   }
 
+
+  // ********************** Tests ***************************
+
   /*
    * HERO-2705
    */
@@ -308,33 +311,6 @@ public class MultiSuggesterTest extends SolrTest {
   }
 
   @Test
-  public void testOverrideAnalyzer() throws Exception {
-    rebuildSuggester();
-    assertNoSuggestions();
-    insertTestDocuments(TITLE_VALUE_FIELD);
-    assertSuggestions();
-    assertSuggestionCount("a1", 1, "title");
-    rebuildSuggester();
-    assertSuggestions();
-    assertSuggestionCount("a1", 1, "title");
-  }
-
-  @Test
-  public void testAutocommit() throws Exception {
-    // TITLE
-    rebuildSuggester();
-    assertNoSuggestions();
-    int numDocs = 10;
-    insertTestDocuments(TITLE_VALUE_FIELD, numDocs, false);
-    Thread.sleep (500); // wait for autocommit
-    //solr.commit();
-    long numFound = solr.query(new SolrQuery("*:*")).getResults().getNumFound();
-    assertEquals (numDocs, numFound);
-    assertSuggestions();
-    assertSuggestionCount("a1", 1, "title");
-  }
-
-  @Test
   public void testDocFreqWeight() throws Exception {
     // ALL
     rebuildSuggester();
@@ -356,6 +332,30 @@ public class MultiSuggesterTest extends SolrTest {
     long t1 = System.nanoTime();
     assertSuggestionCount("a2", 11, "all");
     System.out.println("testDocFreqWeight: " + (t1 - t0) + " ns");
+  }
+
+  @Test
+  public void testOverrideAnalyzer() throws Exception {
+    rebuildSuggester();
+    assertNoSuggestions();
+    insertTestDocuments(TITLE_VALUE_FIELD);
+    assertSuggestions();
+    assertSuggestionCount("a1", 1, "title");
+  }
+
+  @Test
+  public void testAutocommit() throws Exception {
+    // TITLE
+    rebuildSuggester();
+    assertNoSuggestions();
+    int numDocs = 10;
+    insertTestDocuments(TITLE_VALUE_FIELD, numDocs, false);
+    Thread.sleep (500); // wait for autocommit
+    //solr.commit();
+    long numFound = solr.query(new SolrQuery("*:*")).getResults().getNumFound();
+    assertEquals (numDocs, numFound);
+    assertSuggestions();
+    assertSuggestionCount("a1", 1, "title");
   }
 
   /*
