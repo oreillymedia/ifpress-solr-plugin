@@ -29,6 +29,8 @@ import org.apache.solr.common.SolrInputField;
 import org.apache.solr.common.util.NamedList;
 import org.apache.solr.core.CloseHook;
 import org.apache.solr.core.SolrCore;
+import org.apache.solr.search.DocIterator;
+import org.apache.solr.search.DocSet;
 import org.apache.solr.search.SolrIndexSearcher;
 import org.apache.solr.spelling.SpellingOptions;
 import org.apache.solr.spelling.SpellingResult;
@@ -146,9 +148,11 @@ public class MultiSuggester extends Suggester {
   // range. WEIGHT_SCALE should be greater than the number of documents
   private static final int WEIGHT_SCALE = 10000000;
   private static final int DEFAULT_MAX_SUGGESTION_LENGTH = 80;
-  private static final int BUILD_LOGGING_THRESHOLD = 100000;
+  private static final int BUILD_LOGGING_THRESHOLD = 200000;
   private static final int BUILD_COMMIT_THRESHOLD = 10000;
   private static final String EXCLUDE_FORMAT_KEY = "excludeFormat";
+  private static final String MAX_SUGGESTION_LENGTH = "maxSuggestionLength";
+  private static final String BUILD_ON_STARTUP = "buildOnStartup";
 
   private static final Logger LOG = LoggerFactory.getLogger(MultiSuggester.class);
 
@@ -158,6 +162,7 @@ public class MultiSuggester extends Suggester {
   private int maxSuggestionLength;
   private List<String> excludeFormats;
   private boolean shouldExcludeFormats;
+  private boolean buildOnStartup;
   private Set<String> addedStoredValues;
 
   // use a synchronized Multimap - there may be one with the same name for each
@@ -172,6 +177,9 @@ public class MultiSuggester extends Suggester {
     // Get formats that determine if doc should be excluded from suggestion build.
     // Use shouldExcludeFormats for faster future boolean checks.
     this.excludeFormats = config.getAll(EXCLUDE_FORMAT_KEY);
+
+    // Grab Solr's buildOnStartup config, which is a string
+    this.buildOnStartup = Boolean.valueOf((String) config.get(BUILD_ON_STARTUP));
     this.shouldExcludeFormats = this.excludeFormats != null && !this.excludeFormats.isEmpty();
 
     if(this.shouldExcludeFormats) {
@@ -206,7 +214,7 @@ public class MultiSuggester extends Suggester {
     // analysis and consider the tokens together
     analyzer = new KeywordAnalyzer();
     initWeights((NamedList) config.get("fields"), coreParam);
-    Integer maxLengthConfig = (Integer) config.get("maxSuggestionLength");
+    Integer maxLengthConfig = (Integer) config.get(MAX_SUGGESTION_LENGTH);
     maxSuggestionLength = maxLengthConfig != null ? maxLengthConfig : DEFAULT_MAX_SUGGESTION_LENGTH;
     registry.put(myname, this);
     core.addCloseHook(new CloseHandler());
@@ -293,16 +301,32 @@ public class MultiSuggester extends Suggester {
     long endTime;
     long elapsedSeconds;
     int lastCommitCount = 0;
+    int addCount = 0;
+    int excludedFormatDocCount = 0;
+    int maxDoc = searcher.maxDoc();
     addedStoredValues = new HashSet<>();
+
+    // Get a DocIterator most appropriate for the specific suggest field to avoid iterating all docs when possible.
+    OReillySuggestionDocSetFilter suggestDocSetFilter = new OReillySuggestionDocSetFilter(flds, searcher);
+    DocIterator docIt = null;
+    if (suggestDocSetFilter.isFilteredSuggestField()) {
+      DocSet filteredDocSet = suggestDocSetFilter.getFilteredDocSet();
+      docIt = filteredDocSet.iterator();
+      maxDoc = filteredDocSet.size();
+      flds.get(0).fieldName = suggestDocSetFilter.getSuggestFieldName();
+    }
+
+    LOG.info(String.format("%s Building suggestions using DocSet size %d", name, maxDoc));
     Set<String> fieldsToLoad = flds.stream().map(fld -> fld.fieldName).collect(Collectors.toSet());
     // Load the format field so we can filter out docs by specific formats
     if(this.shouldExcludeFormats) {
       fieldsToLoad.add("format");
     }
-    int maxDoc = searcher.maxDoc();
-    int addCount = 0;
-    int excludedFormatDocCount = 0;
-    for (int idoc = 0; idoc < maxDoc; ++idoc) {
+
+    SuggestDocIterator it = new SuggestDocIterator(docIt, maxDoc);
+
+    while(it.hasNext()) {
+      int idoc = it.nextDoc();
       Document doc = reader.document(idoc, fieldsToLoad);
       if(this.shouldExcludeFormats) {
         IndexableField format = doc.getField("format");
@@ -323,7 +347,7 @@ public class MultiSuggester extends Suggester {
       }
       // Commit if reached commit threshold and have added more docs since last commit
       if (addCount % BUILD_COMMIT_THRESHOLD == BUILD_COMMIT_THRESHOLD - 1 && addCount != lastCommitCount) {
-        LOG.info(String.format("%s BUILD COMMIT - Docs added: %s\n", name, flds));
+        LOG.info(String.format("%s BUILD COMMIT - Docs added: %s\n", name, addCount));
         lastCommitCount = addCount;
         commit(searcher);
       }
@@ -371,6 +395,12 @@ public class MultiSuggester extends Suggester {
         LOG.info("load existing suggestion index");
         return;
       }
+    }
+
+    // Do not start building if SpellChecker's buildOnStartup is set to false.
+    if (!this.buildOnStartup) {
+      LOG.info(String.format("%s reload: buildOnStartup is false. Skipping build.", name));
+      return;
     }
     build(core, searcher);
   }
@@ -545,7 +575,6 @@ public class MultiSuggester extends Suggester {
    */
   class WeightedField implements Comparable<WeightedField> {
     final static int MAX_TERM_LENGTH = 128;
-    final String fieldName;
     final long weight;
     final float minFreq;
     final float maxFreq;
@@ -554,6 +583,7 @@ public class MultiSuggester extends Suggester {
     private ConcurrentHashMap<String, Integer> pending;
     private int pendingDocCount;
     final boolean filterDuplicates;
+    String fieldName;
 
     WeightedField(String name, float weight, float minFreq, float maxFreq, Analyzer analyzer, boolean useStoredField, Boolean filterDuplicates) {
       this.fieldName = name;
