@@ -37,7 +37,7 @@ public class MultiSuggesterProcessor extends UpdateRequestProcessor {
     @Override
     public void processCommit(CommitUpdateCommand cmd) throws IOException {
         for (MultiSuggester suggester : suggesters) {
-            suggester.commit (cmd.getReq().getSearcher());
+            suggester.commit (cmd.getReq().getSearcher(), true);
         }
         if (next != null) {
             next.processCommit(cmd);

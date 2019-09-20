@@ -350,10 +350,10 @@ public class MultiSuggester extends Suggester {
       if (addCount % BUILD_COMMIT_THRESHOLD == BUILD_COMMIT_THRESHOLD - 1 && addCount != lastCommitCount) {
         LOG.info(String.format("%s BUILD COMMIT - Docs added: %s\n", name, addCount));
         lastCommitCount = addCount;
-        commit(searcher);
+        commit(searcher, false); // No need to filter duplicates on full builds, de-duping using HashSet
       }
     }
-    commit(searcher);
+    commit(searcher, false); // No need to filter duplicates on full builds, de-duping using HashSet
     endTime = System.currentTimeMillis();
     elapsedSeconds = (endTime-startTime) / 1000;
     LOG.info(String.format("%s BUILD COMPLETED for fields %s. Build time: %d seconds.", name, flds, elapsedSeconds));
@@ -514,7 +514,7 @@ public class MultiSuggester extends Suggester {
     }
   }
 
-  public void commit(SolrIndexSearcher searcher) throws IOException {
+  public void commit(SolrIndexSearcher searcher, boolean filterDuplicates) throws IOException {
     if (!(lookup instanceof SafariInfixSuggester)) {
       return;
     }
@@ -538,7 +538,7 @@ public class MultiSuggester extends Suggester {
       for (Map.Entry<String, Integer> e : batch.entrySet()) {
         String term = e.getKey();
         // check for duplicates
-        if (fld.filterDuplicates && ais.lookup(term, 1, true, false).size() > 0) {
+        if (filterDuplicates && ais.lookup(term, 1, true, false).size() > 0) {
           // LOG.debug("skipping duplicate " + term);
           continue;
         }
