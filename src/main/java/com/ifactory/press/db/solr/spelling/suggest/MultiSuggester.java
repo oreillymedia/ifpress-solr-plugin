@@ -13,8 +13,9 @@ import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.document.Document;
-import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.queryparser.classic.ParseException;
+import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.spell.HighFrequencyDictionary;
 import org.apache.lucene.search.spell.SuggestMode;
 import org.apache.lucene.search.suggest.Lookup;
@@ -153,6 +154,8 @@ public class MultiSuggester extends Suggester {
   private static final String EXCLUDE_FORMAT_KEY = "excludeFormat";
   private static final String MAX_SUGGESTION_LENGTH = "maxSuggestionLength";
   private static final String BUILD_ON_STARTUP = "buildOnStartup";
+  protected static final String[] ENGLISH_LANGUAGES = {"en", "en-us", "en-gb"};
+  private static final String BASE_PARSE_FILTER_STRING = "-format:collection language:(en en-us en-gb)";
 
   private static final Logger LOG = LoggerFactory.getLogger(MultiSuggester.class);
 
@@ -308,36 +311,34 @@ public class MultiSuggester extends Suggester {
 
     // Get a DocIterator most appropriate for the specific suggest field to avoid iterating all docs when possible.
     OReillySuggestionDocSetFilter suggestDocSetFilter = new OReillySuggestionDocSetFilter(flds, searcher);
+    QueryParser parser = new QueryParser("", analyzer);
+    DocSet filteredDocSet = null;
+    try {
+      filteredDocSet = searcher.getDocSet(parser.parse(BASE_PARSE_FILTER_STRING));
+    } catch (ParseException e) {
+      LOG.error(String.format("%s Error parsing base field queries for stored fields: %s", name, flds));
+      e.printStackTrace();
+    }
+
     DocIterator docIt = null;
     if (suggestDocSetFilter.isFilteredSuggestField()) {
-      DocSet filteredDocSet = suggestDocSetFilter.getFilteredDocSet();
+      filteredDocSet = suggestDocSetFilter.getFilteredDocSet();
+      flds.get(0).fieldName = suggestDocSetFilter.getSuggestFieldName();
+    }
+
+    if (filteredDocSet != null && filteredDocSet.size() > 0) {
       docIt = filteredDocSet.iterator();
       maxDoc = filteredDocSet.size();
-      flds.get(0).fieldName = suggestDocSetFilter.getSuggestFieldName();
     }
 
     LOG.info(String.format("%s Building suggestions using DocSet size %d", name, maxDoc));
     Set<String> fieldsToLoad = flds.stream().map(fld -> fld.fieldName).collect(Collectors.toSet());
-    // Load the format field so we can filter out docs by specific formats
-    if(this.shouldExcludeFormats) {
-      fieldsToLoad.add("format");
-    }
-
     SuggestDocIterator it = new SuggestDocIterator(docIt, maxDoc);
 
     while(it.hasNext()) {
       int idoc = it.nextDoc();
       Document doc = reader.document(idoc, fieldsToLoad);
-      if(this.shouldExcludeFormats) {
-        IndexableField format = doc.getField("format");
-        if (format != null && this.excludeFormats.contains(format.stringValue())) {
-          excludedFormatDocCount++;
-        } else {
-          addCount += addSuggestionValues(doc, flds);
-        }
-      } else {
-        addCount += addSuggestionValues(doc, flds);
-      }
+      addCount += addSuggestionValues(doc, flds);
       // Progress logging
       if (idoc % BUILD_LOGGING_THRESHOLD == BUILD_LOGGING_THRESHOLD - 1) {
         endTime = System.currentTimeMillis();
@@ -426,8 +427,15 @@ public class MultiSuggester extends Suggester {
     }
 
     SolrInputField format = doc.getField("format");
+    SolrInputField language = doc.getField("language");
+
     if (format != null && this.excludeFormats.contains(format.getValue().toString())) {
       LOG.info(String.format("Skipping ADD suggestion for doc with a format of: %s", format.getValue().toString()));
+      return;
+    }
+
+    if (language != null && !Arrays.asList(ENGLISH_LANGUAGES).contains(language.getValue().toString())) {
+      LOG.info(String.format("Skipping ADD suggestion for doc with a language of: %s", language.getValue().toString()));
       return;
     }
 
