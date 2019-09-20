@@ -25,6 +25,7 @@ public class MultiSuggesterTest extends SolrTest {
   private static final String TITLE_FIELD = "title_ms";
   private static final String TITLE_VALUE_FIELD = "title_t";
   private static final String FORMAT_FIELD = "format";
+  private static final String LANGUAGE_FIELD = "language";
   private static final String TEXT = "Now is the time time for all good people to come to the aid of their dawning intentional community";
   private static final String TITLE = "The Dawning of a New Era";
 
@@ -263,7 +264,7 @@ public class MultiSuggesterTest extends SolrTest {
   }
 
   @Test
-  public void testExcludeDocsWithSpecificFormats() throws Exception {
+  public void testExcludeDocsByBaseFormatLanguageFilter() throws Exception {
     // Erase any lingering data
     rebuildSuggester();
     // Add a document with book format
@@ -272,7 +273,6 @@ public class MultiSuggesterTest extends SolrTest {
     doc.addField(TITLE_FIELD, "A Nice Book");
     doc.addField(TEXT_FIELD, "This is a very nice book.");
     doc.addField(FORMAT_FIELD, "book");
-    solr.add(doc);
 
     // Add 2 documents, both of which have formats that are excluded in the solrconfig's excludeFormat option.
     SolrInputDocument excludedDoc = new SolrInputDocument();
@@ -280,23 +280,35 @@ public class MultiSuggesterTest extends SolrTest {
     excludedDoc.addField(TITLE_FIELD, "A Nice Playlist");
     excludedDoc.addField(TEXT_FIELD, "This is a nice playlist that should not show in suggestions.");
     excludedDoc.addField(FORMAT_FIELD, "collection");
+    excludedDoc.addField(LANGUAGE_FIELD, "en");
+
     SolrInputDocument excludedDoc2 = new SolrInputDocument();
     excludedDoc2.addField("uri", "/doc/3");
-    excludedDoc2.addField(TITLE_FIELD, "A Nice Test");
-    excludedDoc2.addField(TEXT_FIELD, "This nice test should also not show up.");
+    excludedDoc2.addField(TITLE_FIELD, "A Nice German Book");
+    excludedDoc2.addField(TEXT_FIELD, "This non-English book should not show up.");
     excludedDoc2.addField(FORMAT_FIELD, "test-format");
+    excludedDoc2.addField(LANGUAGE_FIELD, "de");
+
+    SolrInputDocument includedDoc = new SolrInputDocument();
+    includedDoc.addField("uri", "/doc/4");
+    includedDoc.addField(TITLE_FIELD, "A Nice Book that is English.");
+    includedDoc.addField(TEXT_FIELD, "This is a nice book that should show up.");
+    includedDoc.addField(FORMAT_FIELD, "test-format");
+    includedDoc.addField(LANGUAGE_FIELD, "en");
+
 
     solr.add(doc);
     solr.add(excludedDoc);
     solr.add(excludedDoc2);
+    solr.add(includedDoc);
     solr.commit();
 
     // There should only be one suggestion: suggestion for the book.
     // The doc with 'collection' format should not show in suggestions at all.
-    Suggestion suggestion = assertSuggestionCount("nice", 1, "all");
+    Suggestion suggestion = assertSuggestionCount("nice", 2, "all");
     assertEquals ("A <b>Nice</b> Book", suggestion.getAlternatives().get(0));
     assertSuggestionCount("Playlist", 0, "all");
-    assertSuggestionCount("Test", 0, "all");
+    assertSuggestionCount("German", 0, "all");
   }
 
   @Test

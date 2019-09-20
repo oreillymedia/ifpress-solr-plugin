@@ -48,7 +48,7 @@ public class MultiSuggesterCommitListener extends AbstractSolrEventListener {
     RefCounted<SolrIndexSearcher> searcher = getCore().getSearcher();
     try {
       for (MultiSuggester suggester : suggesters) {
-        suggester.commit(searcher.get());
+        suggester.commit(searcher.get(), true);
       }
     } catch (IOException e) {
       LOG.error("An IOException was thrown while committing changes to the spell suggestion index", e);
