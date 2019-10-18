@@ -1,10 +1,7 @@
 package com.ifactory.press.db.solr.spelling.suggest;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.index.DirectoryReader;
@@ -14,10 +11,13 @@ import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.Version;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SafariInfixSuggester extends AnalyzingInfixSuggester {
 
   private final boolean highlight;
+  private static final Logger LOG = LoggerFactory.getLogger(SafariInfixSuggester.class);
 
   public enum Context {
     SHOW, HIDE
@@ -75,6 +75,10 @@ public class SafariInfixSuggester extends AnalyzingInfixSuggester {
    */
   @Override
   public List<LookupResult> lookup(CharSequence key, Set<BytesRef> contexts, boolean onlyMorePopular, int num) throws IOException {
+    if (super.searcherMgr == null) {
+      LOG.info("Attempting to retrieve suggestions while suggest build in progress.");
+      return new ArrayList<>();
+    }
     if (contexts != null) {
       contexts.addAll(showContext);
     } else {
