@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 public class SafariInfixSuggester extends AnalyzingInfixSuggester {
 
   private final boolean highlight;
+  private final Set<BytesRef> suggestionSet;
   private static final Logger LOG = LoggerFactory.getLogger(SafariInfixSuggester.class);
 
   public enum Context {
@@ -39,6 +40,7 @@ public class SafariInfixSuggester extends AnalyzingInfixSuggester {
 
     showContext = Collections.singleton(new BytesRef(new byte[] { (byte) Context.SHOW.ordinal() }));
     hideContext = Collections.singleton(new BytesRef(new byte[] { (byte) Context.HIDE.ordinal() }));
+    suggestionSet = new HashSet<BytesRef>();
 
     if (!DirectoryReader.indexExists(dir)) {
       // no index in place -- build an empty one so we are prepared for updates
@@ -72,9 +74,18 @@ public class SafariInfixSuggester extends AnalyzingInfixSuggester {
     }
   }
 
+  // Override add method used during SuggestComponent suggest build to filter duplicates using HashSet.
+  @Override
+  public void add(BytesRef text, Set<BytesRef> contexts, long weight, BytesRef payload) throws IOException {
+    if(suggestionSet.add(text)) {
+      super.add(text, contexts, weight, payload);
+    }
+  }
+
   /*
-      Override each possible lookup method from AnalyzingInfixSuggester to return empty results
-      if suggest build is in progress (instead of throwing error)
+      Override each possible lookup method from AnalyzingInfixSuggester to:
+      1. Return empty results if suggest build is in progress (instead of throwing error)
+      2. Return highlighted suggestion during lookup if it exists
    */
   @Override
   public List<LookupResult> lookup(CharSequence key, Set<BytesRef> contexts, boolean onlyMorePopular, int num) throws IOException {
@@ -87,39 +98,65 @@ public class SafariInfixSuggester extends AnalyzingInfixSuggester {
     } else {
       contexts = showContext;
     }
-    return super.lookup(key, contexts, num, true, highlight);
+    List<LookupResult> lookups = super.lookup(key, contexts, num, true, highlight);
+    return extractHighlightedLookups(lookups);
   }
 
+  @Override
   public List<LookupResult> lookup(CharSequence key, int num, boolean allTermsRequired, boolean doHighlight) throws IOException {
     if (super.searcherMgr == null) {
       LOG.info("Attempting to retrieve suggestions while suggest build in progress.");
       return new ArrayList<>();
     }
-    return super.lookup(key, (BooleanQuery)null, num, allTermsRequired, doHighlight);
+    List<LookupResult> lookups = super.lookup(key, (BooleanQuery)null, num, allTermsRequired, true);
+    return extractHighlightedLookups(lookups);
   }
 
+  @Override
   public List<LookupResult> lookup(CharSequence key, Set<BytesRef> contexts, int num, boolean allTermsRequired, boolean doHighlight) throws IOException {
     if (super.searcherMgr == null) {
       LOG.info("Attempting to retrieve suggestions while suggest build in progress.");
       return new ArrayList<>();
     }
-    return super.lookup(key, this.toQuery(contexts), num, allTermsRequired, doHighlight);
+    List<LookupResult> lookups = super.lookup(key, this.toQuery(contexts), num, allTermsRequired, true);
+    return extractHighlightedLookups(lookups);
   }
 
+  @Override
   public List<LookupResult> lookup(CharSequence key, Map<BytesRef, BooleanClause.Occur> contextInfo, int num, boolean allTermsRequired, boolean doHighlight) throws IOException {
     if (super.searcherMgr == null) {
       LOG.info("Attempting to retrieve suggestions while suggest build in progress.");
       return new ArrayList<>();
     }
-    return super.lookup(key, this.toQuery(contextInfo), num, allTermsRequired, doHighlight);
+    List<LookupResult> lookups = super.lookup(key, this.toQuery(contextInfo), num, allTermsRequired, true);
+    return extractHighlightedLookups(lookups);
   }
 
+  @Override
   public List<LookupResult> lookup(CharSequence key, BooleanQuery contextQuery, int num, boolean allTermsRequired, boolean doHighlight) throws IOException {
     if (super.searcherMgr == null) {
       LOG.info("Attempting to retrieve suggestions while suggest build in progress.");
       return new ArrayList<>();
     }
-    return super.lookup(key, contextQuery, num, allTermsRequired, doHighlight);
+    List<LookupResult> lookups = super.lookup(key, contextQuery, num, allTermsRequired, true);
+    return extractHighlightedLookups(lookups);
+  }
+
+  /*
+      Returns a list of LookupResults identical to param lookups,
+      except it uses the highlightedKey if it exists.
+
+      This is workaround for a Solr bug where Suggestion classes ignore LookupResult's
+      highlightedKey field regardless of highlight configurations.
+   */
+  private List<LookupResult> extractHighlightedLookups(List<LookupResult> lookups) {
+    List<LookupResult> highlightedLookups = new ArrayList<LookupResult>();
+    for(LookupResult lr : lookups) {
+      if(lr.highlightKey != null) {
+        highlightedLookups.add(new LookupResult(lr.highlightKey.toString(), 1));
+      }
+    }
+    return highlightedLookups;
   }
 
   private BooleanQuery toQuery(Map<BytesRef, BooleanClause.Occur> contextInfo) {
