@@ -153,7 +153,7 @@ public class SafariInfixSuggester extends AnalyzingInfixSuggester {
     List<LookupResult> highlightedLookups = new ArrayList<LookupResult>();
     for(LookupResult lr : lookups) {
       if(lr.highlightKey != null) {
-        highlightedLookups.add(new LookupResult(lr.highlightKey.toString(), 1));
+        highlightedLookups.add(new LookupResult(lr.highlightKey.toString(), lr.highlightKey, lr.value, lr.payload, lr.contexts));
       }
     }
     return highlightedLookups;
