@@ -150,7 +150,7 @@ public class SafariInfixSuggester extends AnalyzingInfixSuggester {
       highlightedKey field regardless of highlight configurations.
    */
   private List<LookupResult> extractHighlightedLookups(List<LookupResult> lookups) {
-    List<LookupResult> highlightedLookups = new ArrayList<LookupResult>();
+    List<LookupResult> highlightedLookups = new ArrayList<>();
     for(LookupResult lr : lookups) {
       if(lr.highlightKey != null) {
         highlightedLookups.add(new LookupResult(lr.highlightKey.toString(), lr.highlightKey, lr.value, lr.payload, lr.contexts));
@@ -159,13 +159,15 @@ public class SafariInfixSuggester extends AnalyzingInfixSuggester {
     return highlightedLookups;
   }
 
+  // The following toQuery methods were taken directly from Lucene source code without modification,
+  // as AnalyzingInfixSuggester's toQuery methods are private and cannot be used here.
   private BooleanQuery toQuery(Map<BytesRef, BooleanClause.Occur> contextInfo) {
     if (contextInfo != null && !contextInfo.isEmpty()) {
       BooleanQuery.Builder contextFilter = new BooleanQuery.Builder();
-      Iterator var3 = contextInfo.entrySet().iterator();
+      Iterator contextIter = contextInfo.entrySet().iterator();
 
-      while(var3.hasNext()) {
-        Map.Entry<BytesRef, BooleanClause.Occur> entry = (Map.Entry)var3.next();
+      while(contextIter.hasNext()) {
+        Map.Entry<BytesRef, BooleanClause.Occur> entry = (Map.Entry)contextIter.next();
         this.addContextToQuery(contextFilter, (BytesRef)entry.getKey(), (BooleanClause.Occur)entry.getValue());
       }
 
@@ -178,10 +180,10 @@ public class SafariInfixSuggester extends AnalyzingInfixSuggester {
   private BooleanQuery toQuery(Set<BytesRef> contextInfo) {
     if (contextInfo != null && !contextInfo.isEmpty()) {
       BooleanQuery.Builder contextFilter = new BooleanQuery.Builder();
-      Iterator var3 = contextInfo.iterator();
+      Iterator contextIter = contextInfo.iterator();
 
-      while(var3.hasNext()) {
-        BytesRef context = (BytesRef)var3.next();
+      while(contextIter.hasNext()) {
+        BytesRef context = (BytesRef)contextIter.next();
         this.addContextToQuery(contextFilter, context, BooleanClause.Occur.SHOULD);
       }
 
