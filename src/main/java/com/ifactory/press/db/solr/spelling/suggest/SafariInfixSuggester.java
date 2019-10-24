@@ -19,7 +19,7 @@ import org.slf4j.LoggerFactory;
 public class SafariInfixSuggester extends AnalyzingInfixSuggester {
 
   private final boolean highlight;
-  private final Set<BytesRef> suggestionSet;
+  private Set<BytesRef> suggestionSet;
   private static final Logger LOG = LoggerFactory.getLogger(SafariInfixSuggester.class);
 
   public enum Context {
@@ -40,7 +40,7 @@ public class SafariInfixSuggester extends AnalyzingInfixSuggester {
 
     showContext = Collections.singleton(new BytesRef(new byte[] { (byte) Context.SHOW.ordinal() }));
     hideContext = Collections.singleton(new BytesRef(new byte[] { (byte) Context.HIDE.ordinal() }));
-    suggestionSet = new HashSet<BytesRef>();
+    suggestionSet = new HashSet<>();
 
     if (!DirectoryReader.indexExists(dir)) {
       // no index in place -- build an empty one so we are prepared for updates
@@ -55,6 +55,14 @@ public class SafariInfixSuggester extends AnalyzingInfixSuggester {
 
   public void update(BytesRef bytes, long weight) throws IOException {
     super.update(bytes, weight <= 0 ? hideContext : showContext, weight, null);
+  }
+
+  @Override
+  public void build(InputIterator iter) throws IOException {
+    // Reset suggestion HashSet on build
+    LOG.info("\n\nStarting suggestion build.");
+    suggestionSet = new HashSet<>();
+    super.build(iter);
   }
 
   /**
