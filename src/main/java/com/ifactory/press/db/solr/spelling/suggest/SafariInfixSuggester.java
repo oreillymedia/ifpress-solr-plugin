@@ -1,23 +1,25 @@
 package com.ifactory.press.db.solr.spelling.suggest;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.spell.Dictionary;
 import org.apache.lucene.search.suggest.InputIterator;
 import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.Version;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SafariInfixSuggester extends AnalyzingInfixSuggester {
 
   private final boolean highlight;
+  private Set<BytesRef> suggestionSet;
+  private static final Logger LOG = LoggerFactory.getLogger(SafariInfixSuggester.class);
 
   public enum Context {
     SHOW, HIDE
@@ -26,17 +28,18 @@ public class SafariInfixSuggester extends AnalyzingInfixSuggester {
   private Set<BytesRef> showContext, hideContext;
 
   public SafariInfixSuggester(
-          Directory dir,
-          Analyzer indexAnalyzer,
-          Analyzer queryAnalyzer,
-          int minPrefixChars,
-          boolean highlight
+      Directory dir,
+      Analyzer indexAnalyzer,
+      Analyzer queryAnalyzer,
+      int minPrefixChars,
+      boolean highlight
   ) throws IOException {
     super(dir, indexAnalyzer, queryAnalyzer, minPrefixChars, true);
     this.highlight = highlight;
 
     showContext = Collections.singleton(new BytesRef(new byte[] { (byte) Context.SHOW.ordinal() }));
     hideContext = Collections.singleton(new BytesRef(new byte[] { (byte) Context.HIDE.ordinal() }));
+    suggestionSet = new HashSet<>();
 
     if (!DirectoryReader.indexExists(dir)) {
       // no index in place -- build an empty one so we are prepared for updates
@@ -44,7 +47,7 @@ public class SafariInfixSuggester extends AnalyzingInfixSuggester {
     }
 
   }
-  
+
   public void clear () throws IOException {
     super.build(new EmptyInputIterator());
   }
@@ -53,9 +56,17 @@ public class SafariInfixSuggester extends AnalyzingInfixSuggester {
     super.update(bytes, weight <= 0 ? hideContext : showContext, weight, null);
   }
 
+  @Override
+  public void build(InputIterator iter) throws IOException {
+    // Reset suggestion HashSet on build
+    LOG.info("\n\nStarting suggestion build.");
+    suggestionSet = new HashSet<>();
+    super.build(iter);
+  }
+
   /**
    * Like build(), but without flushing the old entries, and *ignores duplicate entries*
-   * 
+   *
    * @param dict
    * @throws IOException
    */
@@ -70,17 +81,123 @@ public class SafariInfixSuggester extends AnalyzingInfixSuggester {
     }
   }
 
+  // Override add method used during SuggestComponent suggest build to filter duplicates using HashSet.
+  @Override
+  public void add(BytesRef text, Set<BytesRef> contexts, long weight, BytesRef payload) throws IOException {
+    if(suggestionSet.add(text)) {
+      super.add(text, contexts, weight, payload);
+    }
+  }
+
   /*
-   * disable highlighting
+      Override each possible lookup method from AnalyzingInfixSuggester to:
+      1. Return empty results if suggest build is in progress (instead of throwing error)
+      2. Return highlighted suggestion during lookup if it exists
    */
   @Override
   public List<LookupResult> lookup(CharSequence key, Set<BytesRef> contexts, boolean onlyMorePopular, int num) throws IOException {
+    if (super.searcherMgr == null) {
+      LOG.info("Attempting to retrieve suggestions while suggest build in progress.");
+      return new ArrayList<>();
+    }
     if (contexts != null) {
       contexts.addAll(showContext);
     } else {
       contexts = showContext;
     }
-    return lookup(key, contexts, num, true, highlight);
+    List<LookupResult> lookups = super.lookup(key, contexts, num, true, highlight);
+    return extractHighlightedLookups(lookups);
+  }
+
+  @Override
+  public List<LookupResult> lookup(CharSequence key, int num, boolean allTermsRequired, boolean doHighlight) throws IOException {
+    if (super.searcherMgr == null) {
+      LOG.info("Attempting to retrieve suggestions while suggest build in progress.");
+      return new ArrayList<>();
+    }
+    List<LookupResult> lookups = super.lookup(key, (BooleanQuery)null, num, allTermsRequired, true);
+    return extractHighlightedLookups(lookups);
+  }
+
+  @Override
+  public List<LookupResult> lookup(CharSequence key, Set<BytesRef> contexts, int num, boolean allTermsRequired, boolean doHighlight) throws IOException {
+    if (super.searcherMgr == null) {
+      LOG.info("Attempting to retrieve suggestions while suggest build in progress.");
+      return new ArrayList<>();
+    }
+    List<LookupResult> lookups = super.lookup(key, this.toQuery(contexts), num, allTermsRequired, true);
+    return extractHighlightedLookups(lookups);
+  }
+
+  @Override
+  public List<LookupResult> lookup(CharSequence key, Map<BytesRef, BooleanClause.Occur> contextInfo, int num, boolean allTermsRequired, boolean doHighlight) throws IOException {
+    if (super.searcherMgr == null) {
+      LOG.info("Attempting to retrieve suggestions while suggest build in progress.");
+      return new ArrayList<>();
+    }
+    List<LookupResult> lookups = super.lookup(key, this.toQuery(contextInfo), num, allTermsRequired, true);
+    return extractHighlightedLookups(lookups);
+  }
+
+  @Override
+  public List<LookupResult> lookup(CharSequence key, BooleanQuery contextQuery, int num, boolean allTermsRequired, boolean doHighlight) throws IOException {
+    if (super.searcherMgr == null) {
+      LOG.info("Attempting to retrieve suggestions while suggest build in progress.");
+      return new ArrayList<>();
+    }
+    List<LookupResult> lookups = super.lookup(key, contextQuery, num, allTermsRequired, true);
+    return extractHighlightedLookups(lookups);
+  }
+
+  /*
+      Returns a list of LookupResults identical to param lookups,
+      except it uses the highlightedKey if it exists.
+
+      This is workaround for a Solr bug where Suggestion classes ignore LookupResult's
+      highlightedKey field regardless of highlight configurations.
+   */
+  private List<LookupResult> extractHighlightedLookups(List<LookupResult> lookups) {
+    List<LookupResult> highlightedLookups = new ArrayList<>();
+    for(LookupResult lr : lookups) {
+      if(lr.highlightKey != null) {
+        highlightedLookups.add(new LookupResult(lr.highlightKey.toString(), lr.highlightKey, lr.value, lr.payload, lr.contexts));
+      }
+    }
+    return highlightedLookups;
+  }
+
+  // The following toQuery methods were taken directly from Lucene source code without modification,
+  // as AnalyzingInfixSuggester's toQuery methods are private and cannot be used here.
+  private BooleanQuery toQuery(Map<BytesRef, BooleanClause.Occur> contextInfo) {
+    if (contextInfo != null && !contextInfo.isEmpty()) {
+      BooleanQuery.Builder contextFilter = new BooleanQuery.Builder();
+      Iterator contextIter = contextInfo.entrySet().iterator();
+
+      while(contextIter.hasNext()) {
+        Map.Entry<BytesRef, BooleanClause.Occur> entry = (Map.Entry)contextIter.next();
+        this.addContextToQuery(contextFilter, (BytesRef)entry.getKey(), (BooleanClause.Occur)entry.getValue());
+      }
+
+      return contextFilter.build();
+    } else {
+      return null;
+    }
+  }
+
+  private BooleanQuery toQuery(Set<BytesRef> contextInfo) {
+    if (contextInfo != null && !contextInfo.isEmpty()) {
+      BooleanQuery.Builder contextFilter = new BooleanQuery.Builder();
+      Iterator contextIter = contextInfo.iterator();
+
+      while(contextIter.hasNext()) {
+        BytesRef context = (BytesRef)contextIter.next();
+        this.addContextToQuery(contextFilter, context, BooleanClause.Occur.SHOULD);
+      }
+
+      return contextFilter.build();
+    } else {
+      return null;
+    }
   }
 
   static class EmptyInputIterator implements InputIterator {
