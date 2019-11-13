@@ -20,17 +20,17 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Handles docvalues updates. There are three modes of operation: update docvalues, preserve docvalues, and update all.
- * 
+ *
  * Query parameter <code>updatedv.value.field</code> specifies the docvalues fields to update or preserve.
  *
- * If parameter <code>updatedv.key.field</code> is present, the processor updates docvalues of documents whose key field 
+ * If parameter <code>updatedv.key.field</code> is present, the processor updates docvalues of documents whose key field
  * matches the value provided for that field in the update message.
- * 
+ *
  * Otherwise it updates documents' stored and indexed fields in the usual way, and also stores the docvalues fields.
  * The values stored in the docvalues fields are retrieved from the existing docvalues field unless provided
  * in the input document, in which the input value is stored.  If no value is found in the input and the document
  * does not exist (or has no docvalues field value), a value of 0 is stored.
- * 
+ *
  * Note that the key field match is performed using a TermQuery, so the provided key must match an indexed term exactly.
  * For this reason, it's recommended to use this feature with unanalyzed identifier-style fields.
  */
@@ -40,17 +40,16 @@ public class UpdateDocValuesProcessor extends UpdateRequestProcessor {
   public static final String UPDATEDV_KEY_FIELD = "updatedv.key.field";
 
   private final SolrCore core;
-  
   private final String idField;
-  
+
   private final static Logger LOG = LoggerFactory.getLogger(UpdateDocValuesProcessor.class);
-  
+
   public UpdateDocValuesProcessor(String idField, SolrCore core, UpdateRequestProcessor next) throws SolrException {
     super(next);
     this.core = core;
     this.idField = idField;
   }
-  
+
   @Override
   public void processAdd(AddUpdateCommand cmd) throws IOException {
     SolrParams params = cmd.getReq().getParams();
@@ -58,7 +57,7 @@ public class UpdateDocValuesProcessor extends UpdateRequestProcessor {
     String[] valueFields = params.getParams(UPDATEDV_VALUE_FIELD);
     if (keyField != null) {
       if (valueFields == null) {
-        throw new SolrException(ErrorCode.BAD_REQUEST, "missing parameter updatedv.value.field");        
+        throw new SolrException(ErrorCode.BAD_REQUEST, "missing parameter updatedv.value.field");
       }
       updateDocValues(keyField, valueFields, cmd);
     } else {
@@ -96,6 +95,7 @@ public class UpdateDocValuesProcessor extends UpdateRequestProcessor {
     // update values of child documents, too
     List<SolrInputDocument> childDocuments = solrInputDocument.getChildDocuments();
     if (childDocuments != null) {
+      LOG.debug("Updating docvalues for children docs.");
       for (SolrInputDocument childDocument : childDocuments) {
         updateDocValuesHelper (keyField, valueFields, iw, childDocument);
       }
@@ -115,53 +115,56 @@ public class UpdateDocValuesProcessor extends UpdateRequestProcessor {
     }
   }
 
-  private void retrieveDocValuesHelper(String[] valueFields, SolrInputDocument doc, SolrIndexSearcher searcher)
-      throws IOException {
-    String id = getStringValue (doc, idField);
+  private void retrieveDocValuesHelper(String[] valueFields,
+                                       SolrInputDocument doc,
+                                       SolrIndexSearcher searcher) throws IOException {
+    // Get input doc's current field value (String)
+    String id = getStringValue(doc, idField);
     if (id == null) {
       return;
     }
-    // LOG.debug(String.format("retrieve docvalues %s", id));
+
     Term idTerm = new Term(idField, id);
-    TermQuery query = new TermQuery (idTerm);
-    TopDocs docs = searcher.search(query, 1);
+    TermQuery query = new TermQuery(idTerm);
+    // Assert TermState is not used and that objects are not null
+    TopDocs docs = query.getTermContext() == null ? searcher.search(query, 1) : null;
     LeafReader leafReader = searcher.getSlowAtomicReader();
-    if (docs.totalHits == 1) {
-      // get the value
-      // LOG.debug(String.format("found %s", id));
-      int docID = docs.scoreDocs[0].doc;
-      for (String valueField : valueFields) {
-        if (doc.get(valueField) == null) {
-          NumericDocValues ndv = leafReader.getNumericDocValues(valueField);
-          if (ndv !=  null) {
-            // LUCENE-7404 made major change forcing doc values to be retrieved through an iterator
-            ndv.advanceExact(docID);
-            long lvalue = ndv.longValue();
-            doc.addField(valueField, lvalue);
-            // LOG.debug("retrieved doc value %d", lvalue);
-          } else {
-            doc.addField(valueField, 0);
-            // LOG.debug("Initializing doc value to 0");
+    if(docs != null && leafReader != null) {
+      if (docs.totalHits == 1) {
+        // Use leafReader to get the doc value, default to 0
+        int docID = docs.scoreDocs[0].doc;
+        for (String valueField : valueFields) {
+          if (doc.get(valueField) == null) {
+            NumericDocValues ndv = leafReader.getNumericDocValues(valueField);
+            if (ndv != null) {
+              // LUCENE-7404 made major change forcing doc values to be retrieved through an iterator
+              ndv.advanceExact(docID);
+              long lvalue = ndv.longValue();
+              doc.addField(valueField, lvalue);
+            } else {
+              doc.addField(valueField, 0);
+            }
           }
-        } else {
-          // LOG.debug(String.format("%s found in input document: %s", valueField, doc.get(valueField)));
         }
-      } 
-    } else {
-      for (String valueField : valueFields) {
-        // new document, inserted without dv values: default to zero
-        doc.addField(valueField, 0);
+      } else {
+        // No document matching, handle as new document
+        for (String valueField : valueFields) {
+          // new document, inserted without dv values: default to zero
+          doc.addField(valueField, 0);
+        }
       }
-    }
-    List<SolrInputDocument> childDocuments = doc.getChildDocuments();
-    if (childDocuments != null) {
-      for (SolrInputDocument childDoc : childDocuments) {
-        retrieveDocValuesHelper(valueFields, childDoc, searcher);
+
+      // Handle updating doc values for the doc's children documents
+      List<SolrInputDocument> childDocuments = doc.getChildDocuments();
+      if (childDocuments != null) {
+        for (SolrInputDocument childDoc : childDocuments) {
+          retrieveDocValuesHelper(valueFields, childDoc, searcher);
+        }
       }
     }
   }
-  
-  private String getStringValue (SolrInputDocument solrInputDocument, String keyField) {
+
+  private String getStringValue(SolrInputDocument solrInputDocument, String keyField) {
     Object o = solrInputDocument.getFieldValue(keyField);
     if (o == null) {
       return null;
@@ -171,7 +174,7 @@ public class UpdateDocValuesProcessor extends UpdateRequestProcessor {
     }
     return (String) o;
   }
-  
+
   private long getLongValue(SolrInputDocument solrInputDocument, String valueField) {
     Object o = solrInputDocument.getFieldValue(valueField);
     if (o == null) {
@@ -183,5 +186,4 @@ public class UpdateDocValuesProcessor extends UpdateRequestProcessor {
       throw new SolrException(ErrorCode.BAD_REQUEST, "Value of DocValue valuefield " + valueField + " must be an integer, not " + o);
     }
   }
-  
 }
