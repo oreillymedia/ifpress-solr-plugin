@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory;
 public class SafariInfixSuggester extends AnalyzingInfixSuggester {
 
   private final boolean highlight;
-  private Set<BytesRef> suggestionSet;
+  private Map<Suggestion, Long> suggestWeightMap;
   private static final Logger LOG = LoggerFactory.getLogger(SafariInfixSuggester.class);
 
   public enum Context {
@@ -39,7 +39,7 @@ public class SafariInfixSuggester extends AnalyzingInfixSuggester {
 
     showContext = Collections.singleton(new BytesRef(new byte[] { (byte) Context.SHOW.ordinal() }));
     hideContext = Collections.singleton(new BytesRef(new byte[] { (byte) Context.HIDE.ordinal() }));
-    suggestionSet = new HashSet<>();
+    suggestWeightMap = new HashMap<>();
 
     if (!DirectoryReader.indexExists(dir)) {
       // no index in place -- build an empty one so we are prepared for updates
@@ -60,7 +60,7 @@ public class SafariInfixSuggester extends AnalyzingInfixSuggester {
   public void build(InputIterator iter) throws IOException {
     // Reset suggestion HashSet on build
     LOG.info("\n\nStarting suggestion build.");
-    suggestionSet = new HashSet<>();
+    suggestWeightMap = new HashMap<>();
     super.build(iter);
   }
 
@@ -81,11 +81,31 @@ public class SafariInfixSuggester extends AnalyzingInfixSuggester {
     }
   }
 
-  // Override add method used during SuggestComponent suggest build to filter duplicates using HashSet.
+  /**
+   * Adds suggestion, only de-duplicating for the same text AND context,
+   * and keeping the duplicate with the highest weight.
+   * Calls AnalyzingInfix's add method if adding new suggestion,
+   * or AnalyzingInfix's update method if updating with a higher weight for existing suggestion.
+   * @param text BytesRef representing the text of suggestion
+   * @param contexts Set<BytesRef> representing the filter contexts for the suggestion
+   * @param weight the long weight of suggestion
+   * @param payload BytesRef payload of suggestion, usually used to store more metadata about suggestion
+   * @throws IOException
+   */
   @Override
   public void add(BytesRef text, Set<BytesRef> contexts, long weight, BytesRef payload) throws IOException {
-    if(suggestionSet.add(text)) {
+    Suggestion suggestion = new Suggestion(text, contexts, weight, payload);
+    Long currentSuggestWeight = suggestWeightMap.get(suggestion);
+
+    // Add suggestion if it has not yet been added.
+    if(currentSuggestWeight == null) {
+      suggestWeightMap.put(suggestion, weight);
       super.add(text, contexts, weight, payload);
+    }
+    // If suggestion was already added with a lower weight, update suggestion with this weight
+    else if(currentSuggestWeight.doubleValue() < weight) {
+      suggestWeightMap.put(suggestion, weight);
+      super.update(text, contexts, weight, payload);
     }
   }
 
