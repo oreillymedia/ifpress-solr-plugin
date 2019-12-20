@@ -35,7 +35,7 @@ public class HighlightFormatter extends DefaultPassageFormatter {
     if(shouldPreserveField) {
       for(Passage passage : passages) {
         passage.setStartOffset(0);
-        passage.setEndOffset(content.length());
+        passage.setEndOffset(content.length()); // Offsets use len, not len-1, for the max end limit
       }
     }
 
