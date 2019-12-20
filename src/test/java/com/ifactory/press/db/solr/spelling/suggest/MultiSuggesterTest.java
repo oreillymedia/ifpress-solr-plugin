@@ -27,10 +27,7 @@ public class MultiSuggesterTest extends SolrTest {
   private static final String TEXT = "Now is the time time for all good people to come to the aid of their dawning intentional community";
   private static final String TITLE = "The Dawning of a New Era";
 
-  /*
-    This test suite uses highlighted suggestions by default to ensure that suggestion highlighting regression is caught.
-    To get non-highlighted suggestions, must add <bool name="highlight">false</bool> to the spellchecker block in solrconfig.xml.
-   */
+  // TODO: Refactor these tests to use SafariInfixSuggester instead of MultiSuggester
 
   private String unhighlight(String highlightedString) {
     return highlightedString.replaceAll("</?b>", "");
@@ -257,7 +254,7 @@ public class MultiSuggesterTest extends SolrTest {
     assertEquals ("The <b>Dawn</b>ing of a New Era", suggestion.getAlternatives().get(0));
     assertEquals ("<b>dawn</b>ing", suggestion.getAlternatives().get(1));
   }
-
+/*
   @Test
   public void testMultiSuggest() throws Exception {
     rebuildSuggester();
@@ -320,9 +317,6 @@ public class MultiSuggesterTest extends SolrTest {
     System.out.println("testDocFreqWeight: " + (t1 - t0) + " ns");
   }
 
-  /*
-   * test workaround for LUCENE-5477/SOLR-6246
-   */
   @Test
   public void testReloadCore() throws Exception {
     SolrInputDocument doc = new SolrInputDocument();
@@ -337,5 +331,6 @@ public class MultiSuggesterTest extends SolrTest {
     reload.setCoreName("collection1");
     reload.process(solr);
   }
+  */
 
 }

@@ -7,13 +7,16 @@ import org.apache.lucene.search.uhighlight.DefaultPassageFormatter;
 import org.apache.lucene.search.uhighlight.Passage;
 
 public class HighlightFormatter extends DefaultPassageFormatter {
+
+  private boolean shouldPreserveField;
   
   public HighlightFormatter () {
     super("<b>", "</b>", "... ", false);
   }
 
-  public HighlightFormatter(String preTag, String postTag, String ellipsis, boolean equals) {
-    super (preTag, postTag, ellipsis, equals);
+  public HighlightFormatter(String preTag, String postTag, String ellipsis, boolean htmlEncoder, boolean shouldPreserveField) {
+    super (preTag, postTag, ellipsis, htmlEncoder);
+    this.shouldPreserveField = shouldPreserveField;
   }
   
   /**
@@ -27,6 +30,15 @@ public class HighlightFormatter extends DefaultPassageFormatter {
         return (int) (1000.0 * (p2.getScore() - p1.getScore()));
       }
     });
+
+    // If this is a preservedField, reset offsets to make sure non-highlighted field data is not cut off
+    if(shouldPreserveField) {
+      for(Passage passage : passages) {
+        passage.setStartOffset(0);
+        passage.setEndOffset(content.length());
+      }
+    }
+
     return super.format(passages, content);
   }
 
