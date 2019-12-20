@@ -7,7 +7,11 @@ import org.apache.solr.common.params.HighlightParams;
 import org.apache.solr.highlight.UnifiedSolrHighlighter;
 import org.apache.solr.request.SolrQueryRequest;
 
+import java.util.Arrays;
+
 public class SafariSolrHighlighter extends UnifiedSolrHighlighter {
+
+  public static final String PRESERVED_FIELDS = "hl.preservedFields";
 
   /** Creates an instance of the Lucene PostingsHighlighter. Provided for subclass extension so that
    * a subclass can return a subclass of {@link UnifiedSolrHighlighter.SolrExtendedUnifiedHighlighter}. */
@@ -24,11 +28,15 @@ public class SafariSolrHighlighter extends UnifiedSolrHighlighter {
         
     @Override
     protected PassageFormatter getFormatter(String fieldName) {
+      // Try to get highlight configs, setting defaults if configs do not exist.
       String preTag = params.getFieldParam(fieldName, HighlightParams.TAG_PRE, "<em>");
       String postTag = params.getFieldParam(fieldName, HighlightParams.TAG_POST, "</em>");
       String ellipsis = params.getFieldParam(fieldName, HighlightParams.TAG_ELLIPSIS, "... ");
       String encoder = params.getFieldParam(fieldName, HighlightParams.ENCODER, "simple");
-      return new HighlightFormatter(preTag, postTag, ellipsis, "html".equals(encoder));
+      // Load PRESERVED_FIELDS, allowing the config to specify all fields in one param
+      String[] fieldsToPreserve = params.getFieldParam(fieldName, PRESERVED_FIELDS, "").split("\\s+");
+      boolean shouldPreserveField = Arrays.asList(fieldsToPreserve).contains(fieldName);
+      return new HighlightFormatter(preTag, postTag, ellipsis, "html".equals(encoder), shouldPreserveField);
     }
 
     @Override

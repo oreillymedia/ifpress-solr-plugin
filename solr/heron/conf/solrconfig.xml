@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
+<!-- TODO: "Falconize" this config and the tests -->
 <!--
  Licensed to the Apache Software Foundation (ASF) under one or more
  contributor license agreements.  See the NOTICE file distributed with
@@ -889,31 +890,32 @@
       <str name="f.text.hl.bs.type">SENTENCE</str>
       <str name="f.text.hl.snippets">3</str>
       <str name="hl.encoder">html</str>
+      <str name="hl.preservedFields">author publisher</str>
 
-<!--
-          <str name="hl.usePhraseHighlighter">true</str>
-          <str name="hl.mergeContiguous">true</str>
+      <!--
+                <str name="hl.usePhraseHighlighter">true</str>
+                <str name="hl.mergeContiguous">true</str>
 
-<str name="f.title.hl.alternateField">title</str>
-<int name="f.title.hl.maxAlternateFieldLength">0</int>
+      <str name="f.title.hl.alternateField">title</str>
+      <int name="f.title.hl.maxAlternateFieldLength">0</int>
 
-<str name="f.chapter_title.hl.alternateField">chapter_title</str>
-<int name="f.chapter_title.hl.snippets">1</int>
-<int name="f.chapter_title.hl.fragsize">0</int>
-<int name="f.chapter_title.hl.maxAlternateFieldLength">0</int>
+      <str name="f.chapter_title.hl.alternateField">chapter_title</str>
+      <int name="f.chapter_title.hl.snippets">1</int>
+      <int name="f.chapter_title.hl.fragsize">0</int>
+      <int name="f.chapter_title.hl.maxAlternateFieldLength">0</int>
 
-<str name="f.author_list.hl.alternateField">author_list</str>
-<int name="f.author_list.hl.snippets">1</int>
-<int name="f.author_list.hl.fragsize">0</int>
-<int name="f.author_list.hl.maxAlternateFieldLength">0</int>
+      <str name="f.author_list.hl.alternateField">author_list</str>
+      <int name="f.author_list.hl.snippets">1</int>
+      <int name="f.author_list.hl.fragsize">0</int>
+      <int name="f.author_list.hl.maxAlternateFieldLength">0</int>
 
-<int name="f.text.hl.snippets">3</int>
-<int name="f.text.hl.fragsize">65</int>
-<str name="f.text.hl.alternateField">text</str>
-<int name="f.text.hl.maxAlternateFieldLength">200</int>
-<str name="f.text.hl.useFastVectorHighlighter">true</str>
-<str name="f.text.hl.fragmenter">regex</str>
-      -->
+      <int name="f.text.hl.snippets">3</int>
+      <int name="f.text.hl.fragsize">65</int>
+      <str name="f.text.hl.alternateField">text</str>
+      <int name="f.text.hl.maxAlternateFieldLength">200</int>
+      <str name="f.text.hl.useFastVectorHighlighter">true</str>
+      <str name="f.text.hl.fragmenter">regex</str>
+            -->
 
     </lst>
     <!-- appends params are appended to every query -->
