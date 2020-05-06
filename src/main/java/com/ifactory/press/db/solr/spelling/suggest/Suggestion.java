@@ -19,6 +19,18 @@ public class Suggestion {
     this.payload = payload != null ? payload.utf8ToString() : null;
   }
 
+  public Suggestion(String rawText, String[] rawContexts, long weight, BytesRef payload) {
+    this.text = rawText;
+    this.contexts = new HashSet<>();
+    this.weight = weight;
+    this.payload = payload != null ? payload.utf8ToString() : null;
+    if(rawContexts != null) {
+      for (String context : rawContexts) {
+        contexts.add(new BytesRef(context));
+      }
+    }
+  }
+
   public String getText() {
     return text;
   }

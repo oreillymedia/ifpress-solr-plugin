@@ -55,6 +55,10 @@ public class SafariInfixSuggester extends AnalyzingInfixSuggester {
 
   }
 
+  public Map<Suggestion, Long> getSuggestWeightMap() {
+    return suggestWeightMap;
+  }
+
   public void clear () throws IOException {
     super.build(new EmptyInputIterator());
   }
