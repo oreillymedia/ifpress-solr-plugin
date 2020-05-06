@@ -19,6 +19,7 @@ public class SafariInfixSuggester extends AnalyzingInfixSuggester {
 
   private final boolean highlight;
   private Map<Suggestion, Long> suggestWeightMap;
+  private Set<BytesRef> excludedContextBytes;
   private static final Logger LOG = LoggerFactory.getLogger(SafariInfixSuggester.class);
 
   public enum Context {
@@ -32,7 +33,8 @@ public class SafariInfixSuggester extends AnalyzingInfixSuggester {
       Analyzer indexAnalyzer,
       Analyzer queryAnalyzer,
       int minPrefixChars,
-      boolean highlight
+      boolean highlight,
+      List<String> excludedContexts
   ) throws IOException {
     super(dir, indexAnalyzer, queryAnalyzer, minPrefixChars, true);
     this.highlight = highlight;
@@ -40,6 +42,11 @@ public class SafariInfixSuggester extends AnalyzingInfixSuggester {
     showContext = Collections.singleton(new BytesRef(new byte[] { (byte) Context.SHOW.ordinal() }));
     hideContext = Collections.singleton(new BytesRef(new byte[] { (byte) Context.HIDE.ordinal() }));
     suggestWeightMap = new HashMap<>();
+    excludedContextBytes = new HashSet<>();
+
+    for(String contextString : excludedContexts){
+      excludedContextBytes.add(new BytesRef(contextString));
+    }
 
     if (!DirectoryReader.indexExists(dir)) {
       // no index in place -- build an empty one so we are prepared for updates
@@ -94,19 +101,30 @@ public class SafariInfixSuggester extends AnalyzingInfixSuggester {
    */
   @Override
   public void add(BytesRef text, Set<BytesRef> contexts, long weight, BytesRef payload) throws IOException {
-    Suggestion suggestion = new Suggestion(text, contexts, weight, payload);
-    Long currentSuggestWeight = suggestWeightMap.get(suggestion);
+    if (shouldSuggestBeIncluded(contexts, this.excludedContextBytes)) {
+      Suggestion suggestion = new Suggestion(text, contexts, weight, payload);
+      Long currentSuggestWeight = suggestWeightMap.get(suggestion);
 
-    // Add suggestion if it has not yet been added.
-    if(currentSuggestWeight == null) {
-      suggestWeightMap.put(suggestion, weight);
-      super.add(text, contexts, weight, payload);
+      // Add suggestion if it has not yet been added.
+      if (currentSuggestWeight == null) {
+        suggestWeightMap.put(suggestion, weight);
+        super.add(text, contexts, weight, payload);
+      }
+      // If suggestion was already added with a lower weight, update suggestion with this weight
+      else if (currentSuggestWeight.doubleValue() < weight) {
+        suggestWeightMap.put(suggestion, weight);
+        super.update(text, contexts, weight, payload);
+      }
     }
-    // If suggestion was already added with a lower weight, update suggestion with this weight
-    else if(currentSuggestWeight.doubleValue() < weight) {
-      suggestWeightMap.put(suggestion, weight);
-      super.update(text, contexts, weight, payload);
+  }
+
+  // Checks whether suggestion should be included based on the given contexts and excludedContexts
+  private boolean shouldSuggestBeIncluded(Set<BytesRef> contexts, Set<BytesRef> excludedContexts) {
+    if(contexts != null && excludedContexts != null) {
+      // disjoint returns true if the two collections have no elements in common (but is not null-safe)
+      return Collections.disjoint(contexts, excludedContexts);
     }
+    return true;
   }
 
   /*
