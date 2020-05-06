@@ -2,6 +2,7 @@ package com.ifactory.press.db.solr.spelling.suggest;
 
 import org.apache.lucene.util.BytesRef;
 
+import java.util.HashSet;
 import java.util.Set;
 
 public class Suggestion {
@@ -13,9 +14,21 @@ public class Suggestion {
 
   public Suggestion(BytesRef text, Set<BytesRef> contexts, long weight, BytesRef payload) {
     this.text = text != null ? text.utf8ToString() : null;
-    this.contexts = contexts;
+    this.contexts = contexts != null ? contexts : new HashSet<BytesRef>();
     this.weight = weight;
     this.payload = payload != null ? payload.utf8ToString() : null;
+  }
+
+  public Suggestion(String rawText, String[] rawContexts, long weight, BytesRef payload) {
+    this.text = rawText;
+    this.contexts = new HashSet<>();
+    this.weight = weight;
+    this.payload = payload != null ? payload.utf8ToString() : null;
+    if(rawContexts != null) {
+      for (String context : rawContexts) {
+        contexts.add(new BytesRef(context));
+      }
+    }
   }
 
   public String getText() {

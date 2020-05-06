@@ -1221,220 +1221,120 @@ unless you are sure you always want it.
      -->
   
    <!-- Suggester -->
-  <searchComponent name="suggest-component" class="solr.SpellCheckComponent">
+  <searchComponent name="suggester" class="solr.SuggestComponent">
 
-    <!-- Multiple "Spell Checkers" can be declared and used by this
-         component
-      -->
+    <!-- Multiple suggesters can be configured with this SuggestComponent -->
 
-    <!-- a spellchecker built from a field of the main index -->
-    <lst name="spellchecker">
-      <str name="name">suggest-infix-all</str>
-      <!-- ignored -->
-      <!-- <str name="field">text</str> -->
-      <str name="classname">com.ifactory.press.db.solr.spelling.suggest.MultiSuggester</str>
+    <lst name="suggester">
+      <str name="name">suggester-title</str>
+
       <str name="lookupImpl">com.ifactory.press.db.solr.spelling.suggest.SafeInfixLookupFactory</str>
-      <str name="indexPath">${solr.core.instanceDir}/${solr.core.dataDir}/suggest-all</str>
+      <str name="indexPath">${solr.core.instanceDir}/${solr.core.dataDir}/suggester-title</str>
+      <str name="dictionaryImpl">DocumentDictionaryFactory</str>
+      <str name="field">title</str>
       <str name="suggestAnalyzerFieldType">text_suggest</str>
-      <!--<float name="threshold">0.005</float>-->
-      <float name="threshold">0.0</float>
-      <!-- true == performance-killer. MultiSuggester handles incremental updates automatically, so there's no need for this anyway. -->
+      <str name="buildOnStartup">false</str>
       <str name="buildOnCommit">false</str>
-      <lst name="fields">
-        <lst name="field">
-          <str name="name">text</str>
-          <float name="weight">0.001</float>
-          <float name="minfreq">0.001</float>
-          <float name="maxfreq">0.3</float>
-        </lst>
-        <lst name="field">
-          <str name="name">query_kw</str>
-          <float name="weight">1.0</float>
-        </lst>
-        <lst name="field">
-          <str name="name">title</str>
-          <float name="weight">1.0</float>
-          <str name="analyzerFieldType">string</str>
-        </lst>
-        <lst name="field">
-          <str name="name">author</str>
-          <float name="weight">1.0</float>
-          <str name="analyzerFieldType">string</str>
-        </lst>
-        <lst name="field">
-          <str name="name">publisher</str>
-          <float name="weight">1.0</float>
-          <str name="analyzerFieldType">string</str>
-        </lst>
-        <lst name="field">
-          <str name="name">isbn</str>
-          <float name="weight">1.0</float>
-          <str name="analyzerFieldType">string</str>
-        </lst>
-      </lst>
+      <str name="highlight">true</str>
     </lst>
 
-    <lst name="spellchecker">
-      <str name="name">suggest-infix-author</str>
-      <lst name="fields">
-        <lst name="field">
-          <str name="name">author</str>
-          <str name="analyzerFieldType">string</str>
-          <float name="weight">2.0</float>
-        </lst>
-        <lst name="field">
-          <str name="name">author</str>
-          <float name="weight">1.0</float>
-        </lst>
-      </lst>
-      <str name="classname">com.ifactory.press.db.solr.spelling.suggest.MultiSuggester</str>
+    <lst name="suggester">
+      <str name="name">suggester-author</str>
+
       <str name="lookupImpl">com.ifactory.press.db.solr.spelling.suggest.SafeInfixLookupFactory</str>
-      <str name="indexPath">${solr.core.instanceDir}/${solr.core.dataDir}/suggest-author</str>
+      <str name="indexPath">${solr.core.instanceDir}/${solr.core.dataDir}/suggester-author</str>
+      <str name="dictionaryImpl">DocumentDictionaryFactory</str>
+      <str name="field">title</str>
       <str name="suggestAnalyzerFieldType">text_suggest</str>
-      <float name="threshold">0.0</float>
+      <str name="buildOnStartup">false</str>
       <str name="buildOnCommit">false</str>
+      <str name="highlight">true</str>
     </lst>
 
-    <lst name="spellchecker">
-      <str name="name">suggest-infix-title</str>
-      <lst name="fields">
-        <lst name="field">
-          <str name="name">title</str>
-          <str name="analyzerFieldType">string</str>
-          <float name="weight">2.0</float>
-        </lst>
-        <lst name="field">
-          <str name="name">title</str>
-          <float name="weight">1.0</float>
-        </lst>
-      </lst>
-      <str name="classname">com.ifactory.press.db.solr.spelling.suggest.MultiSuggester</str>
+    <lst name="suggester">
+      <str name="name">suggester-publisher</str>
+
       <str name="lookupImpl">com.ifactory.press.db.solr.spelling.suggest.SafeInfixLookupFactory</str>
-      <str name="indexPath">${solr.core.instanceDir}/${solr.core.dataDir}/suggest-title</str>
+      <str name="indexPath">${solr.core.instanceDir}/${solr.core.dataDir}/suggester-publisher</str>
+      <str name="dictionaryImpl">DocumentDictionaryFactory</str>
+      <str name="field">title</str>
       <str name="suggestAnalyzerFieldType">text_suggest</str>
-      <float name="threshold">0.0</float>
+      <str name="buildOnStartup">false</str>
       <str name="buildOnCommit">false</str>
+      <str name="highlight">true</str>
     </lst>
 
-    <lst name="spellchecker">
-      <str name="name">suggest-infix-publisher</str>
-      <lst name="fields">
-        <lst name="field">
-          <str name="name">publisher</str>
-          <str name="analyzerFieldType">string</str>
-          <float name="weight">2.0</float>
-        </lst>
-        <!-- FIXME: remove this workaround for a bug in ifpress-solr-plugin
-             once rev. 1.2.11 is deployed, and also for the other fields
-             below It indexes all the words as suggestions, in addition to
-             the whole field value.  The only reason we have it is because there
-             is an NPE if you don't have any word-based fields.
-        -->
-        <lst name="field">
-          <str name="name">publisher</str>
-          <float name="weight">1.0</float>
-        </lst>
-      </lst>
-      <str name="classname">com.ifactory.press.db.solr.spelling.suggest.MultiSuggester</str>
-      <str name="lookupImpl">com.ifactory.press.db.solr.spelling.suggest.SafeInfixLookupFactory</str>
-      <str name="indexPath">${solr.core.instanceDir}/${solr.core.dataDir}/suggest-publisher</str>
-      <str name="suggestAnalyzerFieldType">text_suggest</str>
-      <float name="threshold">0.0</float>
-      <str name="buildOnCommit">false</str>
-    </lst>
+    <lst name="suggester">
+      <str name="name">suggester-isbn</str>
 
-    <lst name="spellchecker">
-      <str name="name">suggest-infix-isbn</str>
-      <lst name="fields">
-        <lst name="field">
-          <str name="name">isbn</str>
-          <str name="analyzerFieldType">string</str>
-        </lst>
-        <lst name="field">
-          <str name="name">isbn</str>
-          <str name="analyzerFieldType">string</str>
-          <float name="weight">2.0</float>
-        </lst>
-        <lst name="field">
-          <str name="name">publisher</str>
-          <float name="weight">1.0</float>
-        </lst>
-      </lst>
-      <str name="classname">com.ifactory.press.db.solr.spelling.suggest.MultiSuggester</str>
       <str name="lookupImpl">com.ifactory.press.db.solr.spelling.suggest.SafeInfixLookupFactory</str>
-      <str name="indexPath">${solr.core.instanceDir}/${solr.core.dataDir}/suggest-isbn</str>
+      <str name="indexPath">${solr.core.instanceDir}/${solr.core.dataDir}/suggester-isbn</str>
+      <str name="dictionaryImpl">DocumentDictionaryFactory</str>
+      <str name="field">title</str>
       <str name="suggestAnalyzerFieldType">text_suggest</str>
-      <float name="threshold">0.0</float>
+      <str name="buildOnStartup">false</str>
       <str name="buildOnCommit">false</str>
+      <str name="highlight">true</str>
     </lst>
-    
   </searchComponent>
 
-  <!-- A request handler for the Suggester -->
-  <requestHandler name="/suggest/all" class="solr.SearchHandler" startup="lazy">
+  <!-- Request handlers for the SuggestComponent Suggesters -->
+  <requestHandler name="/suggester/all" class="solr.SearchHandler" startup="lazy" >
     <lst name="defaults">
-      <str name="spellcheck">true</str>
-      <!-- order by frequency (otherwise alphabetically) -->
-      <str name="spellcheck.onlyMorePopular">true</str>
-      <str name="spellcheck.dictionary">suggest-infix-all</str>
-      <str name="spellcheck.count">10</str>
-      <!-- include a query incorporating the suggested term? -->
-      <!-- <str name="spellcheck.collate">true</str> -->
+      <str name="suggest">true</str>
+      <str name="suggest.count">10</str>
+      <!-- include all suggesters -->
+      <str name="suggest.dictionary">suggester-title</str>
+      <str name="suggest.dictionary">suggester-author</str>
+      <str name="suggest.dictionary">suggester-publisher</str>
+      <str name="suggest.dictionary">suggester-isbn</str>
     </lst>
     <arr name="components">
-      <str>suggest-component</str>
+      <str>suggester</str>
     </arr>
   </requestHandler>
 
-  <requestHandler name="/suggest/author" class="solr.SearchHandler" startup="lazy">
+  <requestHandler name="/suggester/title" class="solr.SearchHandler" startup="lazy" >
     <lst name="defaults">
-      <str name="spellcheck">true</str>
-      <!-- order by frequency (otherwise alphabetically) -->
-      <str name="spellcheck.onlyMorePopular">true</str>
-      <str name="spellcheck.dictionary">suggest-infix-author</str>
-      <str name="spellcheck.count">10</str>
+      <str name="suggest">true</str>
+      <str name="suggest.count">10</str>
+      <str name="suggest.dictionary">suggester-title</str>
     </lst>
     <arr name="components">
-      <str>suggest-component</str>
+      <str>suggester</str>
     </arr>
   </requestHandler>
 
-  <requestHandler name="/suggest/title" class="solr.SearchHandler" startup="lazy">
+  <requestHandler name="/suggester/author" class="solr.SearchHandler" startup="lazy" >
     <lst name="defaults">
-      <str name="spellcheck">true</str>
-      <!-- order by frequency (otherwise alphabetically) -->
-      <str name="spellcheck.onlyMorePopular">true</str>
-      <str name="spellcheck.dictionary">suggest-infix-title</str>
-      <str name="spellcheck.count">10</str>
+      <str name="suggest">true</str>
+      <str name="suggest.count">10</str>
+      <str name="suggest.dictionary">suggester-author</str>
     </lst>
     <arr name="components">
-      <str>suggest-component</str>
+      <str>suggester</str>
     </arr>
   </requestHandler>
 
-  <requestHandler name="/suggest/publisher" class="solr.SearchHandler" startup="lazy">
+  <requestHandler name="/suggester/publisher" class="solr.SearchHandler" startup="lazy" >
     <lst name="defaults">
-      <str name="spellcheck">true</str>
-      <!-- order by frequency (otherwise alphabetically) -->
-      <str name="spellcheck.onlyMorePopular">true</str>
-      <str name="spellcheck.dictionary">suggest-infix-publisher</str>
-      <str name="spellcheck.count">10</str>
+      <str name="suggest">true</str>
+      <str name="suggest.count">10</str>
+      <str name="suggest.dictionary">suggester-publisher</str>
     </lst>
     <arr name="components">
-      <str>suggest-component</str>
+      <str>suggester</str>
     </arr>
   </requestHandler>
 
-  <requestHandler name="/suggest/isbn" class="solr.SearchHandler" startup="lazy">
+  <requestHandler name="/suggester/isbn" class="solr.SearchHandler" startup="lazy" >
     <lst name="defaults">
-      <str name="spellcheck">true</str>
-      <!-- order by frequency (otherwise alphabetically) -->
-      <str name="spellcheck.onlyMorePopular">true</str>
-      <str name="spellcheck.dictionary">suggest-infix-isbn</str>
-      <str name="spellcheck.count">10</str>
+      <str name="suggest">true</str>
+      <str name="suggest.count">10</str>
+      <str name="suggest.dictionary">suggester-isbn</str>
     </lst>
     <arr name="components">
-      <str>suggest-component</str>
+      <str>suggester</str>
     </arr>
   </requestHandler>
 
@@ -1713,9 +1613,6 @@ unless you are sure you always want it.
 
   <!-- chain for MultiSuggesterProcessor -->
   <updateRequestProcessorChain name="suggester-update-chain" default="false">
-    <processor class="com.ifactory.press.db.solr.processor.MultiSuggesterProcessorFactory">
-      <str name="suggester-component">suggest-component</str>
-    </processor>
     <processor class="com.ifactory.press.db.solr.processor.UpdateDocValuesProcessorFactory" />
     <processor class="solr.LogUpdateProcessorFactory" />
     <processor class="solr.RunUpdateProcessorFactory" />

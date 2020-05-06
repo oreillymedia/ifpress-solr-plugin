@@ -3,6 +3,7 @@ package com.ifactory.press.db.solr.spelling.suggest;
 import static org.junit.Assert.*;
 
 import java.io.IOException;
+import java.util.ArrayList;
 
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
 import org.apache.lucene.store.Directory;
@@ -209,7 +210,7 @@ public class MultiSuggesterTest extends SolrTest {
     MultiDictionary dict = new MultiDictionary();
     WhitespaceAnalyzer analyzer = new WhitespaceAnalyzer();
     Directory dir = new RAMDirectory();
-    SafariInfixSuggester s = new SafariInfixSuggester(dir, analyzer, analyzer, 1, true);
+    SafariInfixSuggester s = new SafariInfixSuggester(dir, analyzer, analyzer, 1, true, new ArrayList<String>());
     try {
       s.build(dict);
       assertTrue(s.lookup("", false, 1).isEmpty());
