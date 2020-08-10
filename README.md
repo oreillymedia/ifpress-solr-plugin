@@ -1,6 +1,6 @@
-# Safari Solr plugin project
+# O'Reilly Media's Solr Plugin
 
-This library provides Solr plugins used at Safari.  These are designed 
+This library provides Solr plugins used at O'Reilly Media.  These are designed 
 to be loaded into Solr by installing the jar in a library folder that
 will extend Solr's classpath: usually solr/lib.
 
