@@ -127,7 +127,7 @@ public class UpdateDocValuesProcessor extends UpdateRequestProcessor {
     Term idTerm = new Term(idField, id);
     TermQuery query = new TermQuery(idTerm);
     // Assert TermState is not used and that objects are not null
-    TopDocs docs = query.getTermContext() == null ? searcher.search(query, 1) : null;
+    TopDocs docs = query.getTermStates() == null ? searcher.search(query, 1) : null;
     LeafReader leafReader = searcher.getSlowAtomicReader();
     if(docs != null && leafReader != null) {
       if (docs.totalHits == 1) {
