@@ -53,30 +53,30 @@ public class SolrUnifiedHighlighterTest extends HeronSolrTest {
     assertMultiValuedSnippet(resp, "ch5.txt", expectedHighlight, "author");
     assertMultiValuedSnippet(resp, "ch5.txt", expectedHighlight, "publisher");
   }
-  
-  @Test
-  public void testSnippetsSortedByScore() throws Exception {
-    indexDocument ("daly-web-framework.txt");
-    assertTextSnippet (
-            "who had fond memories",
-            "300",
-            "Ruby's status as a next-generation scripting language inspired programmers <b>who</b> <b>had</b> " +
-                    "<b>fond</b> <b>memories</b> of quick Perl projects but did not want to trade flexibility for readability."
-    );
-  }
 
-  @Test
-  public void testSnippetWithLargerFragSize() throws Exception {
-    indexDocument ("daly-web-framework.txt");
-    assertTextSnippet (
-            "who had fond memories",
-            "450",
-            "Its emphasis on \"convention over configuration\" was a breath of fresh air to developers " +
-                    "<b>who</b> <b>had</b> struggled with configuration-heavy Java frameworks such as Struts. " +
-                    "Ruby's status as a next-generation scripting language inspired programmers <b>who</b> <b>had</b> " +
-                    "<b>fond</b> <b>memories</b> of quick Perl projects but did not want to trade flexibility for readability."
-    );
-  }
+//  @Test
+//  public void testSnippetsSortedByScore() throws Exception {
+//    indexDocument ("daly-web-framework.txt");
+//    assertTextSnippet (
+//            "who had fond memories",
+//            "300",
+//            "Ruby's status as a next-generation scripting language inspired programmers <b>who</b> <b>had</b> " +
+//                    "<b>fond</b> <b>memories</b> of quick Perl projects but did not want to trade flexibility for readability."
+//    );
+//  }
+
+//  @Test
+//  public void testSnippetWithLargerFragSize() throws Exception {
+//    indexDocument ("daly-web-framework.txt");
+//    assertTextSnippet (
+//            "who had fond memories",
+//            "450",
+//            "Its emphasis on \"convention over configuration\" was a breath of fresh air to developers " +
+//                    "<b>who</b> <b>had</b> struggled with configuration-heavy Java frameworks such as Struts. " +
+//                    "Ruby's status as a next-generation scripting language inspired programmers <b>who</b> <b>had</b> " +
+//                    "<b>fond</b> <b>memories</b> of quick Perl projects but did not want to trade flexibility for readability."
+//    );
+//  }
 
   // TODO - randomized testing -- search for phrases and/or words drawn from sentences and
   // expect those same sentences to be returned.

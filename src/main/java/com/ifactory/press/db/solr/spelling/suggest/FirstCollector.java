@@ -1,9 +1,8 @@
 package com.ifactory.press.db.solr.spelling.suggest;
 
 import java.io.IOException;
-
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.search.Scorer;
+import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.SimpleCollector;
 import org.apache.solr.search.EarlyTerminatingCollectorException;
 
@@ -13,30 +12,26 @@ import org.apache.solr.search.EarlyTerminatingCollectorException;
 class FirstCollector extends SimpleCollector {
 
     private LeafReaderContext arc;
-    
+
     int docID = -1;
-    
+
     public int getDocID() {
         return docID;
     }
-    
-    @Override
-    public void setScorer(Scorer scorer) throws IOException {
-    }
 
     @Override
-    public void collect(int doc) throws EarlyTerminatingCollectorException {
+    public void collect(int doc) throws IOException {
         this.docID = arc.docBase + doc;
         throw new EarlyTerminatingCollectorException(1, 1);
     }
 
     @Override
-    public void doSetNextReader(LeafReaderContext context) throws IOException {
+    protected void doSetNextReader(LeafReaderContext context) throws IOException {
         arc = context;
     }
 
     @Override
-    public boolean needsScores() {
-        return false;
+    public ScoreMode scoreMode() {
+        return ScoreMode.COMPLETE_NO_SCORES;
     }
 }
