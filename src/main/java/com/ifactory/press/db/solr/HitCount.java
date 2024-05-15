@@ -61,7 +61,7 @@ public class HitCount extends ValueSourceParser {
                 https://issues.apache.org/jira/browse/LUCENE-6425
              */
             IndexReader emptyReader = new MultiReader();
-            new IndexSearcher(emptyReader).createNormalizedWeight(q, true).extractTerms(terms);
+            new IndexSearcher(emptyReader).createWeight(q, true, 1f).extractTerms(terms);
         } catch (UnsupportedOperationException e) {
             return new DoubleConstValueSource (1);
         } catch (IOException e) {
