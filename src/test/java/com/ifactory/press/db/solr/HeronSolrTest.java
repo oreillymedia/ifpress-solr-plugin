@@ -2,6 +2,8 @@ package com.ifactory.press.db.solr;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.solr.client.solrj.SolrClient;
@@ -23,8 +25,8 @@ public class HeronSolrTest {
   public static void startup() throws Exception {
     FileUtils.cleanDirectory(new File("solr/heron/data/"));
     // start an embedded solr instance
-    coreContainer = new CoreContainer("solr");
-    coreContainer.load();
+    Path solrHome = Paths.get("solr");
+    coreContainer = CoreContainer.createAndLoad(solrHome);
   }
 
   @AfterClass

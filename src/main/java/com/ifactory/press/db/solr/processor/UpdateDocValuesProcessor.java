@@ -127,10 +127,10 @@ public class UpdateDocValuesProcessor extends UpdateRequestProcessor {
     Term idTerm = new Term(idField, id);
     TermQuery query = new TermQuery(idTerm);
     // Assert TermState is not used and that objects are not null
-    TopDocs docs = query.getTermContext() == null ? searcher.search(query, 1) : null;
+    TopDocs docs = searcher.search(query, 1) ;
     LeafReader leafReader = searcher.getSlowAtomicReader();
     if(docs != null && leafReader != null) {
-      if (docs.totalHits == 1) {
+      if (docs.totalHits.value == 1) {
         // Use leafReader to get the doc value, default to 0
         int docID = docs.scoreDocs[0].doc;
         for (String valueField : valueFields) {

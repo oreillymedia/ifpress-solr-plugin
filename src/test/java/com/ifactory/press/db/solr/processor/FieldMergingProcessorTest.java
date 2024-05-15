@@ -41,15 +41,15 @@ import com.ifactory.press.db.solr.SolrTest;
 
 
 public class FieldMergingProcessorTest extends SolrTest {
-    
+
     private static final String TEXT_FIELD = "text_mt";
     private static final String TITLE_FIELD = "title_mt";
     private static final String TEST = "Now is the time for all good people to come to the aid of their intentional community";
     private static final String TITLE = "The Dawning of a New Era";
-    
+
     // insert text_t and title_t and expect to get titles as phrase tokens and text as word tokens
     // in catchall
-    
+
     @Test
     public void testMergeFields () throws Exception {
         SolrInputDocument doc = new SolrInputDocument();
@@ -58,7 +58,7 @@ public class FieldMergingProcessorTest extends SolrTest {
         doc.addField(TEXT_FIELD, TEST);
         solr.add(doc);
         solr.commit(false, true, true);
-        
+
         // basic check that the document was inserted
         SolrQuery solrQuery = new SolrQuery ("uri:\"/doc/1\"");
         QueryResponse resp = solr.query(solrQuery);
@@ -66,19 +66,19 @@ public class FieldMergingProcessorTest extends SolrTest {
         assertEquals (1, docs.size());
         SolrDocument result = docs.get(0);
         assertEquals ("/doc/1", result.get("uri"));
-        
+
         // text field is tokenized, analyzed:
         assertQueryCount (1, TEXT_FIELD + ":intentional");
 
         // title field is tokenized, analyzed:
         assertQueryCount (1, TITLE_FIELD + ":era");
         assertQueryCount (1, TITLE_FIELD + ":dawning");
-        
+
         for (TermsResponse.Term term : getTerms(TITLE_FIELD)) {
             assertNotEquals (TITLE, term.getTerm());
         }
 
-        HashSet<String> words = new HashSet<String>(Arrays.asList(TEST.split(" "))); 
+        HashSet<String> words = new HashSet<String>(Arrays.asList(TEST.split(" ")));
         int numWords = words.size();
         List<TermsResponse.Term> terms;
         terms = getTerms("catchall");
@@ -92,15 +92,15 @@ public class FieldMergingProcessorTest extends SolrTest {
         }
         assertTrue ("title not found in catchall terms list", found);
     }
-    
+
     private void assertQueryCount (int count, String query) throws SolrServerException, IOException {
         SolrQuery solrQuery = new SolrQuery (query);
         QueryResponse resp = solr.query(solrQuery);
         SolrDocumentList docs = resp.getResults();
         assertEquals (count, docs.size());
-        
+
     }
-    
+
     private List<TermsResponse.Term> getTerms (String field) throws SolrServerException, IOException {
         SolrQuery solrQuery = new SolrQuery();
         solrQuery.setParam(CommonParams.QT, "/terms");
@@ -110,7 +110,7 @@ public class FieldMergingProcessorTest extends SolrTest {
         QueryResponse resp = solr.query(solrQuery);
         return resp.getTermsResponse().getTermMap().get(field);
     }
-    
+
     @Test
     public void testInsertMultiple() throws Exception {
         // test committing batches of documents to see if we can successfully re-use the analysis
