@@ -31,6 +31,7 @@ import org.apache.lucene.queries.function.valuesource.SumFloatFunction;
 import org.apache.lucene.queries.function.valuesource.TermFreqValueSource;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreMode;
 import org.apache.solr.search.FunctionQParser;
 import org.apache.solr.search.SyntaxError;
 import org.apache.solr.search.ValueSourceParser;
@@ -61,7 +62,7 @@ public class HitCount extends ValueSourceParser {
                 https://issues.apache.org/jira/browse/LUCENE-6425
              */
             IndexReader emptyReader = new MultiReader();
-            new IndexSearcher(emptyReader).createWeight(q, true, 1f).extractTerms(terms);
+            new IndexSearcher(emptyReader).createWeight(q, ScoreMode.COMPLETE, 1f).extractTerms(terms);
         } catch (UnsupportedOperationException e) {
             return new DoubleConstValueSource (1);
         } catch (IOException e) {

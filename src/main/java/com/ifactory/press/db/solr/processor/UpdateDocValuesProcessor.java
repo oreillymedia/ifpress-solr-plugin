@@ -130,7 +130,7 @@ public class UpdateDocValuesProcessor extends UpdateRequestProcessor {
     TopDocs docs = query.getTermStates() == null ? searcher.search(query, 1) : null;
     LeafReader leafReader = searcher.getSlowAtomicReader();
     if(docs != null && leafReader != null) {
-      if (docs.totalHits == 1) {
+      if (docs.totalHits.value == 1) {
         // Use leafReader to get the doc value, default to 0
         int docID = docs.scoreDocs[0].doc;
         for (String valueField : valueFields) {
