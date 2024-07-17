@@ -1,5 +1,12 @@
 ifpress-solr-plugin CHANGELOG
 =============================
+* 1.7.0
+  - Upgrade to Solr v8.11.3
+  - METACON-2476: 
+      - TermContext has been renamed to TermStates.
+      - StandardFilter and StandardFilterFactory have been removed.
+      - Deprecated method IndexSearcher#createNormalizedWeight() has been removed and replaced with createWeight() adding a booster of 1. 
+
 * 1.6.0
 
   - Upgrade to Solr v7.6.0
