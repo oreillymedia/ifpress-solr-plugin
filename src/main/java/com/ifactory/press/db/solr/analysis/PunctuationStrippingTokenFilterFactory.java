@@ -3,7 +3,7 @@ package com.ifactory.press.db.solr.analysis;
 import java.util.Map;
 
 import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.util.TokenFilterFactory;
+import org.apache.lucene.analysis.TokenFilterFactory;
 
 public class PunctuationStrippingTokenFilterFactory extends TokenFilterFactory {
 

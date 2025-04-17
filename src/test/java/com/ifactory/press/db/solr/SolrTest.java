@@ -4,7 +4,7 @@ import java.io.File;
 import java.io.IOException;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.solr.client.solrj.SolrServer;
+import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
 import org.apache.solr.core.CoreContainer;
@@ -13,20 +13,33 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SolrTest {
 
   static CoreContainer coreContainer;
-  protected SolrServer solr;
+  protected SolrClient solr;
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(SolrTest.class);
+
+  
     @BeforeClass
     public static void startup() throws Exception {
-      FileUtils.cleanDirectory(new File("solr/collection1/data/"));
-      FileUtils.cleanDirectory(new File("solr/collection1/suggestIndex/"));
-      FileUtils.cleanDirectory(new File("solr/heron/data/"));
-      // start an embedded solr instance
-      coreContainer = new CoreContainer("solr");
-      coreContainer.load();
+      final File solrDir = new File("solr").getAbsoluteFile();
+      
+      System.setProperty("solr.install.dir", solrDir.getParentFile().getAbsoluteFile().getPath());
+      System.setProperty("solr.modules", "scripting");
+      
+      try {
+        FileUtils.cleanDirectory(new File("solr/collection1/data/"));
+        FileUtils.cleanDirectory(new File("solr/collection1/suggestIndex/"));
+        //FileUtils.cleanDirectory(new File("solr/heron/data/"));
+        // start an embedded solr instance
+        coreContainer = CoreContainer.createAndLoad(solrDir.toPath());
+      } catch (Throwable e) {
+        LOGGER.error("Failed to start solr: " + e.getMessage(), e);
+      }
     }
 
     @AfterClass
@@ -38,7 +51,6 @@ public class SolrTest {
         coreContainer.shutdown();
         FileUtils.cleanDirectory(new File("solr/collection1/data/"));
         FileUtils.cleanDirectory(new File("solr/collection1/suggestIndex/"));
-        FileUtils.cleanDirectory(new File("solr/heron/data/"));
         coreContainer = null;
     }
 

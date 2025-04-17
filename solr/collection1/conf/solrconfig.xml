@@ -35,7 +35,7 @@
        that you fully re-index after changing this setting as it can
        affect both how text is indexed and queried.
   -->
-  <luceneMatchVersion>4.8</luceneMatchVersion>
+  <luceneMatchVersion>9.11</luceneMatchVersion>
 
   <!-- lib directives can be used to instruct Solr to load an Jars identified
        and use them to resolve any "plugins" specified in your solrconfig.xml or
@@ -231,19 +231,6 @@
      <!-- <infoStream file="INFOSTREAM.txt">false</infoStream> --> 
   </indexConfig>
 
-  <!--	Enables JMX if and only if an existing MBeanServer is found, use this
-    if you want to configure JMX through JVM parameters. Remove this to disable
-    exposing Solr configuration and statistics to JMX.
-
-		If you want to connect to a particular server, specify the agentId
-		e.g. <jmx agentId="myAgent" />
-
-		If you want to start a new MBeanServer, specify the serviceUrl
-		e.g <jmx serviceUrl="service:jmx:rmi:///jndi/rmi://localhost:9999/solr"/>
-
-		For more details see http://wiki.apache.org/solr/SolrJmx
-  -->
-  <jmx />
   <!-- If you want to connect to a particular server, specify the
        agentId 
     -->
@@ -261,9 +248,9 @@
          is recommended (see below).
          "dir" - the target directory for transaction logs, defaults to the
                 solr data directory.  --> 
-    <updateLog>
+<!--     <updateLog>
       <str name="dir">${solr.ulog.dir:}</str>
-    </updateLog>
+    </updateLog> -->
 
     <!-- AutoCommit
 
@@ -404,7 +391,7 @@
            autowarmCount - the number of entries to prepopulate from
                and old cache.  
       -->
-    <filterCache class="solr.FastLRUCache"
+    <filterCache
                  size="512"
                  initialSize="512"
                  autowarmCount="0"/>
@@ -414,7 +401,7 @@
          Caches results of searches - ordered lists of document ids
          (DocList) based on a query, a sort, and the range of documents requested.  
       -->
-    <queryResultCache class="solr.LRUCache"
+    <queryResultCache
                      size="512"
                      initialSize="512"
                      autowarmCount="0"/>
@@ -425,7 +412,7 @@
          document).  Since Lucene internal document ids are transient,
          this cache will not be autowarmed.  
       -->
-    <documentCache class="solr.LRUCache"
+    <documentCache
                    size="512"
                    initialSize="512"
                    autowarmCount="0"/>
@@ -697,6 +684,8 @@
      <lst name="defaults">
        <str name="echoParams">explicit</str>
        <int name="rows">10</int>
+       <str name="q.op">AND</str>
+       <str name="df">xml_text</str>
        <!--<str name="df">text</str>-->
      </lst>
     <!-- In addition to defaults, "appends" params can be specified
@@ -763,7 +752,8 @@
        <str name="echoParams">explicit</str>
        <str name="wt">json</str>
        <str name="indent">true</str>
-       <str name="df">text</str>
+       <str name="df">xml_text</str>
+       <str name="q.op">AND</str>
      </lst>
   </requestHandler>
 
@@ -888,14 +878,6 @@
   <requestHandler name="/analysis/document" 
                   class="solr.DocumentAnalysisRequestHandler" 
                   startup="lazy" />
-
-  <!-- Admin Handlers
-
-       Admin Handlers - This will register all the standard admin
-       RequestHandlers.  
-    -->
-  <requestHandler name="/admin/" 
-                  class="solr.admin.AdminHandlers" />
 
   <!-- This single handler is equivalent to the following... -->
   <!--
@@ -1023,102 +1005,6 @@
 
   
    <!-- Suggester -->
-  <searchComponent name="suggest-component" class="solr.SpellCheckComponent">
-
-    <!-- Multiple "Spell Checkers" can be declared and used by this
-         component
-      -->
-
-    <!-- a spellchecker built from a field of the main index -->
-    <lst name="spellchecker">
-      <str name="name">suggest-infix-all</str>
-      <str name="classname">com.ifactory.press.db.solr.spelling.suggest.MultiSuggester</str>
-      <str name="lookupImpl">com.ifactory.press.db.solr.spelling.suggest.SafeInfixLookupFactory</str>
-      <str name="suggestAnalyzerFieldType">text</str>
-      <int name="maxSuggestionLength">100</int>
-      <str name="indexPath">solr/${solr.core.name}/suggestIndex</str>
-      <float name="threshold">0.0</float>
-      <!-- true => NPE now that we have NRT support??.  For production, schedule a rebuild nightly instead -->
-      <str name="buildOnCommit">false</str>
-      <bool name="highlight">false</bool>
-      <lst name="fields">
-        <lst name="field">
-          <str name="name">fulltext_t</str>
-          <float name="weight">1.0</float>
-          <float name="minfreq">0.005</float>
-          <float name="maxfreq">0.3</float>
-        </lst>
-        <lst name="field">
-          <str name="name">title_t</str>
-          <!-- override the analyzer -->
-          <str name="analyzerFieldType">string</str>
-          <float name="weight">11.0</float>
-        </lst>
-        <lst name="field">
-          <str name="name">keyword</str>
-          <float name="weight">3.0</float>
-          <bool name="filterDuplicates">true</bool>
-        </lst>
-        <lst name="field">
-          <str name="name">duplicate_title_t</str>
-          <str name="analyzerFieldType">string</str>
-          <float name="weight">3.0</float>
-          <bool name="filterDuplicates">true</bool>
-        </lst>
-        <lst name="field">
-          <str name="name">title_ms</str>
-          <!-- use the field's analyzer -->
-          <float name="weight">11.0</float>
-        </lst>
-      </lst>
-    </lst>
-    
-    <lst name="spellchecker">
-      <str name="name">suggest-infix-title</str>
-      <lst name="fields">
-        <lst name="field">
-          <str name="name">title_t</str>
-          <str name="analyzerFieldType">string</str>
-          <float name="weight">2.0</float>
-        </lst>
-      </lst>
-      <str name="classname">com.ifactory.press.db.solr.spelling.suggest.MultiSuggester</str>
-      <str name="lookupImpl">com.ifactory.press.db.solr.spelling.suggest.SafeInfixLookupFactory</str>
-      <str name="indexPath">${solr.core.instanceDir}/${solr.core.dataDir}/suggest-title</str>
-      <str name="suggestAnalyzerFieldType">text</str>
-      <float name="threshold">0.0</float>
-      <str name="buildOnCommit">false</str>
-    </lst>
-
-
-  </searchComponent>
-
-  <!-- A request handler for the Suggester -->
-  <requestHandler name="/suggest/all" class="solr.SearchHandler" startup="lazy">
-    <lst name="defaults">
-      <str name="spellcheck">true</str>
-      <!-- order by frequency (otherwise alphabetically) -->
-      <str name="spellcheck.onlyMorePopular">true</str>
-      <str name="spellcheck.dictionary">suggest-infix-all</str>
-      <str name="spellcheck.count">10</str>
-      <!-- include a query incorporating the suggested term? -->
-      <!-- <str name="spellcheck.collate">true</str> -->
-    </lst>
-    <arr name="components">
-      <str>suggest-component</str>
-    </arr>
-  </requestHandler>
-
-  <requestHandler name="/suggest/title" class="solr.SearchHandler" startup="lazy">
-    <lst name="defaults">
-      <str name="spellcheck">true</str>
-      <str name="spellcheck.dictionary">suggest-infix-title</str>
-      <str name="spellcheck.count">10</str>
-    </lst>
-    <arr name="components">
-      <str>suggest-component</str>
-    </arr>
-  </requestHandler>
 
   <!-- Term Vector Component
 
@@ -1140,6 +1026,8 @@
      <lst name="defaults">
       <bool name="terms">true</bool>
       <bool name="distrib">false</bool>
+       <str name="q.op">AND</str>
+       <str name="df">text</str>
     </lst>     
     <arr name="components">
       <str>terms</str>
@@ -1178,9 +1066,6 @@
 
        http://wiki.apache.org/solr/HighlightingParameters
     -->
-  <searchComponent class="solr.HighlightComponent" name="highlight-postings">
-    <highlighting class="org.apache.solr.highlight.PostingsSolrHighlighter"/>
-  </searchComponent>
 
   <searchComponent class="solr.HighlightComponent" name="highlight">
     <highlighting>
@@ -1310,7 +1195,6 @@
    </updateRequestProcessorChain>
 
    <updateRequestProcessorChain name="docvalues-update-chain" default="false">
-     <processor class="com.ifactory.press.db.solr.processor.UpdateDocValuesProcessorFactory" />
      <processor class="solr.LogUpdateProcessorFactory" />
      <processor class="solr.RunUpdateProcessorFactory" />
    </updateRequestProcessorChain>
@@ -1357,7 +1241,7 @@
        in Solr's conf/xslt directory.  Changes to xslt files are checked for
        every xsltCacheLifetimeSeconds.  
     -->
-  <queryResponseWriter name="xslt" class="solr.XSLTResponseWriter">
+  <queryResponseWriter name="xslt" class="solr.scripting.xslt.XSLTResponseWriter">
     <int name="xsltCacheLifetimeSeconds">5</int>
   </queryResponseWriter>
 
@@ -1369,7 +1253,6 @@
        used in either the "defType" param for the QueryComponent (used
        by SearchHandler) or in LocalParams
     -->
-   <queryParser name="scoring_parent" class="com.ifactory.press.db.solr.search.ScoringParentQParserPlugin"/>
 
   <!-- Function Parsers
 
@@ -1391,6 +1274,4 @@
 
   <!-- <codecFactory name="CodecFactory" class="com.sbo.lucene.codec.FSFieldCodecFactory" /> -->
   
-  <valueSourceParser name="hitCount" class="com.ifactory.press.db.solr.HitCount" />
-
 </config>

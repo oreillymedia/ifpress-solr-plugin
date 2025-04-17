@@ -156,11 +156,6 @@ public class MultiDictionary implements Dictionary {
     }
 
     @Override
-    public Comparator<BytesRef> getComparator() {
-      return curInput.getComparator();
-    }
-
-    @Override
     public BytesRef payload() {
       return curInput.payload();
     }

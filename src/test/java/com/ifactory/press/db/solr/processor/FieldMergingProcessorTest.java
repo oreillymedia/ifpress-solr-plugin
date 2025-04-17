@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -92,7 +93,7 @@ public class FieldMergingProcessorTest extends SolrTest {
         assertTrue ("title not found in catchall terms list", found);
     }
     
-    private void assertQueryCount (int count, String query) throws SolrServerException {
+    private void assertQueryCount (int count, String query) throws SolrServerException, IOException {
         SolrQuery solrQuery = new SolrQuery (query);
         QueryResponse resp = solr.query(solrQuery);
         SolrDocumentList docs = resp.getResults();
@@ -100,7 +101,7 @@ public class FieldMergingProcessorTest extends SolrTest {
         
     }
     
-    private List<TermsResponse.Term> getTerms (String field) throws SolrServerException {
+    private List<TermsResponse.Term> getTerms (String field) throws SolrServerException, IOException {
         SolrQuery solrQuery = new SolrQuery();
         solrQuery.setParam(CommonParams.QT, "/terms");
         solrQuery.setParam(TermsParams.TERMS, true);

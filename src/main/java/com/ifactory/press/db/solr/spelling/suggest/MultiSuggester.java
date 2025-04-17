@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.Token;
+import org.apache.solr.spelling.Token;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
@@ -19,6 +19,7 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.spell.HighFrequencyDictionary;
 import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.BytesRefBuilder;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.util.NamedList;
 import org.apache.solr.core.CloseHook;
@@ -412,23 +413,30 @@ public class MultiSuggester extends Suggester {
       // commit
       ConcurrentHashMap<String, Integer> batch = fld.pending;
       fld.pending = new ConcurrentHashMap<String, Integer>(batch.size());
-      BytesRef bytes = new BytesRef(maxSuggestionLength);
-      Term t = new Term(fld.fieldName, bytes);
+      
       long minCount = (long) (fld.minFreq * docCount);
       long maxCount = (long) (docCount <= 1 ? Long.MAX_VALUE : (fld.maxFreq * docCount + 1));
       updated = updated || !batch.isEmpty();
       for (Map.Entry<String, Integer> e : batch.entrySet()) {
         String term = e.getKey();
+        
         // check for duplicates
         if (fld.filterDuplicates && ais.lookup(term, 1, true, false).size() > 0) {
           // LOG.debug("skipping duplicate " + term);
           continue;
         }
+        BytesRefBuilder builder = new BytesRefBuilder();
+        builder.setLength(maxSuggestionLength);
+        BytesRef bytes = builder.get();
+        
         // TODO: incorporate external metric (eg popularity) into weight
         long weight;
         if (fld.fieldAnalyzer == null) {
           weight = fld.weight;
         } else {
+          builder.copyChars(term);
+          bytes = builder.get();
+          Term t = new Term(fld.fieldName, bytes);
           long count = searcher.getIndexReader().docFreq(t);
           if (count < 0) {
             // FIXME: is this even possible?
@@ -442,7 +450,6 @@ public class MultiSuggester extends Suggester {
             weight = (fld.weight * count) / docCount;
           }
         }
-        bytes.copyChars(term);
         // LOG.debug("add " + bytes.utf8ToString());
         ais.update(bytes, weight);
       }
@@ -500,7 +507,7 @@ public class MultiSuggester extends Suggester {
 
   }
 
-  class CloseHandler extends CloseHook {
+  class CloseHandler implements CloseHook {
 
     @Override
     public void postClose(SolrCore c) {

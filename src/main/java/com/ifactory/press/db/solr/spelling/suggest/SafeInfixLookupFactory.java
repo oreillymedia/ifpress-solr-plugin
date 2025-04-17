@@ -59,8 +59,7 @@ public class SafeInfixLookupFactory extends AnalyzingInfixLookupFactory {
         }
 
          try {
-             return new SafariInfixSuggester(core.getSolrConfig().luceneMatchVersion, 
-                                           FSDirectory.open(new File(indexPath)), indexAnalyzer,
+             return new SafariInfixSuggester(FSDirectory.open(new File(indexPath).toPath()), indexAnalyzer,
                                            queryAnalyzer, minPrefixChars, highlight);
          } catch (IOException e) {
              throw new SolrException(ErrorCode.SERVER_ERROR, e);
