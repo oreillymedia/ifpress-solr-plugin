@@ -4,6 +4,11 @@ This library provides Solr plugins used at O'Reilly Media.  These are designed
 to be loaded into Solr by installing the jar in a library folder that
 will extend Solr's classpath: usually solr/lib.
 
+#### End of Life Notice: 2026-08-01
+
+Development and maintenance of this plugin will be discontinued on August 1st, 2026. 
+After this, the code will no longer receive upgrades, fixes nor features.
+
 ## HitCount
 
 HitCount is a function, for use as part of a Solr query, that counts the total number of times all query
